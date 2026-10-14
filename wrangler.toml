@@ -1,0 +1,20 @@
+name = "mygem-tryon"
+main = "tryon-worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Only these sites may call the worker. Add "null" only while testing from file://
+ALLOWED_ORIGINS = "https://mygem.ge,https://www.mygem.ge"
+# Image-editing model. Swap for a newer Gemini image model any time, no code change.
+GEMINI_MODEL = "gemini-3.1-flash-image"
+
+# Google OAuth 2.0 "Web application" Client ID (public value, NOT the client secret) for "Continue with Google".
+# See SETUP-GOOGLE-AUTH.md. Must be the same ID whose "Authorized JavaScript origins" include your site.
+GOOGLE_CLIENT_ID = ""
+
+# Optional abuse protection (see Cloudflare "Rate Limiting" binding docs), then uncomment:
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "1001"
+# simple = { limit = 10, period = 60 }
