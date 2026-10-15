@@ -807,3 +807,77 @@ label.ckrow { cursor: pointer; }
 /* header wordmark (replaces the old icon + text logo) */
 .logo img.wm { width: auto; height: 36px; max-width: none; mix-blend-mode: normal; }
 @media (max-width: 700px) { .logo img.wm { height: 28px; } }
+/* ---- per-listing currency switch (OFF = ₾ GEL, ON = $ USD), bottom of each card / product page ---- */
+.cur { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border: 1px solid var(--cream2); border-radius: 999px; background: var(--w); color: var(--mu); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; transition: border-color 0.2s, background 0.2s; }
+.cur:hover { background: var(--hov); }
+.cur:focus-visible { outline: 2px solid var(--gold-d); outline-offset: 2px; }
+.cur .cl { transition: color 0.2s; line-height: 1; }
+.cur .cl:first-child { color: var(--gold-d); }
+.cur .cl:last-child { color: var(--mu); }
+.cur.on .cl:first-child { color: var(--mu); }
+.cur.on .cl:last-child { color: var(--gold-d); }
+.cur .trk { position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--cream2); transition: background 0.2s; flex: none; }
+.cur .trk i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(17, 24, 39, 0.3); transition: transform 0.2s; }
+.cur.on .trk { background: var(--gold-d); }
+.cur.on .trk i { transform: translateX(14px); }
+.card .cbot { display: flex; justify-content: flex-end; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--cream2); }
+.cur.sm { height: 28px; padding: 0 8px; gap: 6px; font-size: 12px; }
+.cur.sm .trk { width: 30px; height: 18px; }
+.cur.sm .trk i { width: 14px; height: 14px; }
+.cur.sm.on .trk i { transform: translateX(12px); }
+@media (prefers-reduced-motion: reduce) { .cur .trk, .cur .trk i, .cur .cl { transition: none; } }
+/* ---- price range filter ---- */
+.fgrid .pwrow { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pwrow.one { grid-template-columns: 1fr; }
+.pwrow .prng { min-width: 0; }
+.pwrow .prow { gap: 6px; }
+.pwrow .prow input { padding: 0 8px; font-size: 14px; }
+@media (max-width: 340px) { .pwrow { grid-template-columns: 1fr; } }
+/* add-listing form: weight and price on one row, package selector below */
+.form .trio { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form .trio > :nth-child(3) { grid-column: 1 / -1; }
+.form .trio > * { min-width: 0; }
+.prng .prow { display: flex; align-items: center; gap: 8px; }
+.prng .prow input { flex: 1; min-width: 0; }
+.prng .prow i { font-style: normal; color: var(--mu); }
+
+/* ---- "other" item-name input: keep the whole placeholder visible ---- */
+.dd-other { padding: 0 10px; font-size: 14px; text-overflow: ellipsis; }
+.dd-other::placeholder { font-size: 13px; }
+/* ---- bank transfer payment box ---- */
+.paybox { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--cream2); border-radius: 8px; background: var(--cream); }
+.paybox h4 { margin: 0; font-size: 16px; color: var(--gold-d); }
+.payamt { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: var(--r); background: var(--w); border: 1px solid var(--cream2); }
+.payamt span, .payrecv span, .payln span, .bacc span { font-size: 13px; color: var(--mu); font-weight: 500; }
+.payamt b { font-size: 22px; color: var(--gold-d); font-variant-numeric: tabular-nums; }
+.payrecv { display: flex; align-items: baseline; justify-content: flex-start; gap: 8px; padding: 0 2px; flex-wrap: nowrap; }
+.payrecv b, .payln b { color: var(--tx); font-weight: 600; font-size: 15px; }
+.banks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bank { padding: 14px; border: 1px solid var(--cream2); border-radius: var(--r); background: var(--w); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.bank .bn { font-weight: 700; color: var(--gold-d); font-size: 15px; }
+.bacc { display: flex; flex-direction: column; gap: 6px; }
+.brow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.brow b { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; letter-spacing: 0.3px; color: var(--tx); word-break: break-all; user-select: all; }
+.copybtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--cream2); border-radius: var(--r); background: var(--w); color: var(--tx); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.copybtn:hover { background: var(--hov); }
+.copybtn.ok { background: var(--gold-d); border-color: var(--gold-d); color: #fff; }
+.payln { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border-radius: var(--r); background: var(--w); border: 1px solid var(--cream2); }
+.payln b { word-break: break-word; }
+.paybox .addon { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; color: var(--tx); }
+.rcprev { display: flex; align-items: center; gap: 10px; }
+.rcprev img { width: 56px; height: 56px; object-fit: cover; border-radius: var(--r); border: 1px solid var(--cream2); }
+.paynote { margin: 0; font-size: 13px; color: var(--mu); line-height: 1.5; }
+@media (max-width: 700px) { .banks { grid-template-columns: 1fr; } }
+.card .in > .price + .cbot { margin-top: auto; }
+
+/* ---- colored listing: owner-chosen border color; listings without the feature keep the default border ---- */
+.card.is-color { border-color: var(--bc, #C9A227); box-shadow: 0 0 0 1px var(--bc, #C9A227); }
+.cpbox { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--cream2); border-radius: var(--r); background: var(--w); font-size: 13px; color: var(--mu); font-weight: 500; }
+.cpbox.own { margin-bottom: 18px; background: var(--cream); }
+.cpick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.csq { width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--cream2); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+.csq:hover { transform: scale(1.1); }
+.csq.on { box-shadow: 0 0 0 2px var(--gold-d); }
+.cany { position: relative; display: inline-flex !important; flex-direction: row !important; align-items: center; gap: 0 !important; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; cursor: pointer; background: conic-gradient(#f44, #fd4, #4d4, #4df, #94f, #f4a, #f44); box-shadow: 0 0 0 1px var(--cream2); }
+.cany input[type=color] { position: absolute; inset: -6px; width: 40px; height: 40px; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .csq { transition: none; } }
