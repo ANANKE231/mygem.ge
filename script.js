@@ -161,7 +161,8 @@ const UI={
  prev:'<path d="M15 5l-7 7 7 7"/>',
  next:'<path d="M9 5l7 7-7 7"/>',
  chev:'<path d="M6 9l6 6 6-6"/>',
- search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>'};
+ search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+ trash:'<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12M9 7V4h6v3"/>'};
 const ui=(k,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${UI[k]}</svg>`;
 
 /* ---------- product page helpers ---------- */
@@ -259,6 +260,14 @@ function openMsg(id){if(!me)return openAuth('login');const p=items.find(x=>Strin
   if(s.u)pushNote(s.u.email,`ახალი შეტყობინება განცხადებაზე «${p.title}» – ${nm} (${me.phone||'—'}): ${v}`);
   addNote(`შეტყობინება გაიგზავნა განცხადებაზე: ${p.title}`);closeModal();toast('შეტყობინება გაგზავნილია ✓')};
  setTimeout(()=>{const T=$('#mT');if(T){T.focus();T.select()}},60)}
+const canDel=p=>!!me&&!!p&&(same(me.email,p.owner)||isAdmin());
+function confirmDelete(id){const p=items.find(x=>String(x.id)===String(id));if(!canDel(p))return;curAuth=null;modal.classList.add('show');
+ $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('trash')}</div><h3>დარწმუნებული ხართ, რომ გსურთ განცხადების წაშლა?</h3><p>«${esc(p.title)}»<br>წაშლის შემდეგ განცხადების აღდგენა შეუძლებელია.</p><div class="row2"><button type="button" class="btn danger" id="dlYes">დიახ, წაშლა</button><button type="button" class="btn alt" id="dlNo">გაუქმება</button></div></div>`;
+ $('#dlNo').focus();$('#dlNo').onclick=closeModal;
+ $('#dlYes').onclick=()=>{if(!canDel(p))return closeModal();const ownerMail=p.owner;
+  items=items.filter(x=>x.id!==p.id);favs=favs.filter(x=>x!==p.id);delete pv[p.id];delete pc[p.id];
+  save('items',items);save('favs',favs);save('pv',pv);setFavCnt();closeModal();toast('განცხადება წაიშალა ✓');
+  if(location.hash.startsWith('#profile'))route();else location.hash='profile:mine'}}
 function confirmLogout(){curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('logout')}</div><h3>დარწმუნებული ხართ, რომ გსურთ გასვლა?</h3><div class="row2"><button type="button" class="btn" id="lgYes">დიახ</button><button type="button" class="btn alt" id="lgNo">არა</button></div></div>`;
  $('#lgNo').focus();$('#lgNo').onclick=closeModal;
@@ -286,7 +295,7 @@ document.addEventListener('click',e=>{const op=e.target.closest('.dd-opt');
 const ill=p=>`<svg class="ill" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[p.type]||ICONS.other}</svg>`;
 function card(p){const f=favs.includes(p.id),c=pc[p.id]||'GEL',tn=typeName(p);
  const tags=[p.cat,tn,p.weight?p.weight+' გრ':'',p.attrs&&p.attrs.pur?p.attrs.pur+' სინჯი':'',p.gender].filter(Boolean).slice(0,3).map(t=>`<span class="tg">${esc(t)}</span>`).join('');
- return `<div class="card${p.vip?(p.vip=='VIP'?' is-vip':' is-svip'):''}${cardHex(p)?' is-color':''}"${cardHex(p)?` style="--bc:${cardHex(p)}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}<div class="img"><div class="imgi" style="${p.photos[0]?`background-image:url('${p.photos[0]}')`:''}">${p.photos[0]?'':ill(p)}</div></div><div class="in"><small class="loc">${esc(p.loc||'')}</small><div class="trow"><h4>${esc(p.title)}</h4><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>${ownChip(p)}<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${tags?`<div class="tags">${tags}</div>`:''}<div class="cbot">${curSw(p.id,c)}</div></div></div>`}
+ return `<div class="card${p.vip?(p.vip=='VIP'?' is-vip':' is-svip'):''}${cardHex(p)?' is-color':''}"${cardHex(p)?` style="--bc:${cardHex(p)}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}<div class="img"><div class="imgi" style="${p.photos[0]?`background-image:url('${p.photos[0]}')`:''}">${p.photos[0]?'':ill(p)}</div></div><div class="in"><small class="loc">${esc(p.loc||'')}</small><div class="trow"><h4>${esc(p.title)}</h4><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>${ownChip(p)}<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${tags?`<div class="tags">${tags}</div>`:''}<div class="cbot">${canDel(p)&&location.hash.startsWith('#profile')?`<button type="button" class="cdel" data-del="${p.id}" aria-label="განცხადების წაშლა" title="წაშლა">${ui('trash')}<span>წაშლა</span></button>`:''}${curSw(p.id,c)}</div></div></div>`}
 const grid=l=>`<div class="grid">${l.map(card).join('')}</div>`;
 
 /* ---------- filters ---------- */
@@ -349,7 +358,7 @@ add(){if(!me){openAuth('login');return '<div class="page"><div class="panel empt
  window.ph=[];window.rc=null;
   const UP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>';
  return `<div class="page"><div class="panel"><h2 style="margin-bottom:16px;color:var(--pd)">ახალი განცხადება</h2><form class="form" id="addForm" novalidate><div class="fsum full" id="formSum" hidden></div>
- ${fld('კატეგორია',dd('aC',{list:DD.cat}))}${fld('ნივთის ტიპი',dd('aK',{list:DD.type,other:1,otherPh:'ნივთის დასახელება'}))}${fld('მდებარეობა',dd('aL',{list:mk(LOC)}))}<div class="dyn" id="aDyn">${fRender('a','')}</div><label>დასახელება<input id="aT" maxlength="80"></label>
+ ${fld('ნივთის ტიპი',dd('aK',{list:DD.type,other:1,otherPh:'ნივთის დასახელება'}))}${fld('მდებარეობა',dd('aL',{list:mk(LOC)}))}<div class="dyn" id="aDyn">${fRender('a','')}</div><label>დასახელება<input id="aT" maxlength="80"></label>
  <label class="full">აღწერა<textarea id="aD" rows="3"></textarea></label><div class="trio full"><label>წონა (გრ)<input id="aW" type="number" step="0.1" min="0"></label><label>ფასი (₾)<input id="aP" type="number" min="0"></label>${fld('განცხადების ტიპი',dd('aPlan',{list:Object.keys(PLANS).map(k=>[k,planLabel(k)]),val:'REG'}))}</div><p class="planinfo full" id="planInfo"></p>${payBox()}
  <div class="fld full" id="photoFld"><span>ფოტოები (მინ. 3, მაქს. 8)</span><label class="drop" id="drop" for="aF"><span class="up">${UP}</span><b>ატვირთეთ ფოტოები</b><small>გადმოათრიეთ აქ ან <u>აირჩიეთ ფაილები</u></small><small>JPG, PNG, WEBP · პირველი ფოტო იქნება მთავარი</small></label><input type="file" id="aF" accept="image/*" multiple hidden><div class="pcount" id="pcount"><div class="pbar"><i id="pbar"></i></div><span id="pcnt">0/3 მინიმუმ</span></div><div class="photos" id="prev"></div></div>
  <label class="chk full"><input type="checkbox" id="aTerms"> ვეთანხმები <span class="tl" data-terms>წესებსა და პირობებს</span></label><button class="btn full" type="submit">გამოქვეყნება</button></form></div></div>`},
@@ -371,7 +380,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t));
    <h1 class="ptitle">${esc(p.title)}</h1>
    <div class="pprice"><span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</span>${curSw(p.id,c)}</div>
    ${me&&same(me.email,p.owner)&&(colorActive(p)||colorPending(p))?`<div class="cpbox own"><span>ჩარჩოს ფერი${colorActive(p)?(p.colorUntil?` · მოქმედებს ${fdt(p.colorUntil)}-მდე`:''):' · სხვებისთვის გამოჩნდება გადახდის დადასტურების შემდეგ'}</span>${pickHTML('pCP',cardHex(p),p.id)}</div>`:''}
-   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button><button type="button" class="pa pic ai" data-try="${p.id}" aria-label="AI აირჩიე და მოირგე" title="AI აირჩიე და მოირგე">${TRY_ICON}<span class="lb">AI აირჩიე და მოირგე</span></button></div>
+   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button><button type="button" class="pa pic ai" data-try="${p.id}" aria-label="AI აირჩიე და მოირგე" title="AI აირჩიე და მოირგე">${TRY_ICON}<span class="lb">AI აირჩიე და მოირგე</span></button>${canDel(p)?`<button type="button" class="pa pic del" data-del="${p.id}" aria-label="განცხადების წაშლა" title="განცხადების წაშლა">${ui('trash')}<span class="lb">წაშლა</span></button>`:''}</div>
    <div class="pattrs">${rows.map(r=>`<div class="pr2"><span>${r[0]}</span><b>${r[2]?ico(r[2]):''}${esc(r[1])}</b></div>`).join('')}</div>
    <div class="pdesc"><h3>აღწერა</h3><p>${esc(p.desc||'')}</p></div>
    <div class="pseller">
@@ -474,9 +483,9 @@ function bind(){initDD();bindV2();reveal();
    const CB=$('#aColorBox'),showCB=()=>{CB.hidden=!CK.checked};PL.addEventListener('change',()=>{syncPlan();showCB()});CK.onchange=showCB;RF.onchange=async()=>{await readReceipt(RF.files[0]);RF.value=''};
    $$('[data-copy]').forEach(b=>b.onclick=async()=>{const k=BANKS.find(x=>x.id==b.dataset.copy),ok=await copyText(k.iban);toast(ok?k.name+': ანგარიშის ნომერი დაკოპირდა ✓':'დააკოპირეთ ხელით');if(ok){const l=b.querySelector('span');l.textContent='დაკოპირდა ✓';b.classList.add('ok');setTimeout(()=>{l.textContent='კოპირება';b.classList.remove('ok')},1800)}});
    syncPlan();
-   af.onsubmit=e=>{e.preventDefault();const C=$('#aC'),K=$('#aK'),KO=$('#aKO'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),TM=$('#aTerms');
+   af.onsubmit=e=>{e.preventDefault();const K=$('#aK'),KO=$('#aKO'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),TM=$('#aTerms');
    const t=T.value.trim(),d=D.value.trim(),w=+W.value,p=+P.value,k=K.dataset.val,L=$('#aL'),A={},dyn=fkeys(k).map(x=>{const el=$('#a_'+x),v=FD[x].t=='text'?el.value.trim():el.dataset.val;if(v)A[x]=v;return[el,v?'':(FD[x].t=='text'?'შეიყვანეთ ':'აირჩიეთ ')+FD[x].l]});
-   const n=check(af,[[C,C.dataset.val?'':'აირჩიეთ კატეგორია'],[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KO,k=='other'&&!KO.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
+   const n=check(af,[[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KO,k=='other'&&!KO.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
     [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
     [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,!(p>0)?'მიუთითეთ ფასი (0-ზე მეტი)':p>100000000?'ფასი ძალიან მაღალია':''],
     [$('#photoFld'),ph.length<3?`ატვირთეთ მინიმუმ 3 ფოტო (ახლა: ${ph.length})`:''],[$('#rcptFld'),PL.dataset.val!='REG'&&!window.rc?'ატვირთეთ გადახდის ქვითარი (სავალდებულოა ფასიანი განცხადებისთვის)':''],[TM,TM.checked?'':'გასაგრძელებლად დაეთანხმეთ წესებსა და პირობებს']]);
@@ -485,7 +494,7 @@ function bind(){initDD();bindV2();reveal();
    S.hidden=true;
    const pk=PL.dataset.val,pl=PLANS[pk],paid=pk!='REG',col=paid&&CK.checked,amt=pl.price+(col?COLOR.price:0),now=Date.now();
     if(paid&&!window.rc)return;
-    items.push({id:now,title:t,cat:C.dataset.val,type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:p,photos:ph,vip:'',color:false,owner:me.email,created:now,pay:paid?{plan:pl.name,days:pl.days,color:col,amount:amt,receipt:window.rc.data,receiptName:window.rc.name,receiptType:window.rc.type,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:''}:null});
+    items.push({id:now,title:t,cat:'',type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:p,photos:ph,vip:'',color:false,owner:me.email,created:now,pay:paid?{plan:pl.name,days:pl.days,color:col,amount:amt,receipt:window.rc.data,receiptName:window.rc.name,receiptType:window.rc.type,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:''}:null});
    save('items',items);window.ph=[];addNote(paid?`«${t}» გამოქვეყნდა. ${pl.name}-ის გადახდა მოწმდება — სტატუსი ჩაირთვება დადასტურების შემდეგ`:'განცხადება გამოქვეყნდა: '+t);if(paid)(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – ${pl.name}, ${amt} ₾`));toast('განცხადება დაემატა ✓');showPub();location.hash='profile:mine'}}
 
  /* profile edit */
@@ -560,7 +569,7 @@ $('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');co
 /* ---------- global clicks ---------- */
 document.addEventListener('click',e=>{
  const cl=e.target.closest('a[href="#calculator"]'),ch=$('#calcHome');if(cl&&ch&&(!location.hash||location.hash=='#home')){e.preventDefault();ch.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'})}
- const cd=e.target.closest('.card[data-id]');if(cd&&!e.target.closest('[data-fav],[data-cshare],[data-cs]'))location.hash='product:'+cd.dataset.id;
+ const cd=e.target.closest('.card[data-id]');if(cd&&!e.target.closest('[data-fav],[data-cshare],[data-cs],[data-del]'))location.hash='product:'+cd.dataset.id;
  const so=e.target.closest('.sr[data-id]');if(so){const id=so.dataset.id;hsClose();location.hash='product:'+id}
  const pf=e.target.closest('[data-pfav]');if(pf){if(!me)openAuth('login');else{const id=+pf.dataset.pfav;favs=favs.includes(id)?favs.filter(x=>x!=id):[...favs,id];save('favs',favs);setFavCnt();const on=favs.includes(id);pf.classList.toggle('on',on);pf.setAttribute('aria-pressed',on);const lb=on?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება';pf.setAttribute('aria-label',lb);pf.title=lb}}
  const rcb=e.target.closest('[data-rcpt]');if(rcb)openReceipt(rcb.dataset.rcpt);
@@ -580,6 +589,7 @@ document.addEventListener('click',e=>{
   if(!on&&location.hash=='#favs'){const cd2=f.closest('.card');if(cd2){cd2.remove();if(!$('#app .card')){const pg=$('#app .page');if(pg)pg.insertAdjacentHTML('beforeend','<div class="empty">ფავორიტები ცარიელია</div>')}}}}
  const cshr=e.target.closest('[data-cshare]');
  if(cshr){e.stopPropagation();shareP(cshr.dataset.cshare)}
+ const dl=e.target.closest('[data-del]');if(dl){e.stopPropagation();confirmDelete(dl.dataset.del)}
  const cs=e.target.closest('[data-cs]');if(cs){e.stopPropagation();toggleCur(+cs.dataset.cs)}});
 
 /* ---------- auth ---------- */
