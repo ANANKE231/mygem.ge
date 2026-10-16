@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>mygem.ge – ძვირფასეულობის მარკეტფლეისი</title>
+<link rel="icon" type="image/jpeg" href="images/Mygem ge.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600&family=Noto+Serif+Georgian:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <a href="#home" class="logo" aria-label="mygem.ge"><img class="wm" src="images/Mygem ge.jpg" alt="mygem.ge" width="166" height="36"></a>
+  <nav class="nav">
+    <a href="#collection">კოლექცია</a>
+    <a href="#calculator">კალკულატორი</a>
+    <a href="#blog">ბლოგი</a>
+    <div class="hs" id="hs">
+      <button type="button" class="ib" id="hsBtn" title="ძებნა" aria-label="ძებნა"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.500-3.500"/></svg></button>
+      <input id="hsIn" type="text" placeholder="მოძებნეთ სამკაული..." autocomplete="off" aria-label="ძებნა">
+    </div>
+  </nav>
+  <div class="actions">
+    <a href="#add" class="btn add" aria-label="დამატება"><span class="pl" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="t">დამატება</span></a>
+    <a href="#favs" class="ib" title="ფავორიტები" aria-label="ფავორიტები"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-8-5.500-8-11a4.500 4.500 0 018-2.800A4.500 4.500 0 0120 10c0 5.500-8 11-8 11z"/></svg><span class="dot fc" id="favDot"></span></a>
+    <button class="ib" id="noteBtn" title="შეტყობინებები" aria-label="შეტყობინებები"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0112 0c0 6 2 7 2 7H4s2-1 2-7z"/><path d="M10 20a2 2 0 004 0"/></svg><span class="dot" id="noteDot"></span></button>
+    <button class="ib login" id="loginBtn" title="პროფილი" aria-label="პროფილი"></button>
+  </div>
+</header>
+<div class="notes" id="notePanel"></div>
+<div class="sres" id="sRes"></div>
+
+<main id="app"></main>
+
+<footer>
+  <div class="foot">
+    <div class="fcol fleft">
+      <div class="fname">mygem.ge</div>
+      <p>ქართული ძვირფასეულობის მარკეტფლეისი</p>
+      <div class="soc">
+        <a href="https://www.facebook.com/mygem.ge" target="_blank" rel="noopener noreferrer" title="Facebook" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M14 8V6c0-1 .5-1.5 1.5-1.5H17V1h-2.5C11.5 1 10 3 10 5.5V8H7v4h3v11h4V12h2.7l.6-4z"/></svg></a>
+        <a href="#" title="Instagram"><svg viewBox="0 0 24 24"><path d="M7 2h10a5 5 0 015 5v10a5 5 0 01-5 5H7a5 5 0 01-5-5V7a5 5 0 015-5zm0 2a3 3 0 00-3 3v10a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3zm5 3.5A4.500 4.500 0 1112 16.500 4.500 4.500 0 0112 7.500zm0 2A2.500 2.500 0 1012 14.500 2.500 2.500 0 0012 9.500zM17.500 6a1 1 0 110 2 1 1 0 010-2z"/></svg></a>
+        <a href="#" title="TikTok"><svg viewBox="0 0 24 24"><path d="M16 2h-3v13a3 3 0 11-3-3c.3 0 .7 0 1 .1V9a6 6 0 106 6V8.500a7 7 0 004 1.300V6.800A4 4 0 0116 3z"/></svg></a>
+      </div>
+    </div>
+    <div class="fcol fmid">
+      <a href="#home" class="fh">მთავარი</a>
+      <a href="#collection">კოლექცია</a>
+      <a href="#calculator">კალკულატორი</a>
+    <a href="#blog">ბლოგი</a>
+    </div>
+    <div class="fcol fright">
+      <b class="fh">კონტაქტი</b>
+      <a href="mailto:mygemge@gmail.com">mygem@gmail.com</a>
+      <a href="tel:+995574173203">574173203</a>
+    </div>
+  </div>
+  <p class="copy">© 2026 ყველა უფლება დაცულია · <button type="button" class="cklink" data-ckset>ქუქი პარამეტრები</button></p>
+</footer>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"><div id="modalBody"></div></div></div>
+<div class="cookie" id="cookie" role="dialog" aria-labelledby="ckT" aria-describedby="ckD">
+  <p id="ckD"><b id="ckT">ქუქი ფაილები.</b> ვიყენებთ აუცილებელ ქუქი ფაილებს საიტის მუშაობისთვის. ანალიტიკურ და მარკეტინგულ ქუქი ფაილებს მხოლოდ თქვენი თანხმობით ჩავრთავთ.</p>
+  <div class="ck-acts">
+    <button type="button" class="btn" id="ckAll">ყველას მიღება</button>
+    <button type="button" class="btn alt" id="ckRej">არჩევითის უარყოფა</button>
+    <button type="button" class="ck-set" id="ckSet">პარამეტრები</button>
+  </div>
+</div>
+<div class="modal ckm" id="ckPrefs" role="dialog" aria-modal="true" aria-labelledby="ckPT"><div class="box">
+  <h3 id="ckPT">ქუქი ფაილების პარამეტრები</h3>
+  <p>აირჩიეთ, რომელი ქუქი ფაილების გამოყენებას ეთანხმებით. არჩევანის შეცვლა ნებისმიერ დროს შეგიძლიათ საიტის ბოლოდან.</p>
+  <div class="ckrow"><div><b>აუცილებელი</b><span class="ckbadge">ყოველთვის ჩართულია</span><p>საჭიროა საიტის მუშაობისთვის: ანგარიშით შესვლა, ფავორიტები, თქვენი განცხადებები, ვალუტის კურსი და თქვენი არჩევანის დამახსოვრება. გამორთვა შეუძლებელია.</p></div></div>
+  <label class="ckrow"><div><b>ანალიტიკა</b><p>გვეხმარება გავიგოთ, როგორ იყენებენ ვიზიტორები საიტს, რათა გავაუმჯობესოთ იგი.</p></div><input type="checkbox" class="cksw" id="ckA" role="switch" aria-label="ანალიტიკა"></label>
+  <label class="ckrow"><div><b>მარკეტინგი</b><p>გამოიყენება შესაბამისი რეკლამის საჩვენებლად და სარეკლამო კამპანიების ეფექტიანობის გასაზომად.</p></div><input type="checkbox" class="cksw" id="ckM" role="switch" aria-label="მარკეტინგი"></label>
+  <div class="ck-acts ckp">
+    <button type="button" class="btn" id="ckSave">არჩევანის შენახვა</button>
+    <button type="button" class="btn alt" id="ckAll2">ყველას მიღება</button>
+  </div>
+  <button type="button" class="link" id="ckX">დახურვა</button>
+</div></div>
+<script>/* e-mails that may use the admin tools (payments, blog). If tryon.js already defines window.ADMIN_EMAILS its list is kept. */window.ADMIN_EMAILS=window.ADMIN_EMAILS||["mygemge@gmail.com"];
+/* URL of the deployed metals-worker.js (official LBMA gold / silver / platinum prices), e.g. "https://mygem-metals.YOURNAME.workers.dev". Empty = public live spot feed. */window.METALS_API="";</script>
+<script>/* URL of the deployed tryon-worker.js (see SETUP-TRYON.md), e.g. "https://mygem-tryon.YOURNAME.workers.dev" */window.TRYON_API="";</script>
+<script src="/static/tryon.js"></script>
+<script src="/static/blog.js"></script>
+<script src="/static/blog-extra.js"></script>
+<script src="/static/script.js"></script>
+</body>
+</html>
