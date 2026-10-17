@@ -467,7 +467,7 @@ function openPhotos(id){const p=items.find(x=>String(x.id)===String(id));if(!own
 function confirmLogout(){curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('logout')}</div><h3>დარწმუნებული ხართ, რომ გსურთ გასვლა?</h3><div class="row2"><button type="button" class="btn" id="lgYes">დიახ</button><button type="button" class="btn alt" id="lgNo">არა</button></div></div>`;
  $('#lgNo').focus();$('#lgNo').onclick=closeModal;
- $('#lgYes').onclick=()=>{closeModal();me=null;save('me',null);setLogin();if(location.hash=='#home'||!location.hash)route();else location.hash='home'}}
+ $('#lgYes').onclick=()=>{closeModal();me=null;save('me',null);try{sessionStorage.removeItem('gtok')}catch{}setLogin();if(location.hash=='#home'||!location.hash)route();else location.hash='home'}}
 
 /* ---------- universal dropdown ---------- */
 const fld=(l,h,cls='')=>`<div class="fld ${cls}"><span>${l}</span>${h}</div>`;
@@ -557,10 +557,17 @@ const BDB={db:null,open(){return new Promise(r=>{try{const q=indexedDB.open('myg
 let bposts=null,bedit=null,bcv='',blogReady=false;
 const blogBase=()=>typeof BLOG!='undefined'&&Array.isArray(BLOG)?BLOG:[];
 const blogExtra=()=>Array.isArray(window.BLOG_EXTRA)?window.BLOG_EXTRA:[];
-const blogMine=()=>bposts||blogExtra();
-const blogList=()=>{const m=blogMine(),have=new Set(m.map(b=>String(b.id)));return[...m,...blogBase().filter(b=>!have.has(String(b.id)))]};
+const blogApi=()=>String(window.BLOG_API||'').trim().replace(/\/+$/,'');
+let bsrv=null;   /* posts published on the server (BLOG_API); null = not loaded yet */
+const blogMine=()=>blogApi()?(bsrv||[]):(bposts||blogExtra());
+const blogList=()=>{const m=blogMine(),have=new Set(m.map(b=>String(b.id))),ex=blogApi()?blogExtra().filter(b=>!have.has(String(b.id))):[];ex.forEach(b=>have.add(String(b.id)));return[...m,...ex,...blogBase().filter(b=>!have.has(String(b.id)))]};
 async function loadBlog(){try{let a=null;if(await BDB.open()){const r=await BDB.req('readonly',s=>s.get('posts'));if(r.ok&&Array.isArray(r.v))a=r.v}
-  if(!a)a=load('blogPosts',null);bposts=Array.isArray(a)?a.filter(b=>b&&b.id&&b.t&&Array.isArray(b.body)):null}catch{bposts=null}blogReady=true}
+  if(!a)a=load('blogPosts',null);bposts=Array.isArray(a)?a.filter(b=>b&&b.id&&b.t&&Array.isArray(b.body)):null}catch{bposts=null}await blogFetchSrv();blogReady=true}
+/* server mode: public list (3 s timeout, last good copy as fallback) */
+async function blogFetchSrv(){const u=blogApi();if(!u)return;
+ try{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),3000);let r;try{r=await fetch(u+'/posts',{signal:ac.signal})}finally{clearTimeout(t)}
+  const d=await r.json();if(!r.ok||!d.ok||!Array.isArray(d.posts))throw 0;bsrv=d.posts;lsTry('blogSrv',bsrv)}
+ catch{const c=load('blogSrv',null);bsrv=Array.isArray(c)?c:(bsrv||[])}}
 async function saveBlog(){if(BDB.db){const r=await BDB.req('readwrite',s=>s.put(bposts,'posts'));if(r.ok){try{localStorage.removeItem('blogPosts')}catch{}return true}}return lsTry('blogPosts',bposts)}
 /* cover photo: centre-cropped to 3:2 (the proportion every blog card and article uses), max 1400 px wide */
 const blogImg=f=>new Promise(r=>{const x=new FileReader();x.onerror=x.onabort=()=>r(null);x.onload=()=>{const i=new Image();i.onerror=()=>r(null);
@@ -572,8 +579,8 @@ const blogTxt=b=>b.reduce((a,x,i)=>a+(i?(x.startsWith('- ')&&b[i-1].startsWith('
 const blogEx=L=>{const p=(L.find(x=>x[0]!='#'&&!x.startsWith('- '))||L[0]||'').replace(/\*\*/g,'');return p.length>170?p.slice(0,167).replace(/\s+\S*$/,'')+'…':p};
 const blogMin=L=>Math.max(1,Math.round(L.join(' ').split(/\s+/).length/170));
 function blogPanel(){if(bedit)return blogForm();const L=blogMine();
- return `<div class="paylist"><div class="pacts bacts"><button type="button" class="btn sm" data-bnew>${ui('plus')}ახალი სტატია</button>${L.length?'<button type="button" class="btn alt sm" data-bexp>გამოსაქვეყნებლად: blog-extra.js</button>':''}</div>
- <p class="bnote">სტატიები ინახება ამ ბრაუზერში. რომ ყველა ვიზიტორმა დაინახოს, დააჭირეთ «blog-extra.js» ღილაკს და ჩამოტვირთული ფაილი ატვირთეთ საიტზე არსებული blog-extra.js-ის ნაცვლად. ყოველი ცვლილების შემდეგ გაიმეორეთ.</p>
+ return `<div class="paylist"><div class="pacts bacts"><button type="button" class="btn sm" data-bnew>${ui('plus')}ახალი სტატია</button>${L.length&&!blogApi()?'<button type="button" class="btn alt sm" data-bexp>გამოსაქვეყნებლად: blog-extra.js</button>':''}</div>
+ <p class="bnote">${blogApi()?'სტატია ქვეყნდება სერვერზე და ყველა ვიზიტორს მაშინვე გამოუჩნდება. გამოქვეყნებისას Google-ით დაგიდასტურებთ ადმინისტრატორობას.':'სტატიები ინახება ამ ბრაუზერში. რომ ყველა ვიზიტორმა დაინახოს, დააჭირეთ «blog-extra.js» ღილაკს და ჩამოტვირთული ფაილი ატვირთეთ საიტზე არსებული blog-extra.js-ის ნაცვლად. ყოველი ცვლილების შემდეგ გაიმეორეთ.'}</p>
  <h3 class="psub">სტატიები (${L.length})</h3>${L.length?L.map(b=>`<div class="payrow"><div class="pthm" style="${bgi(b.img)}"></div><div class="pinf"><a href="#post:${esc(b.id)}"><b>${esc(b.t)}</b></a><small>${b.created?fdt(b.created)+' · ':''}${b.min} წთ კითხვა</small></div><div class="pacts"><button type="button" class="btn alt sm" data-bedit="${esc(b.id)}">რედაქტირება</button><button type="button" class="btn alt sm" data-bdel="${esc(b.id)}">წაშლა</button></div></div>`).join(''):'<div class="empty">სტატია ჯერ არ დაგიმატებიათ</div>'}</div>`}
 function blogForm(){const b=bedit=='new'?null:blogMine().find(x=>String(x.id)===String(bedit));
  return `<form class="form" id="bForm" novalidate><h3 class="psub full">${b?'სტატიის რედაქტირება':'ახალი სტატია'}</h3>
@@ -588,13 +595,22 @@ async function blogSubmit(){if(!isAdmin())return;if(!blogReady)return toast('მ
  if(check($('#bForm'),[[T,t.length<3?'შეიყვანეთ სათაური (მინ. 3 სიმბოლო)':''],[$('#bImgFld'),bcv?'':'აირჩიეთ ქავერ-ფოტო'],[B,L.length?'':'შეიყვანეთ სტატიის ტექსტი']]))return;
  const cur=blogMine(),old=bedit=='new'?null:cur.find(x=>String(x.id)===String(bedit)),mm=Math.max(0,Math.min(99,Math.round(+Mi.value||0))),
   p={id:old?old.id:'b'+Date.now().toString(36),t,ex:E.value.trim()||blogEx(L),img:bcv,body:L,mm,min:mm||blogMin(L),created:old?old.created||Date.now():Date.now()},
-  prev=bposts;bposts=old?cur.map(x=>x===old?p:x):[p,...cur];
+  prev=bposts;
+ if(blogApi()){const tok=await blogToken();if(!tok)return;const sb=$('#bForm button[type=submit]'),t0=sb&&sb.textContent;if(sb){sb.disabled=true;sb.textContent='ქვეყნდება…'}
+  try{const d=await blogCall({action:'blog_save',post:p},tok);bsrv=d.posts;lsTry('blogSrv',bsrv)}
+  catch(e){if(sb){sb.disabled=false;sb.textContent=t0}return toast(BERR[e]||BERR.server)}
+  bedit=null;bcv='';toast(old?'სტატია განახლდა ✓':'სტატია გამოქვეყნდა ✓');return showProfile('blog')}
+ bposts=old?cur.map(x=>x===old?p:x):[p,...cur];
  if(!(await saveBlog())){bposts=prev;return toast('შენახვა ვერ მოხერხდა — ფოტო ძალიან დიდია ან მეხსიერება გადაივსო')}
  bedit=null;bcv='';toast(old?'სტატია განახლდა ✓':'სტატია დაემატა ✓');showProfile('blog')}
 function blogDel(id){const cur=blogMine(),b=cur.find(x=>String(x.id)===String(id));if(!b||!isAdmin())return;curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('trash')}</div><h3>წავშალოთ სტატია?</h3><p>«${esc(b.t)}»<br>წაშლის შემდეგ აღდგენა შეუძლებელია.</p><div class="row2"><button type="button" class="btn danger" id="bdYes">დიახ, წაშლა</button><button type="button" class="btn alt" id="bdNo">გაუქმება</button></div></div>`;
  $('#bdNo').focus();$('#bdNo').onclick=closeModal;
- $('#bdYes').onclick=async()=>{if(!isAdmin()||!blogReady)return closeModal();const prev=bposts;bposts=cur.filter(x=>x!==b);if(!(await saveBlog())){bposts=prev;closeModal();return toast('წაშლა ვერ მოხერხდა')}closeModal();toast('სტატია წაიშალა ✓');showProfile('blog')}}
+ $('#bdYes').onclick=async()=>{if(!isAdmin()||!blogReady)return closeModal();
+  if(blogApi()){closeModal();const tok=await blogToken();if(!tok)return;
+   try{const d=await blogCall({action:'blog_delete',id:b.id},tok);bsrv=d.posts;lsTry('blogSrv',bsrv)}catch(e){return toast(BERR[e]||BERR.server)}
+   closeModal();toast('სტატია წაიშალა ✓');return showProfile('blog')}
+  const prev=bposts;bposts=cur.filter(x=>x!==b);if(!(await saveBlog())){bposts=prev;closeModal();return toast('წაშლა ვერ მოხერხდა')}closeModal();toast('სტატია წაიშალა ✓');showProfile('blog')}}
 function blogExport(){if(!isAdmin())return;const js='/* mygem.ge blog posts written in the admin panel - generated '+new Date().toISOString().slice(0,10)+' */\nwindow.BLOG_EXTRA='+JSON.stringify(blogMine())+';\n',
  a=document.createElement('a');a.href=URL.createObjectURL(new Blob([js],{type:'text/javascript'}));a.download='blog-extra.js';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('blog-extra.js ჩამოიტვირთა ✓')}
 
@@ -950,11 +966,35 @@ function gMount(B){
   if(gInit!==c.clientId){google.accounts.id.initialize({client_id:c.clientId,callback:gCred,ux_mode:'popup',auto_select:false,itp_support:true});gInit=c.clientId}
   google.accounts.id.renderButton(host,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',logo_alignment:'left',locale:'ka',width:Math.max(200,Math.min(400,host.clientWidth||320))})
  }).catch(e=>{if(alive())gShow(GERR[e]||GERR.network,true)})}
+const gTokSet=t=>{try{sessionStorage.setItem('gtok',t)}catch{}};
+const jwtExp=t=>{try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp*1000}catch{return 0}};
+const gTokGet=()=>{let t='';try{t=sessionStorage.getItem('gtok')||''}catch{}return t&&jwtExp(t)>Date.now()+60000?t:''};
 async function gCred(r){
+ if(r&&r.credential)gTokSet(r.credential);
+ if(window.__gWait){const w=window.__gWait;window.__gWait=null;w((r&&r.credential)||null);return}   /* admin re-check for blog publishing */
  if(gBusy||!r||!r.credential)return;gBusy=true;gShow('');
  try{const d=await gPost({action:'google_auth',credential:r.credential});gSign(d.profile)}
  catch(e){gShow(GERR[e]||GERR.server)}
  finally{gBusy=false}}
+/* ---------- blog server (BLOG_API): the server verifies the Google token and the admin e-mail; this code only fetches / hands over the token ---------- */
+const BERR={unauthorized:'ადმინისტრატორის უფლება ვერ დადასტურდა',forbidden:'ეს Google ანგარიში ადმინისტრატორი არ არის',invalid_post:'სტატიის მონაცემები არასწორია',too_large:'ფოტო ძალიან დიდია',network:'სერვერთან დაკავშირება ვერ მოხერხდა',not_configured:'ბლოგის სერვერი ჯერ არ არის გამართული',server:'სერვერზე შენახვა ვერ მოხერხდა. სცადეთ თავიდან.'};
+function blogToken(){const c=gTokGet();if(c)return Promise.resolve(c);
+ return new Promise(async res=>{curAuth=null;modal.classList.add('show');
+  $('#modalBody').innerHTML='<h3>ადმინისტრატორის დადასტურება</h3><p>გამოსაქვეყნებლად დაადასტურეთ ადმინისტრატორობა Google-ით. ეს ამ სესიაში ერთხელ დაგჭირდებათ.</p><div class="gwrap" id="gAdm"></div><p class="gnote" id="gAdmN" hidden></p><button type="button" class="link" id="gAdmNo">გაუქმება</button>';
+  const done=v=>{window.__gWait=null;res(v)},note=m=>{const n=$('#gAdmN');if(n){n.textContent=m;n.hidden=!m}};
+  $('#gAdmNo').onclick=()=>{closeModal();done(null)};
+  try{const[cfg]=await Promise.all([fetch(blogApi()+'/config').then(r=>r.json()),gLib()]);
+   if(!cfg.ok||!cfg.clientId)throw 'not_configured';
+   if(gInit!==cfg.clientId){google.accounts.id.initialize({client_id:cfg.clientId,callback:gCred,ux_mode:'popup',auto_select:false,itp_support:true});gInit=cfg.clientId}
+   window.__gWait=t=>{closeModal();done(t)};
+   const h=$('#gAdm');if(!h)return done(null);
+   google.accounts.id.renderButton(h,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',logo_alignment:'left',locale:'ka',width:260})
+  }catch(e){note(BERR[e]||BERR.network)}})}
+async function blogCall(body,tok){let r;
+ try{r=await fetch(blogApi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,token:tok})})}catch{throw 'network'}
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok||!d.ok){if(r.status==401||r.status==403)try{sessionStorage.removeItem('gtok')}catch{}throw d.error||'server'}
+ return d}
 /* one Google identity (sub) = one account; an existing account with the same verified email is linked, never duplicated */
 function gSign(p){
  let u=users.find(x=>x.google&&x.google.sub===p.sub),how='in';
