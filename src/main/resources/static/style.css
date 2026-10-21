@@ -1512,7 +1512,7 @@ body::before {
 .pubpop {
   position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 16px;
   background:
-    url("images/bg-jewelry.svg") center / cover no-repeat,
+    url("../images/bg-jewelry.svg") center / cover no-repeat,
     linear-gradient(180deg, #FFFEFC 0%, #F7F8FC 100%);
   animation: pubFade .35s ease both;
 }
@@ -1553,7 +1553,7 @@ body::before {
   .pubpop { background: linear-gradient(180deg, #FFFEFC 0%, #F7F8FC 100%); }
   .pubpop::before, .pubpop::after {
     content: ""; position: absolute; width: 62%; height: 58%; z-index: 0; pointer-events: none;
-    background: url("images/bg-jewelry.svg") no-repeat; background-size: auto 100%;
+    background: url("../images/bg-jewelry.svg") no-repeat; background-size: auto 100%;
   }
   .pubpop::before { top: 0; left: 0; background-position: left top;
     -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent), linear-gradient(to right, #000 45%, transparent);
