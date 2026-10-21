@@ -107,7 +107,7 @@ function tryPaintStage(){const el=$('#tryStage');if(!el)return;const j=tryJewel(
   const ext=(/^data:image\/(\w+)/.exec(TRY.res)||[])[1]||'png';
   after=`<div class="try-acts"><a class="btn sm" href="${TRY.res}" download="mygem-tryon.${ext=='jpeg'?'jpg':ext}">${TI.dl}ჩამოტვირთვა</a><button type="button" class="btn alt sm" data-tfull>${TI.full}გადიდება</button><button type="button" class="btn alt sm" data-tredo>${TI.redo}თავიდან</button></div><p class="try-note">AI-ით შექმნილი გამოსახულება მიახლოებითია — სამკაულის ზომა და დეტალები შეიძლება რეალობისგან განსხვავდებოდეს.</p>`}
  else if(TRY.photo)v=`<img class="show" src="${TRY.photo}" alt="">${j&&!TRY.busy?`<span class="try-selchip"><i style="background-image:url('${j.img}')"></i>${esc(j.label)}</span>`:''}`;
- else v=`<div class="try-empty"><img src="mygem.jpg" alt=""><b>აქ გამოჩნდება შედეგი</b><span>ატვირთეთ თქვენი ფოტო</span></div>`;
+ else v=`<div class="try-empty"><img src="/images/Mygem%20ge.jpg" alt=""><b>აქ გამოჩნდება შედეგი</b><span>ატვირთეთ თქვენი ფოტო</span></div>`;
  if(TRY.busy)v+=`<div class="try-scan"></div><span class="try-sp s1">✦</span><span class="try-sp s2">✦</span><span class="try-sp s3">✦</span><div class="try-load"><div class="try-lcard"><span class="try-gem">${GEM}</span><div><b id="tryMsg" class="sw">${TRY_MSGS[TRY.step]}</b><small>ჩვეულებრივ 10–30 წამი</small></div><button type="button" class="linkbtn" data-tcancel>გაუქმება</button></div></div>`;
  if(TRY.err&&!TRY.busy)after=`<div class="try-lp err">${TI.warn}<span>${esc(TRY.err)}</span></div>`;
  el.innerHTML=`<div class="try-view${TRY.busy?' busy':''}">${v}</div>${after}`}

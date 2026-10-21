@@ -167,7 +167,7 @@ const regOf=u=>u.regType||(u.shop?'store':'individual');
 const regLabel=u=>regOf(u)=='other'?(u.regOther||'სხვა'):Object.fromEntries(REG)[regOf(u)];
 
 /* demo listings: photos are looked up in img/ (see DEMO_IMG); missing files fall back to an illustration */
-const DEMO_IMG={1:'img/gold-ring.jpg',2:'img/diamond-necklace.jpg',3:'img/silver-bracelet.jpg',4:'img/platinum-ring.jpg',5:'img/gold-earrings.jpg',6:'img/gold-chain.jpg',7:'img/diamond-earrings.jpg',8:'img/silver-pendant.jpg',9:'img/gold-watch.jpg',10:'img/gold-bracelet.jpg'};
+const DEMO_IMG={1:'/images/პირველი.png',2:'/images/მეორე.png',3:'/images/მესამე.png',4:'/images/მეოთხე.png',5:'/images/მეხუთე.png',6:'/images/მეექვსე.png',7:'/images/მეშვიდე.png',8:'/images/მერვე.png',9:'/images/მეცხრე.png',10:'/images/მეათე.png'};
 const DEMO=[
  ['ოქროს ბეჭედი 585','ოქრო',4.2,780,'ქალის','💍','ring'],['ბრილიანტის ყელსაბამი','ბრილიანტი',6,4200,'ქალის','📿','necklace'],['ვერცხლის სამაჯური','ვერცხლი',18,190,'უნისექსი','⛓️','bracelet'],
  ['პლატინის საქორწინო ბეჭედი','პლატინა',5.5,2100,'კაცის','💍','ring'],['ოქროს საყურე 750','ოქრო',3.1,690,'ქალის','✨','earring'],['ოქროს ჯაჭვი 585','ოქრო',12,2300,'კაცის','⛓️','chain'],
