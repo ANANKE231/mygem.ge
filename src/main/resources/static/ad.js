@@ -13,8 +13,6 @@
     facebook: 'https://www.facebook.com/mygem.ge',
     instagram: 'https://www.instagram.com/mygem.ge',   // შეამოწმეთ: ზუსტი ბმული ჩაწერეთ
     email: 'mygemge@gmail.com',
-    phone: '+995574173203',
-    phoneText: '574 173 203'
   }, window.AD_CONFIG || {});
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -30,7 +28,6 @@
 
   const buttons = () => {
     const b = [];
-    if (C.phone) b.push(`<a class="adb main" href="tel:${esc(String(C.phone).replace(/[^\d+]/g, ''))}">${ic('phone')}<span>${esc(C.phoneText || C.phone)}</span></a>`);
     if (safe(C.facebook)) b.push(`<a class="adb" href="${esc(C.facebook)}" target="_blank" rel="noopener noreferrer">${ic('fb')}<span>Facebook</span></a>`);
     if (safe(C.instagram)) b.push(`<a class="adb" href="${esc(C.instagram)}" target="_blank" rel="noopener noreferrer">${ic('ig')}<span>Instagram</span></a>`);
     if (C.email) b.push(`<a class="adb" href="mailto:${esc(C.email)}?subject=${encodeURIComponent('რეკლამის განთავსება mygem.ge-ზე')}">${ic('mail')}<span>ელ-ფოსტა</span></a>`);
