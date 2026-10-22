@@ -2180,3 +2180,32 @@ img, video, iframe { max-width: 100%; }
 /* ---------- 10. iPhone-ის "notch" / ქვედა ზოლი ---------- */
 footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 .cookie { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+
+/* =====================================================================
+   საძიებო გვერდის გვერდითი ფილტრი: ფასი და წონა ცალ-ცალკე ხაზზე.
+   მხოლოდ .layout aside-ში მოქმედებს, მთავარი გვერდი (.hero .sbox) არ იცვლება.
+   ===================================================================== */
+.layout aside .fgrid .pwrow,
+.layout aside .fgrid .pwrow.one {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+/* სათაური ("ფასი (₾)") და ₾/$ გადამრთველი ერთ ხაზზე, არ იმტვრევა */
+.layout aside .prng > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  min-height: 32px;
+}
+.layout aside .prng .plab b { display: inline; }
+/* "დან – მდე" ველები სრულ სიგანეზე */
+.layout aside .prng .prow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.layout aside .prng .prow input { min-width: 0; width: 100%; padding: 0 12px; }
