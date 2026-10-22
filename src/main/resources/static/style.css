@@ -2037,3 +2037,9 @@ body:has(.dd.open) .fw { opacity: 0; pointer-events: none; transition: opacity .
 .form input::placeholder, .fgrid input::placeholder { color: #A3A8AF; letter-spacing: 1px; }
 .form input:placeholder-shown { letter-spacing: 1px; }
 #modalBody:has(#lgYes) .ci { background: #FDECEA; color: #B42318; }
+
+/* გადამრთველი ფასის ქვემოთ */
+.card .pline { flex-direction: column; align-items: flex-start; gap: 6px; }
+.pprice { flex-direction: column; align-items: flex-start; gap: 10px; }
+.rq{color:#e11d2e;font-weight:700;margin-left:3px;font-style:normal}
+.lt{display:inline}
