@@ -91,7 +91,7 @@
     ${dd('sortS',{list:SORTS,val:CS.s})}
    </div>
   </div>
-  ${r.length?(CS.v=='list'?`<div class="lgrid">${pageItems.map(listCard).join('')}</div>`:`<div class="grid">${pageItems.map(gridCard).join('')}</div>`)+pager(CS.pg,tot):'<div class="empty">ვერაფერი მოიძებნა 😔</div>'}
+  ${r.length?(CS.v=='list'?`<div class="lgrid">${pageItems.map(listCard).join('')}</div>`:`<div class="grid">${pageItems.map(gridCard).join('')}</div>`)+pager(CS.pg,tot):'<div class="empty">ვერაფერი მოიძებნა </div>'}
   </div></div>`};
 
  /* ---------- events ---------- */
