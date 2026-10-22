@@ -1,20 +1,20 @@
 /* mygem.ge — რეკლამის ბლოკი (1190×324 ≈ 3.67 : 1) */
-.adsec { padding: 8px 5% 40px; }
+.adsec { padding: 8px max(5%, env(safe-area-inset-left)) 40px max(5%, env(safe-area-inset-right)); }
 .adin { position: relative; max-width: 1190px; margin: 0 auto; }
 .adtag { position: absolute; top: -9px; left: 16px; z-index: 3; padding: 2px 10px; border-radius: 999px; background: #fff; border: 1px solid var(--line, #E3E4E6); color: var(--mu, #5F646B); font-size: 11px; font-weight: 600; letter-spacing: .4px; }
 
 .adbox { position: relative; width: 100%; aspect-ratio: 1190 / 324; min-height: 150px; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(10, 20, 70, .18); }
 
-/* ადგილი თავისუფალია: ლურჯი გრადიენტი + კადრის კუთხეები (როგორც მოწოდებულ სურათზე) */
+/* ადგილი თავისუფალია */
 .adph { display: grid; place-items: center; text-align: center; color: #fff; padding: 18px 24px;
   background: radial-gradient(ellipse 60% 120% at 50% 50%, #2F5183 0%, #2B4670 55%, #26385A 100%); }
-.adc { position: absolute; width: clamp(26px, 5vw, 58px); height: clamp(26px, 5vw, 58px); border: 0 solid #fff; filter: drop-shadow(0 0 8px rgba(255, 255, 255, .55)); pointer-events: none; }
+.adc { position: absolute; width: clamp(22px, 5vw, 58px); height: clamp(22px, 5vw, 58px); border: 0 solid #fff; filter: drop-shadow(0 0 8px rgba(255, 255, 255, .55)); pointer-events: none; }
 .adc.c1 { top: 8%; left: 17%; border-top-width: 4px; border-left-width: 4px; }
 .adc.c2 { top: 8%; right: 17%; border-top-width: 4px; border-right-width: 4px; }
 .adc.c3 { bottom: 8%; left: 17%; border-bottom-width: 4px; border-left-width: 4px; }
 .adc.c4 { bottom: 8%; right: 17%; border-bottom-width: 4px; border-right-width: 4px; }
 .adtx { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 100%; }
-.adtx h3 { margin: 0; font-size: clamp(18px, 2.6vw, 30px); font-weight: 600; line-height: 1.2; color: #fff; text-shadow: 0 0 14px rgba(255, 255, 255, .45); }
+.adtx h3 { margin: 0; font-size: clamp(17px, 2.6vw, 30px); font-weight: 600; line-height: 1.2; color: #fff; text-shadow: 0 0 14px rgba(255, 255, 255, .45); overflow-wrap: anywhere; }
 .adtx p { margin: 0 0 6px; font-size: clamp(12px, 1.3vw, 15px); color: rgba(255, 255, 255, .82); }
 
 /* საკონტაქტო ღილაკები */
@@ -29,7 +29,7 @@
 
 /* რეალური რეკლამა (სურათი) */
 .adbox.has-img { background: #fff; border: 1px solid var(--line, #E3E4E6); }
-.adimg, .adimg img { display: block; width: 100%; height: 100%; }
+.adimg, .adimg img, .adimg picture { display: block; width: 100%; height: 100%; }
 .adimg img { object-fit: cover; }
 a.adimg { transition: filter .2s; }
 a.adimg:hover { filter: brightness(1.04); }
@@ -40,21 +40,6 @@ a.adimg:hover { filter: brightness(1.04); }
 .adstrip .adb.main { background: var(--btn, #000080); color: #fff; border-color: var(--btn, #000080); }
 .adstrip .adb.main:hover { background: var(--btn-h, #1A1AA3); }
 
-/* ტაბლეტი / ტელეფონი: 1190:324 ვიწრო ეკრანზე ძალიან დაბალია, ამიტომ ბლოკი უფრო მაღალია */
-@media (max-width: 760px) {
-  .adsec { padding: 4px 5% 28px; }
-  .adbox.adph { aspect-ratio: auto; min-height: 230px; border-radius: 16px; }
-  .adbox.has-img { aspect-ratio: 1190 / 324; }
-  .adc.c1, .adc.c3 { left: 5%; } .adc.c2, .adc.c4 { right: 5%; }
-  .adbtns { display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 360px; }
-  .adb { justify-content: center; padding: 0 10px; height: 42px; }
-  .adb.main { grid-column: 1 / -1; }
-  .adstrip { flex-direction: column; align-items: stretch; text-align: center; }
-  .adstrip .adbtns { max-width: none; }
-}
-@media (prefers-reduced-motion: reduce) { .adb, a.adimg { transition: none; } }
-@media print { .adsec { display: none; } }
-
 /* დახურვის ღილაკი (X) */
 .adx { position: absolute; top: 10px; right: 10px; z-index: 4; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .92); color: #1A1C1F; cursor: pointer; box-shadow: 0 2px 8px rgba(10, 20, 70, .25); transition: background .2s, color .2s, transform .15s; }
 .adx svg { width: 16px; height: 16px; }
@@ -63,5 +48,84 @@ a.adimg:hover { filter: brightness(1.04); }
 .adx:focus-visible { outline: 3px solid rgba(0, 0, 128, .45); outline-offset: 2px; }
 .adsec { transition: opacity .25s ease, transform .25s ease; }
 .adsec.out { opacity: 0; transform: translateY(-8px); pointer-events: none; }
-@media (max-width: 760px) { .adx { top: 8px; right: 8px; width: 32px; height: 32px; } }
-@media (prefers-reduced-motion: reduce) { .adx, .adsec { transition: none; } }
+
+/* =========================================================
+   RESPONSIVE  (desktop-first, ფართოდან ვიწრომდე)
+   ========================================================= */
+
+/* დიდი ეკრანები */
+@media (min-width: 1600px) {
+  .adin { max-width: 1320px; }
+}
+
+/* პატარა ლეპტოპი / დიდი ტაბლეტი ≤1024 */
+@media (max-width: 1024px) {
+  .adc.c1, .adc.c3 { left: 10%; }
+  .adc.c2, .adc.c4 { right: 10%; }
+  .adbox { border-radius: 18px; }
+}
+
+/* ტაბლეტი / ტელეფონი ≤760 */
+@media (max-width: 760px) {
+  .adsec { padding-top: 4px; padding-bottom: 28px; }
+  .adbox { border-radius: 16px; box-shadow: 0 6px 20px rgba(10, 20, 70, .16); }
+  .adbox.adph { aspect-ratio: auto; min-height: 230px; padding: 24px 16px; }
+  .adbox.has-img { aspect-ratio: 1190 / 324; }
+  .adc.c1, .adc.c3 { left: 5%; }
+  .adc.c2, .adc.c4 { right: 5%; }
+  .adbtns { display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 360px; }
+  .adb { justify-content: center; padding: 0 10px; height: 42px; }
+  .adb.main { grid-column: 1 / -1; }
+  .adstrip { flex-direction: column; align-items: stretch; text-align: center; }
+  .adstrip .adbtns { max-width: none; }
+  .adx { top: 8px; right: 8px; width: 32px; height: 32px; }
+}
+
+/* ტელეფონი ≤480 */
+@media (max-width: 480px) {
+  .adsec { padding-left: max(4%, env(safe-area-inset-left)); padding-right: max(4%, env(safe-area-inset-right)); padding-bottom: 22px; }
+  .adtag { left: 12px; font-size: 10px; padding: 1px 8px; }
+  .adbox { border-radius: 14px; }
+  .adbox.adph { min-height: 250px; }
+  /* სურათი: თუ <picture>-ში მობილური ვერსიაა, გამოიყენება 4:3; სხვა შემთხვევაში იგივე 1190:324 */
+  .adbox.has-img.is-mobile-img { aspect-ratio: 4 / 3; }
+  .adc { border-width: 0; }
+  .adc.c1 { border-top-width: 3px; border-left-width: 3px; }
+  .adc.c2 { border-top-width: 3px; border-right-width: 3px; }
+  .adc.c3 { border-bottom-width: 3px; border-left-width: 3px; }
+  .adc.c4 { border-bottom-width: 3px; border-right-width: 3px; }
+  .adstrip { padding: 12px; border-radius: 12px; }
+  .adstrip .adbtns { grid-template-columns: 1fr; max-width: none; }
+  .adstrip .adb { height: 44px; }
+}
+
+/* ძალიან ვიწრო ≤360 */
+@media (max-width: 360px) {
+  .adbtns { grid-template-columns: 1fr; max-width: 100%; }
+  .adb { font-size: 13px; }
+  .adc { display: none; }
+}
+
+/* ტელეფონი ჰორიზონტალურად (დაბალი სიმაღლე) */
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 940px) {
+  .adbox.adph { min-height: 170px; padding: 12px 16px; }
+  .adtx p { display: none; }
+  .adbtns { display: flex; max-width: none; }
+  .adb.main { grid-column: auto; }
+  .adb { height: 38px; }
+}
+
+/* touch მოწყობილობები: დიდი შეხების არეალი, hover-ის გარეშე */
+@media (hover: none) and (pointer: coarse) {
+  .adb { min-height: 44px; }
+  .adx { width: 40px; height: 40px; top: 6px; right: 6px; }
+  .adb:hover { background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .55); }
+  .adb.main:hover { background: #fff; color: #000080; }
+  .adstrip .adb:hover { background: #fff; color: var(--btn, #000080); border-color: var(--cream2, #E3E4E6); }
+  .adstrip .adb.main:hover { background: var(--btn, #000080); color: #fff; }
+  .adx:hover { background: rgba(255, 255, 255, .92); color: #1A1C1F; }
+  a.adimg:hover { filter: none; }
+}
+
+@media (prefers-reduced-motion: reduce) { .adb, a.adimg, .adx, .adsec { transition: none; } }
+@media print { .adsec { display: none; } }
