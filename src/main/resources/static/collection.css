@@ -23,7 +23,11 @@
 .lcard:hover { border-color: #D3D3EE; box-shadow: 0 8px 22px rgba(17, 24, 39, 0.10); }
 .lcard:focus-visible { outline: 3px solid rgba(0, 0, 128, 0.35); outline-offset: 2px; }
 .limg { position: relative; flex: 0 0 240px; align-self: flex-start; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: linear-gradient(160deg, #EEF0F2, #E3E4E6); }
+<<<<<<< HEAD
 .limgi { position: absolute; inset: 0; display: grid; place-items: center; background-size: cover; background-position: center; color: var(--gold); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+=======
+.limgi { position: absolute; inset: 0; display: grid; place-items: center; background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important; color: var(--gold); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+>>>>>>> 28ae1ab (a)
 .limgi svg.ill { width: 38%; height: auto; opacity: 0.8; }
 @media (hover: hover) and (pointer: fine) { .lcard:hover .limgi { transform: scale(1.04); } }
 
