@@ -63,7 +63,7 @@
    cur=Object.keys(PLANS).find(k=>PLANS[k].name==p.vip),
    plist=[['REG',p.vip?`ცვლილების გარეშე — ${p.vip}`:'Regular — უფასო'],...['VIP','SVIP'].filter(k=>k!=cur).map(k=>[k,planLabel(k)])],
    boost=note+fld('განცხადების ტიპი',dd('aPlan',{list:plist,val:'REG'}),'full')+'<p class="planinfo full" id="planInfo"></p>'+payBox();
-  return `<div class="page" style="max-width:960px"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button><div class="panel"><h2 style="margin-bottom:16px;color:var(--pd)">განცხადების რედაქტირება</h2>
+   return `<div class="page addpg"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button><div class="addwrap"><aside class="lpc" aria-label="Listing Preview Card"><div class="lpv" id="lpv" aria-live="polite"></div></aside><div class="panel"><h2 style="margin-bottom:16px;color:var(--pd)">განცხადების რედაქტირება</h2>
  <form class="form" id="editForm" novalidate><div class="fsum full" id="formSum" hidden></div>
  <section class="astep"><h3 class="astep-h full">ძირითადი ინფორმაცია</h3>
  ${fld('ნივთის ტიპი',dd('aK',{list:DD.type,other:1,otherPh:'ნივთის დასახელება',val:p.type||''}))}${fld('მდებარეობა',dd('aL',{list:mk(LOC),val:p.loc||''}))}<div class="dyn" id="aDyn">${fRender('a',p.type||'')}</div>
@@ -76,7 +76,7 @@
  <div class="fld full" id="audioFld"><span class="aud-h"><i>${AMIC}</i>ხმოვანი აღწერა (სურვილისამებრ)</span><div class="aud-acts"><label class="btn alt sm" for="aA">${AUP}ატვირთვა (MP3)</label><button type="button" class="btn alt sm" id="aRec">${AMIC}<span>ჩაწერა</span></button><span class="aud-tm" id="aTm" hidden>0:00 / 1:00</span></div><div class="aud-bar" aria-hidden="true"><i id="aBar"></i></div><input type="file" id="aA" accept="audio/mpeg,audio/mp3,.mp3,audio/*" hidden><div class="aprev" id="aPrev"></div><small class="bhelp">ახალი ატვირთვა ან ჩაწერა ძველს ჩაანაცვლებს (მაქს. 1 წუთი).</small></div></section>
  <section class="astep"><h3 class="astep-h full">განცხადების დაბუსტვა</h3><p class="astep-s full">VIP / Super VIP პაკეტი, ფერადი გამოყოფა (+50 თეთრი · 2 დღე), სტიკერები (+${STICKER.price} ₾ თითო · მაქს. ${STICKER.max} · განცხადების ამოწურვამდე). გადახდის ქვითარი სავალდებულოა.</p>${boost}</section>
  <div class="anav full"><a class="btn alt" href="#profile:mine">გაუქმება</a><button class="btn" type="submit" style="margin-left:auto">შენახვა</button></div>
- </form></div></div>`};
+  </form></div></div></div>`};
 
  /* ---------- რედაქტირების ფორმის ლოგიკა ---------- */
  function bindEdit(){const af=$('#editForm');if(!af)return;
@@ -143,7 +143,28 @@
   if(old&&old.days>0){const key=Object.keys(PLANS).find(k=>PLANS[k].name==old.plan);if(key&&key!=='REG')setDD(PLs,key)}
   planInfo();
   if(old){CK.checked=!!old.color;if(old.color)setPick($('#aCP'),okHex(old.colorHex)?old.colorHex:BC_DEF);stkSync($('#aSP'),cleanStk(old.stickers))}
-  showCB();
+   showCB();
+  /* ---- ცოცხალი პროტოტიპი: იგივე card() ბარათი, რასაც გამოქვეყნებული განცხადება იყენებს ---- */
+  {const PV=$('#lpv');let pvT=0,pvOpen=innerWidth>900;
+   if(PV)PV.addEventListener('toggle',e=>{if(e.target.matches('details'))pvOpen=e.target.open},true);
+   const draw=()=>{clearTimeout(pvT);pvT=setTimeout(()=>{if(!PV)return;
+    const k=$('#aK').dataset.val||p.type||'',KOe=$('#aKO'),A=readDyn('a'),pk=PLs.dataset.val,sv=$('#aSP .sval'),sel=cleanStk(sv?sv.value.split(','):[]),nego=$('#aNego').checked,
+     d={...p,title:$('#aT').value.trim()||'განცხადების სათაური',type:k,typeOther:k=='other'&&KOe?KOe.value.trim():'',weight:+$('#aW').value||0,
+      price:nego?0:G(),nego,cur:U()?'USD':'GEL',gender:A.gen||'',attrs:A,loc:$('#aL').dataset.val||'',photos:ph.length?[ph[0]]:[],video:'',audio:''};
+    /* რაც განცხადებას უკვე აქვს (VIP, ფერი, სტიკერები), რჩება; ფორმაში ახლად არჩეული კი ზემოდან ემატება */
+    if(pk!='REG')d.vip=PLANS[pk].name;
+    if(CK.checked){d.color=true;delete d.colorUntil;d.colorHex=$('#aCP .cval').value}
+    if(sel.length){d.sticker=true;delete d.stickerUntil;d.stickers=sel}
+    const html=card(d).replace('tabindex="0" role="link"','tabindex="-1" aria-hidden="true"');
+    PV.innerHTML=`<details class="lpv-d"${pvOpen?' open':''}>
+     <summary class="lpv-h"><b>ასე გამოჩნდება განცხადება</b><small>${ph.length}/${PH_MAX} ფოტო</small></summary>
+     <div class="lpv-bar"><i style="width:${Math.min(100,ph.length/PH_MAX*100)}%"></i></div>
+     <div class="lpv-card">${html}</div>
+     <p class="lpv-n">ფოტო, ფასი, სტატუსი, ფერი და სტიკერები ბარათზე ავტომატურად განახლდება.</p></details>`},60)};
+   ['input','change'].forEach(ev=>af.addEventListener(ev,draw));
+   af.addEventListener('click',()=>setTimeout(draw,0));
+   [$('#prev'),$('#rcPrev')].forEach(el=>{if(el)new MutationObserver(draw).observe(el,{childList:true})});
+   draw()}
   /* შენახვა */
   af.onsubmit=async e=>{e.preventDefault();if(af.dataset.busy)return;
    const K=$('#aK'),L=$('#aL'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),k=K.dataset.val,t=T.value.trim(),d=D.value.trim(),w=+W.value,pr=G(),nego=$('#aNego').checked,A={},
@@ -189,6 +210,7 @@
     გამორთული / ვადაგასული / დაბლოკილი განცხადება საჯაროდ არ ჩანს (იგივე მექანიზმი, რაც გადახდის მოლოდინისას).
     ===================================================================== */
  {const st=document.createElement('style');st.textContent=`
+   .lpc .lpv-card{pointer-events:none}
   .mchips{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 22px}
  .mchip{display:inline-flex;align-items:center;gap:9px;height:44px;padding:0 10px 0 14px;border:1.5px solid #E3E4E6;border-radius:14px;background:#fff;color:#5F646B;font:inherit;font-size:var(--fs-md);font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,color .2s,box-shadow .2s,transform .15s}
  .mchip svg{width:20px;height:20px;flex:none;color:#9AA0A6;transition:color .2s}
