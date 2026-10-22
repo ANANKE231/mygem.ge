@@ -654,7 +654,7 @@ ${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VI
 <section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeBlog()}`},
 search(){const r=pub().filter(match).sort(byPkg);
- return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results"><h2 style="margin-bottom:14px">ნაპოვნია: ${r.length}</h2>${r.length?grid(r):'<div class="empty">ვერაფერი მოიძებნა 😔</div>'}</div></div>`},
+ return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results"><h2 style="margin-bottom:14px">ნაპოვნია: ${r.length}</h2>${r.length?grid(r):'<div class="empty">ვერაფერი მოიძებნა </div>'}</div></div>`},
 blog(){return `<div class="page blog"><h2 class="bh">ბლოგი</h2><p class="bsub">რჩევები, გზამკვლევები და ინსპირაცია სამკაულების სამყაროდან</p>${isAdmin()?`<div class="badm"><button type="button" class="btn sm" data-bnew>${ui('plus')}სტატიის დამატება</button></div>`:''}<div class="bgrid">${blogList().map((b,i)=>`<a class="bcard" href="#post:${b.id}"><span class="bimg"><img src="${b.img}" alt="${esc(b.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="bbody"><small class="bm">${b.min} წთ კითხვა</small><b>${esc(b.t)}</b><span class="bex">${esc(b.ex)}</span></span></a>`).join('')}</div></div>`},
 post(t){const L=blogList(),i=L.findIndex(b=>String(b.id)===String(t)),b=L[i];if(!b)return `<div class="page"><div class="panel empty">სტატია ვერ მოიძებნა<div style="margin-top:16px"><a class="btn" href="#blog">ბლოგზე დაბრუნება</a></div></div></div>`;
  const n=L[i+1];return `<article class="page art"><a class="aback" href="#blog">${ui('back')}ბლოგი</a><small class="ameta">${b.min} წუთი კითხვა</small><h1>${esc(b.t)}</h1><img class="ahero" src="${b.img}" alt="${esc(b.t)}" width="1400" height="934" decoding="async"><div class="abody">${(()=>{let h='',l=false;const f=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');for(const x of b.body){const li=x.startsWith('- ');if(l&&!li){h+='</ul>';l=false}if(li&&!l){h+='<ul>';l=true}h+=li?`<li>${f(x.slice(2))}</li>`:x[0]=='#'?`<h3>${esc(x.slice(1).trim())}</h3>`:`<p>${f(x)}</p>`}return h+(l?'</ul>':'')})()}</div>${n?`<a class="anext" href="#post:${n.id}"><small>შემდეგი სტატია</small><b>${esc(n.t)}</b></a>`:''}<div class="acta"><a class="btn" href="#search" data-reset>იხილეთ კოლექცია</a></div></article>`},
@@ -690,7 +690,7 @@ add(){if(!me){openAuth('login');return '<div class="page"><div class="panel empt
  <div class="anav full"><button type="button" class="btn alt" id="aBack" hidden>უკან</button><button type="button" class="btn" id="aNext">შემდეგი</button><button class="btn" type="submit" id="aPub" hidden>გამოქვეყნება</button></div>
  </form></div></div></div>`},
 product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
- if(!p)return `<div class="page"><div class="panel empty">ეს განცხადება ვერ მოიძებნა 😔<div style="margin-top:16px"><a class="btn" href="#home">მთავარზე დაბრუნება</a></div></div></div>`;
+ if(!p)return `<div class="page"><div class="panel empty">ეს განცხადება ვერ მოიძებნა <div style="margin-top:16px"><a class="btn" href="#home">მთავარზე დაბრუნება</a></div></div></div>`;
  countView(p);
  const c=pc[p.id]||'GEL',f=favs.includes(p.id),s=sellerOf(p),tn=typeName(p),imgs=p.photos||[],sim=similar(p),n=pv[p.id]||0;
  const rows=[['კატეგორია',p.cat],['ნივთის ტიპი',tn,p.type],['სქესი',p.gender],['წონა',p.weight?p.weight+' გრ':''],['მდებარეობა',p.loc],...attrRows(p)].filter(r=>r[1]);
