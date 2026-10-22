@@ -107,7 +107,9 @@ const CROWN='<svg class="crown" viewBox="0 0 24 24" fill="currentColor" aria-hid
 const vr=p=>p.vip=='SUPER VIP'?2:p.vip?1:0;
 const rk=p=>{const k=pkgOf(p);return k=='SUPER VIP'?2:k?1:0};
 const fresh=p=>Math.max(+p.created||0,(p.pay&&+p.pay.verifiedAt)||0);
-const byPkg=(a,b)=>rk(b)-rk(a)||fresh(b)-fresh(a);
+/* დამატებითი სერვისები (ფერი / სტიკერი): რაც უფრო მეტი აქვს, მით უფრო წინ დგას იმავე პაკეტის შიგნით */
+const addon=p=>(cardHex(p)?1:0)+(stkIds(p).length?1:0);
+const byPkg=(a,b)=>rk(b)-rk(a)||addon(b)-addon(a)||stkIds(b).length-stkIds(a).length||fresh(b)-fresh(a);
 /* paid packages (VIP / Super VIP) stay hidden from the public until the admin confirms the payment; Regular listings go live at once */
 const held=p=>!!p.hold&&!(me&&(same(me.email,p.owner)||isAdmin()));
 const pub=()=>items.filter(p=>!held(p));
@@ -149,8 +151,9 @@ const FF={
  watch:{},chain:{},
  other:{metal:['ვერცხლი','ოქრო'],pur:['585'],gen:GF1,stone:['ბრილიანტი','თვლები'],cond:['ახალი','ახალივით','ვინტაჟი'],style:['საქორწილო']}};
 const toPairs=l=>l.map(x=>Array.isArray(x)?x:[String(x),String(x)]);
-const priceSym=()=>'₾';
-const priceFld=()=>`<div class="fld prng"><span>ფასი (<b data-pcur>${priceSym()}</b>)</span><div class="prow"><input id="fp1" type="number" min="0" step="any" placeholder="დან" aria-label="ფასი დან"><i aria-hidden="true">–</i><input id="fp2" type="number" min="0" step="any" placeholder="მდე" aria-label="ფასი მდე"></div></div>`;
+let FCUR='GEL';   /* ფილტრის ვალუტა: 'GEL' ან 'USD' */
+const priceSym=()=>FCUR=='USD'?'$':'₾';
+const priceFld=()=>`<div class="fld prng"><span class="plab">ფასი (<b data-pcur>${priceSym()}</b>)<button type="button" class="cur sm${FCUR=='USD'?' on':''}" id="fCur" role="switch" aria-checked="${FCUR=='USD'}" aria-label="ფასი დოლარში"><span class="cl">₾</span><span class="trk"><i></i></span><span class="cl">$</span></button></span><div class="prow"><input id="fp1" type="number" min="0" step="any" placeholder="დან" aria-label="ფასი დან"><i aria-hidden="true">–</i><input id="fp2" type="number" min="0" step="any" placeholder="მდე" aria-label="ფასი მდე"></div></div>`;
 const wFld=()=>`<div class="fld prng"><span>წონა (გრ)</span><div class="prow"><input id="fw1" type="number" min="0" step="any" placeholder="დან" aria-label="წონა დან"><i aria-hidden="true">–</i><input id="fw2" type="number" min="0" step="any" placeholder="მდე" aria-label="წონა მდე"></div></div>`;
 const fRender=(pre,t)=>{
  if(pre=='f'){const sp=FF[t],keys=sp?Object.keys(sp):fkeys(t);
@@ -502,10 +505,10 @@ const grid=l=>`<div class="grid">${l.map(card).join('')}</div>`;
 /* ---------- filters ---------- */
 const filters=()=>`<div class="fgrid">${fld('საძიებო სიტყვა',dd('fT',{list:DD.type,all:'ყველა',other:1,otherPh:'ნივთის დასახელება'}))}${fld('მდებარეობა',dd('fl',{list:mk(LOC),all:'ყველა'}))}<div class="dyn" id="fDyn" data-t="">${fRender('f','')}</div></div><div class="frow"><button class="btn" id="goS">${ui('search')}<span>ძებნა</span></button><button type="button" class="btn alt" id="clrF" aria-label="გასუფთავება" title="გასუფთავება">${ui('trash')}</button></div>`;
 const EPS=1e-9;
-const priceIn=p=>p.price;
+const priceIn=p=>F.cur=='USD'?+usdOf(p.price).replace(/,/g,''):p.price;
 const gmatch=(p,v)=>p.gender==v||p.gender=='უნისექსი';
 const match=p=>{const hay=(p.title+' '+(p.typeOther||'')).toLowerCase(),pr=priceIn(p);
- return (!p.nego||!(F.p1||F.p2))&&(!F.t||(F.t=='other'?(F.o?hay.includes(F.o.toLowerCase()):p.type=='other'):p.type==F.t))&&(!F.l||p.loc==F.l)&&Object.entries(F.x||{}).every(([k,v])=>!v||(k=='brand'?String(av(p,k)||'').toLowerCase().includes(v.toLowerCase()):k=='gen'?gmatch(p,v):av(p,k)==v))&&(!F.w1||p.weight>=F.w1)&&(!F.w2||p.weight<=F.w2)&&(!F.p1||pr>=F.p1-EPS)&&(!F.p2||pr<=F.p2+EPS)};
+ return (!F.q||hsMatch(p,F.q))&&(!p.nego||!(F.p1||F.p2))&&(!F.t||(F.t=='other'?(F.o?hay.includes(F.o.toLowerCase()):p.type=='other'):p.type==F.t))&&(!F.l||p.loc==F.l)&&Object.entries(F.x||{}).every(([k,v])=>!v||(k=='brand'?String(av(p,k)||'').toLowerCase().includes(v.toLowerCase()):k=='gen'?gmatch(p,v):av(p,k)==v))&&(!F.w1||p.weight>=F.w1)&&(!F.w2||p.weight<=F.w2)&&(!F.p1||pr>=F.p1-EPS)&&(!F.p2||pr<=F.p2+EPS)};
 
 /* ---------- calculator ---------- */
 const M={'ოქრო':{k:'au',s:[375,585,750,916,999]},'ვერცხლი':{k:'ag',s:[800,925,999]},'პლატინა':{k:'pt',s:[850,950]}};
@@ -648,19 +651,16 @@ home(){return `<section class="hero"><h1>იპოვე შენი სრუ�
 ${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').sort(byPkg),'ჯერ არ არის Super VIP განცხადებები')}
 ${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').sort(byPkg),'ჯერ არ არის VIP განცხადებები',true)}
 <section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
-${homeBlog()}`},home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ძვირფასი სამკაულების უსაზღვრო არჩევანი ერთ სივრცეში.</p><div class="sbox">${filters()}</div></section>
-${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').reverse(),'ჯერ არ არის Super VIP განცხადებები')}
-${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').reverse(),'ჯერ არ არის VIP განცხადებები',true)}
-<section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeBlog()}`},
-search(){const r=pub().filter(match).sort(byPkg);
- return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results"><h2 style="margin-bottom:14px">ნაპოვნია: ${r.length}</h2>${r.length?grid(r):'<div class="empty">ვერაფერი მოიძებნა </div>'}</div></div>`},
+search(){const r=pub().filter(match).sort((a,b)=>Number(b.price||0)-Number(a.price||0));
+ return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results"><h2 style="margin-bottom:14px">ნაპოვნია: ${r.length}${F.q?` · «${esc(F.q)}»`:''}</h2>${r.length?grid(r):'<div class="empty">ვერაფერი მოიძებნა</div>'}</div></div>`},
 blog(){return `<div class="page blog"><h2 class="bh">ბლოგი</h2><p class="bsub">რჩევები, გზამკვლევები და ინსპირაცია სამკაულების სამყაროდან</p>${isAdmin()?`<div class="badm"><button type="button" class="btn sm" data-bnew>${ui('plus')}სტატიის დამატება</button></div>`:''}<div class="bgrid">${blogList().map((b,i)=>`<a class="bcard" href="#post:${b.id}"><span class="bimg"><img src="${b.img}" alt="${esc(b.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="bbody"><small class="bm">${b.min} წთ კითხვა</small><b>${esc(b.t)}</b><span class="bex">${esc(b.ex)}</span></span></a>`).join('')}</div></div>`},
 post(t){const L=blogList(),i=L.findIndex(b=>String(b.id)===String(t)),b=L[i];if(!b)return `<div class="page"><div class="panel empty">სტატია ვერ მოიძებნა<div style="margin-top:16px"><a class="btn" href="#blog">ბლოგზე დაბრუნება</a></div></div></div>`;
  const n=L[i+1];return `<article class="page art"><a class="aback" href="#blog">${ui('back')}ბლოგი</a><small class="ameta">${b.min} წუთი კითხვა</small><h1>${esc(b.t)}</h1><img class="ahero" src="${b.img}" alt="${esc(b.t)}" width="1400" height="934" decoding="async"><div class="abody">${(()=>{let h='',l=false;const f=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');for(const x of b.body){const li=x.startsWith('- ');if(l&&!li){h+='</ul>';l=false}if(li&&!l){h+='<ul>';l=true}h+=li?`<li>${f(x.slice(2))}</li>`:x[0]=='#'?`<h3>${esc(x.slice(1).trim())}</h3>`:`<p>${f(x)}</p>`}return h+(l?'</ul>':'')})()}</div>${n?`<a class="anext" href="#post:${n.id}"><small>შემდეგი სტატია</small><b>${esc(n.t)}</b></a>`:''}<div class="acta"><a class="btn" href="#search" data-reset>იხილეთ კოლექცია</a></div></article>`},
 seller(t){const own=[...new Set(items.map(x=>x.owner))].find(o=>sid(o)==t);
- if(!own)return `<div class="page"><div class="panel empty">გამყიდველი ვერ მოიძებნა 😔<div style="margin-top:16px"><a class="btn" href="#home">მთავარზე დაბრუნება</a></div></div></div>`;
- const l=pub().filter(p=>same(p.owner,own)).sort((a,b)=>vr(b)-vr(a)||(b.created||0)-(a.created||0)),s=sellerOf({owner:own}),tel=String(s.phone||'').replace(/[^\d+]/g,'');
+ if(!own)return `<div class="page"><div class="panel empty">გამყიდველი ვერ მოიძებნა 
+ <div style="margin-top:16px"><a class="btn" href="#home">მთავარზე დაბრუნება</a></div></div></div>`;
+ const l=pub().filter(p=>same(p.owner,own)).sort(byPkg),s=sellerOf({owner:own}),tel=String(s.phone||'').replace(/[^\d+]/g,'');
  return `<div class="page sellpg" style="max-width:1100px"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button>
  <div class="sellhead"><div class="sav">${s.avatar?`<img src="${esc(s.avatar)}" alt="">`:ui('user')}</div><div class="sn"><small>გამყიდველი</small><b>${esc(s.name)}</b><span class="stot" style="display:block;color:#000080;font-weight:600;font-size:13px;margin:2px 0">${l.length} განცხადება</span><em>${esc(s.type)}</em></div>${tel?`<a class="btn sb call" href="tel:${tel}">${ui('phone')}<span>${esc(s.phone)}</span></a>`:''}</div>
  <h2 class="sellh">ყველა განცხადება <span>(${l.length})</span></h2>${l.length?grid(l):'<div class="empty">განცხადებები არ არის</div>'}</div>`},
@@ -707,7 +707,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
    <div class="pmeta"><span>${ui('calendar')}${dateStr(p.created)}</span><span>${ui('eye')}${n} ნახვა</span></div>
    <h1 class="ptitle">${esc(p.title)}</h1>
    <div class="pprice">${p.nego?'<span class="price nego">ფასი შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</span>${curSw(p.id,c)}`}</div>
-   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button><div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" ...>...</button><button type="button" class="pa pic" data-share="${p.id}" ...>...</button>${ownerOf(p)?`...`:''}${canDel(p)?`...`:''}</div</div>
+   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button>${ownerOf(p)?`<button type="button" class="pa pic" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}<span class="lb">ფოტოები</span></button>`:''}${canDel(p)?`<button type="button" class="pa pic" data-del="${p.id}" aria-label="წაშლა" title="წაშლა">${ui('trash')}<span class="lb">წაშლა</span></button>`:''}</div>
    <div class="pattrs">${rows.map(r=>`<div class="pr2"><span>${r[0]}</span><b>${r[2]?ico(r[2]):''}${esc(r[1])}</b></div>`).join('')}</div>
    <div class="pdesc"><h3>აღწერა</h3><p>${esc(p.desc||'')}</p>${p.audio?`<div class="pvoice"><h3>ხმოვანი აღწერა</h3>${audPlayer(p.audio)}</div>`:''}</div>
    <div class="pseller">
@@ -808,11 +808,11 @@ function drawRc(){const r=window.rc,P=$('#rcPrev');if(!P)return;
  const b=$('#rcRm');if(b)b.onclick=()=>{window.rc=null;drawRc()};if(r)clearOne($('#rcptFld'))}
 
 /* ---------- bindings ---------- */
-function bind(){initDD();markReq();bindV2();reveal();
+function bind(){initDD();if(location.hash=='#search'&&F.q&&hsIn){hs.classList.add('open');hsIn.value=F.q;hsX.hidden=false}markReq();bindV2();reveal();
  [['f','#fT'],['a','#aK']].forEach(([pre,sel])=>{const t=$(sel);if(t&&!t.dataset.bd){t.dataset.bd=1;t.addEventListener('change',()=>setDyn(pre,t.dataset.val,readDyn(pre),pre=='f'?readNum():{}))}});
- const g=$('#goS');if(g){g.onclick=()=>{F={t:$('#fT').dataset.val,o:$('#fTO').value.trim(),l:$('#fl').dataset.val,x:readDyn('f'),w1:+(($('#fw1')||{}).value)||0,w2:+(($('#fw2')||{}).value)||0,p1:+$('#fp1').value||0,p2:+$('#fp2').value||0};if(location.hash=='#search')route();else location.hash='search'};
-  const cf=$('#clrF');if(cf)cf.onclick=()=>{F={};if(location.hash=='#search')route();else{setDD($('#fT'),'');$('#fTO').value='';setDD($('#fl'),'');setDyn('f','',{},{})}};
-  if(location.hash=='#search'){setDD($('#fT'),F.t||'');$('#fTO').value=F.o||'';setDD($('#fl'),F.l||'');const pn={};if(F.p1)pn.fp1=F.p1;if(F.p2)pn.fp2=F.p2;if(F.w1)pn.fw1=F.w1;if(F.w2)pn.fw2=F.w2;setDyn('f',F.t||'',F.x||{},pn)}}
+ const g=$('#goS');if(g){g.onclick=()=>{F={t:$('#fT').dataset.val,o:$('#fTO').value.trim(),l:$('#fl').dataset.val,x:readDyn('f'),w1:+(($('#fw1')||{}).value)||0,w2:+(($('#fw2')||{}).value)||0,p1:+$('#fp1').value||0,p2:+$('#fp2').value||0, cur:FCUR};if(location.hash=='#search')route();else location.hash='search'};
+const cf=$('#clrF');if(cf)cf.onclick=()=>{F={};FCUR='GEL';if(location.hash=='#search')route();else{setDD($('#fT'),'');$('#fTO').value='';setDD($('#fl'),'');setDyn('f','',{},{})}};
+  if(location.hash=='#search'){setDD($('#fT'),F.t||'');$('#fTO').value=F.o||'';setDD($('#fl'),F.l||'');const pn={};if(F.p1)pn.fp1=F.p1;if(F.p2)pn.fp2=F.p2;if(F.w1)pn.fw1=F.w1;if(F.w2)pn.fw2=F.w2;FCUR=F.cur||'GEL';setDyn('f',F.t||'',F.x||{},pn)}}
  if($('#cMetal'))initCalc();
  $$('[data-tab]').forEach(b=>b.onclick=()=>showProfile(b.dataset.tab));
  const lo=$('#logout');if(lo)lo.onclick=confirmLogout;
@@ -1077,12 +1077,12 @@ const hs=$('#hs'),hsIn=$('#hsIn'),sRes=$('#sRes');
 /* header search: a word that names an item type (ring, bracelet...) shows only that type; every other word must appear in the title / type / metal / gender */
 const TSTEM={ring:['ბეჭ','ring'],bracelet:['სამაჯ','bracelet'],earring:['საყურ','earring'],watch:['საათ','watch'],brooch:['ბროშ','brooch'],necklace:['ყელსაბ','necklace'],coin:['მონეტ','coin'],cross:['ჯვარ','cross'],chain:['ჯაჭვ','chain']};
 function hsMatch(p,q){const toks=String(q).toLowerCase().split(/\s+/).filter(Boolean);if(!toks.length)return false;
- const hay=[p.title,p.cat,typeName(p),p.typeOther,p.gender,(p.attrs&&p.attrs.metal)||''].join(' ').toLowerCase();
+ const hay=[p.title,typeName(p),p.typeOther,p.desc].join(' ').toLowerCase();
  return toks.every(t=>{const ty=Object.keys(TSTEM).find(k=>TSTEM[k].some(st=>t.length>=3&&(t.startsWith(st)||(t.length>=4&&st.startsWith(t)))));
   return ty?p.type==ty:hay.includes(t)})}
 function hsRun(){const q=hsIn.value.trim().toLowerCase();hsX.hidden=!hsIn.value;if(!q){sRes.classList.remove('show');return}
-   const qs=window.I18N?I18N.qry(q):[q],all=pub().filter(p=>qs.some(x=>hsMatch(p,x))),r=all.slice(0,8);
- sRes.innerHTML=r.length?r.map(p=>`<div class="sr" data-id="${p.id}"><div class="st" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div><div class="si"><b>${esc(p.title)}</b><small>${[p.cat,typeName(p),p.gender].filter(Boolean).map(esc).join(' · ')}</small></div>${p.nego?'<span class="price nego">შეთანხმებით</span>':`<span class="price" data-g="${p.price}">${fmt(p.price)}</span>`}</div>`).join('')+(all.length>8?`<div class="empty" style="padding:10px;font-size:13px">და კიდევ ${all.length-8}... დააზუსტეთ ძებნა</div>`:''):'<div class="empty">ვერაფერი მოიძებნა 😔</div>';
+   const all=pub().filter(p=>hsMatch(p,q)),r=all.slice(0,8);
+ sRes.innerHTML=r.length?r.map(p=>`<div class="sr" data-id="${p.id}"><div class="st" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div><div class="si"><b>${esc(p.title)}</b><small>${[p.cat,typeName(p),p.gender].filter(Boolean).map(esc).join(' · ')}</small></div>${p.nego?'<span class="price nego">შეთანხმებით</span>':`<span class="price" data-g="${p.price}">${fmt(p.price)}</span>`}</div>`).join('')+(all.length>8?`<div class="empty" style="padding:10px;font-size:13px">და კიდევ ${all.length-8}... დააზუსტეთ ძებნა</div>`:''):'<div class="empty">ვერაფერი მოიძებნა </div>';
  hsPos();sRes.classList.add('show')}
 /* results panel sits directly under the search field */
 function hsPos(){if(innerWidth>900){const r=hs.getBoundingClientRect(),w=Math.min(480,innerWidth-16);sRes.style.top=(r.bottom+6)+'px';sRes.style.width=w+'px';sRes.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';sRes.style.right='auto'}else{['top','left','right','width'].forEach(k=>sRes.style[k]='')}}
@@ -1090,8 +1090,14 @@ window.addEventListener('resize',()=>{if(sRes.classList.contains('show'))hsPos()
 function hsClose(){hs.classList.remove('open');hsIn.value='';hsX.hidden=true;sRes.classList.remove('show')}
 const hsX=document.createElement('button');hsX.type='button';hsX.className='hsx';hsX.hidden=true;hsX.setAttribute('aria-label','ძებნის გასუფთავება');hsX.title='ძებნის გასუფთავება';hsX.textContent='×';hsIn.after(hsX);
 hsX.onclick=e=>{e.stopPropagation();hsIn.value='';hsRun();hsIn.focus()};
-$('#hsBtn').onclick=e=>{e.stopPropagation();if(hs.classList.contains('open'))hsClose();else{hs.classList.add('open');hsIn.focus()}};
-hsIn.oninput=hsRun;hsIn.onkeydown=e=>{if(e.key=='Escape'){if(hsIn.value){hsIn.value='';hsRun()}else hsClose()}};
+function hsGo(){const q=hsIn.value.trim();if(!q)return;F={q};sRes.classList.remove('show');if(location.hash=='#search')route();else location.hash='search'}
+$('#hsBtn').onclick=e=>{e.stopPropagation();
+ if(hs.classList.contains('open')){if(hsIn.value.trim())hsGo();else hsClose()}
+ else{hs.classList.add('open');hsIn.focus()}};
+hsIn.oninput=hsRun;
+hsIn.onkeydown=e=>{
+ if(e.key=='Enter'){e.preventDefault();hsGo()}
+ else if(e.key=='Escape'){if(hsIn.value){hsIn.value='';hsRun()}else hsClose()}};
 
 /* ---------- notifications ---------- */
 const myNotes=()=>me?(notes[me.email]||[]):[];
@@ -1100,7 +1106,10 @@ function addNote(t){if(!me)return;(notes[me.email]=notes[me.email]||[]).unshift(
 $('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');const P=$('#notePanel'),l=myNotes();
  P.innerHTML=`<h4>შეტყობინებები</h4>${l.length?l.slice(0,20).map(n=>`<div class="note ${n.r?'':'new'}">${esc(n.t)}<small>${new Date(n.d).toLocaleString('ka-GE')}</small></div>`).join(''):'<div class="empty">შეტყობინებები არ არის</div>'}`;
  P.classList.toggle('show');l.forEach(n=>n.r=1);save('notes',notes);setBadge()};
-
+document.addEventListener('click',e=>{const b=e.target.closest('#fCur');if(!b)return;
+ FCUR=FCUR=='USD'?'GEL':'USD';const on=FCUR=='USD';
+ b.classList.toggle('on',on);b.setAttribute('aria-checked',on);
+ $$('[data-pcur]').forEach(x=>x.textContent=priceSym())});
 /* ---------- global clicks ---------- */
 document.addEventListener('click',e=>{
  const cc=e.target.closest('a[href="#collection"]');if(cc){e.preventDefault();F={};if(location.hash=='#search')route();else location.hash='search'}
