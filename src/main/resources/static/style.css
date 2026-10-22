@@ -1972,3 +1972,71 @@ a.sh:focus-visible { outline: 3px solid rgba(0, 0, 128, .35); outline-offset: 4p
 .top { gap: 0 !important; }
 .top .logo img.wm { margin-right: -12px !important; }
 .top .nav > a:first-child { padding-left: 4px !important; }
+<<<<<<< HEAD
+=======
+
+/* =====================================================================
+   FIX (phones): header logo no longer touches / covers the "+" button
+   The wordmark now scales down to the free space left of the action buttons
+   (width/height auto + max-width/max-height keep the aspect ratio).
+   FIX: the floating chat bubble no longer covers an opened dropdown list.
+   ===================================================================== */
+@media (max-width: 480px) {
+  .top .logo img, .top .logo img.wm { width: auto !important; height: auto !important; max-height: 36px !important; max-width: calc(90vw - 176px) !important; margin-right: 0 !important; }
+}
+@media (max-width: 380px) {
+  .top .logo img, .top .logo img.wm { max-width: calc(90vw - 150px) !important; }
+}
+body:has(.dd.open) .fw { opacity: 0; pointer-events: none; transition: opacity .15s; }
+
+/* =====================================================================
+   FIX: a long selected value (e.g. "ვარდისფერი ოქრო") no longer stretches the
+   filter panel. Grid columns were "1fr" (= minmax(auto, 1fr)), so the nowrap
+   dropdown text widened the column and the fields spilled out of the card
+   over the results. Columns are now minmax(0, 1fr) and long text gets "...".
+   ===================================================================== */
+.layout aside, .layout aside .sbox { min-width: 0; }
+.fgrid, .layout aside .fgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fgrid > *, .fgrid .fld, .fgrid .ddw, .fgrid .dd, .fgrid .prng, .fgrid .pwrow { min-width: 0; }
+.fgrid .pwrow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fgrid .pwrow.one { grid-template-columns: minmax(0, 1fr); }
+.dd-btn { min-width: 0; }
+.dd-val { display: block; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-val .ti { display: inline-block; vertical-align: -3px; margin-right: 8px; }
+/* ===== სურათი მთლიანად ჩანს (contain) ===== */
+
+/* კოლექცია: ბადის ბარათი */
+.card .imgi { background-size: contain; background-repeat: no-repeat; background-position: center; }
+@media (hover: hover) and (pointer: fine) { .card:hover .imgi { transform: none; } }
+
+/* ბლოგი: სიის ბარათი */
+.bimg img { object-fit: contain; }
+.bcard:hover .bimg img { transform: none; }
+
+/* ბლოგი: მთავარი გვერდის ბლოკი */
+.hbi img { object-fit: contain; }
+
+/* ბლოგი: სტატიის დიდი სურათი, ბუნებრივი პროპორციით, ჩაუჭრელად */
+.ahero { aspect-ratio: auto; height: auto; object-fit: contain; }
+/* ===== პროდუქტის გვერდი: ფოტო მთლიანად ჩანს ===== */
+.pmain img { object-fit: contain; }
+.pth img { object-fit: contain; background: #fff; }
+.pth.vth video { object-fit: contain; }
+.pm-list #pmOut .pm-ic { display: inline-flex; align-items: center; gap: 10px; }
+.pm-list #pmOut .ic { width: 18px; height: 18px; }
+/* გასვლა: წითელი */
+.pm-list #pmOut { color: var(--err); }
+.pm-list #pmOut:hover { background: #FDF2F1; color: #B42318; }
+.pm-list #pmOut:focus-visible { outline-color: var(--err); }
+/* პროდუქტის გვერდი: სტიკერები გალერეის ქვემოთ (იგივე სტილი, რაც კოლექციის ბარათზე) */
+.pgal .stks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.pgal .stk { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid #E3E4E6; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08); color: #2B3138; font-size: var(--fs-sm); font-weight: 500; line-height: 1.2; white-space: nowrap; }
+.pgal .stk .se { flex: none; font-size: 15px; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.pgal .stk b { font-weight: 500; }
+.modal { background: rgba(17, 24, 39, 0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+/* პლეისჰოლდერები: ნაზი, ფორმატის მინიშნებისთვის */
+.form input::placeholder, .fgrid input::placeholder { color: #A3A8AF; letter-spacing: 1px; }
+.form input:placeholder-shown { letter-spacing: 1px; }
+#modalBody:has(#lgYes) .ci { background: #FDECEA; color: #B42318; }
+>>>>>>> 28ae1ab (a)
