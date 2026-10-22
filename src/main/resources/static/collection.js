@@ -17,12 +17,8 @@
         a=days?l.filter(p=>c(p)>=Date.now()-days*864e5):[...l],
         pr=(x,y,dir)=>{if(x.nego&&y.nego)return 0;if(x.nego)return 1;if(y.nego)return -1;return dir*(x.price-y.price)},
         f={dd:(x,y)=>c(y)-c(x),da:(x,y)=>c(x)-c(y),pd:(x,y)=>pr(x,y,-1),pa:(x,y)=>pr(x,y,1),sd:(x,y)=>sn(x,y,-1),sa:(x,y)=>sn(x,y,1)}[CS.s]||((x,y)=>c(y)-c(x));
-<<<<<<< HEAD
-  return a.sort(f)};
-=======
     const rank=p=>p.vip=='SUPER VIP'?2:p.vip?1:0;
   return a.sort((x,y)=>rank(y)-rank(x)||f(x,y))};
->>>>>>> 28ae1ab (a)
 
  /* ---------- list-view card ---------- */
  const si=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;

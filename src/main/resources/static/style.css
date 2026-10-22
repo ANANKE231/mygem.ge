@@ -1972,8 +1972,6 @@ a.sh:focus-visible { outline: 3px solid rgba(0, 0, 128, .35); outline-offset: 4p
 .top { gap: 0 !important; }
 .top .logo img.wm { margin-right: -12px !important; }
 .top .nav > a:first-child { padding-left: 4px !important; }
-<<<<<<< HEAD
-=======
 
 /* =====================================================================
    FIX (phones): header logo no longer touches / covers the "+" button
@@ -2039,4 +2037,3 @@ body:has(.dd.open) .fw { opacity: 0; pointer-events: none; transition: opacity .
 .form input::placeholder, .fgrid input::placeholder { color: #A3A8AF; letter-spacing: 1px; }
 .form input:placeholder-shown { letter-spacing: 1px; }
 #modalBody:has(#lgYes) .ci { background: #FDECEA; color: #B42318; }
->>>>>>> 28ae1ab (a)
