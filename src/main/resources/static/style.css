@@ -1,4 +1,4 @@
-/* =====================================================================
+=/* =====================================================================
    mygem.ge — Bright, refined, minimalist jewelry marketplace
    Palette: pure white · cool light grays · charcoal text
    ===================================================================== */
@@ -2244,4 +2244,81 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 .layout aside .fgrid .dyn > .fld:last-child:nth-child(even),
 .layout aside .fgrid .dyn > label:last-child:nth-child(even) {
   grid-column: 1 / -1;
+}
+/* =====================================================================
+   MOBILE FIX: ჰედერი + ფუტერი (≤800px)
+   ===================================================================== */
+@media (max-width: 800px) {
+
+  /* ჰედერი: 2 რიგი. 1) ლოგო + ღილაკები  2) ნავიგაცია/ძებნა */
+  .top {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "logo actions" "nav nav";
+    align-items: center;
+    gap: 4px 8px !important;
+    padding: 6px max(4%, env(safe-area-inset-right)) 6px max(4%, env(safe-area-inset-left)) !important;
+  }
+
+  /* ლოგო: ვიწრდება თავისუფალ ადგილამდე, ღილაკებს აღარ ეჯახება */
+  .top .logo { grid-area: logo; min-width: 0; }
+  .top .logo img, .top .logo img.wm {
+    width: auto !important;
+    height: auto !important;
+    max-height: 34px !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    object-fit: contain;
+  }
+
+  /* მარჯვენა ღილაკები (+, ♡, 🔔, პროფილი) */
+  .top .actions { grid-area: actions; margin-left: 0; gap: 4px !important; flex: none; }
+  .top .ib { width: 38px; height: 38px; }
+  .top .actions .btn.add { width: 38px; min-width: 38px; min-height: 38px; }
+
+  /* ნავიგაცია + ძებნა: ერთ ხაზზე, საჭიროებისას გვერდზე იწევა */
+  .top .nav {
+    grid-area: nav;
+    order: 0;
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 2px;
+    overflow-x: auto;
+    padding: 2px 0;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .top .nav::-webkit-scrollbar { display: none; }
+  .top .nav > a { flex: none; padding: 8px 10px !important; font-size: var(--fs-md); }
+  .top .hs { flex: none; margin-left: auto; }
+  .top .hs.open { flex: 1 1 auto; margin-left: 0; }
+}
+
+@media (max-width: 380px) {
+  .top .actions { gap: 0 !important; }
+  .top .ib, .top .actions .btn.add { width: 34px; min-width: 34px; min-height: 34px; }
+  .top .logo img, .top .logo img.wm { max-height: 30px !important; }
+}
+
+/* ფუტერი (≤700px): ცენტრში, მოხერხებული ბმულები */
+@media (max-width: 700px) {
+  footer {
+    padding: 32px max(5%, env(safe-area-inset-left)) calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+  .foot { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .foot .fleft, .foot .fmid, .foot .fright {
+    justify-self: stretch;
+    align-items: center;
+    text-align: center;
+  }
+  .foot .fcol { gap: 4px; }
+  .foot .fcol a:not(.fh) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+  }
+  .foot .soc { justify-content: center; margin-top: 4px; }
+  .foot .soc a { width: 44px; height: 44px; }
+  .copy { margin-top: 24px; padding-top: 16px; font-size: var(--fs-xs); line-height: 1.6; }
 }
