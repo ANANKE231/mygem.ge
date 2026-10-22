@@ -77,6 +77,7 @@ const isEmail=e=>e.length<=254&&!e.includes('..')&&/^[A-Za-z0-9](?:[A-Za-z0-9._%
 const isPhone=p=>{const d=p.replace(/\D/g,'');return /^\+?[0-9\s-]+$/.test(p)&&d.length>=9&&d.length<=15};
 const pwMsg=p=>!p?'შეიყვანეთ პაროლი':p.length<8?'პაროლი უნდა შეიცავდეს მინიმუმ 8 სიმბოლოს':!/[A-Za-zႠ-ჿ]/.test(p)||!/\d/.test(p)?'პაროლი უნდა შეიცავდეს ასოსაც და ციფრსაც':'';
 const nameMsg=(n,w='სახელი')=>!n?`შეიყვანეთ ${w}`:n.length<2?'მინიმუმ 2 სიმბოლო':'';
+const wc=s=>String(s||'').trim().split(/\s+/).filter(Boolean).length;
 const emailMsg=e=>!e?'შეიყვანეთ ელ-ფოსტა':!isEmail(e)?'არასწორი ელ-ფოსტა (მაგ: name@gmail.com)':'';
 const unameMsg=(v,self='')=>!v?'შეიყვანეთ მომხმარებლის სახელი':!/^[A-Za-z0-9._-]{3,20}$/.test(v)?'3–20 სიმბოლო: ლათინური ასოები, ციფრები, . _ -':users.some(x=>x.username&&same(x.username,v)&&!same(x.email,self))?'ეს მომხმარებლის სახელი დაკავებულია':'';
 const loginMsg=v=>!v?'შეიყვანეთ ელ-ფოსტა ან მომხმარებლის სახელი':v.includes('@')?emailMsg(v):'';
@@ -839,7 +840,7 @@ const cf=$('#clrF');if(cf)cf.onclick=()=>{F={};FCUR='GEL';if(location.hash=='#se
    const wrap=af.closest('.addwrap'),PN=$$('.astep',af),NV=$$('.lpc-i',wrap),seen=new Set([1]),ddv=el=>{const b=el&&el.querySelector('.dd-val');return el&&el.dataset.val&&b?b.textContent.replace(/\s+/g,' ').trim():''};
    const stk=()=>cleanStk($('#aSP .sval').value.split(','));
    const doneOf=i=>{if(i==1){const K=$('#aK'),L=$('#aL'),k=K.dataset.val,KO=$('#aKO');
-     return !!(k&&(k!='other'||(KO&&KO.value.trim()))&&L.dataset.val&&$('#aT').value.trim().length>=3&&$('#aD').value.trim().length>=10&&+$('#aW').value>0&&($('#aNego').checked||+$('#aP').value>0))}
+     return !!(k&&(k!='other'||(KO&&KO.value.trim()))&&L.dataset.val&&$('#aT').value.trim().length>=3&&wc($('#aT').value)<=3&&$('#aD').value.trim().length>=10&&+$('#aW').value>0&&($('#aNego').checked||+$('#aP').value>0))}
     if(i==2)return ph.length>=3;
     if(i==3)return seen.has(3)&&((PL.dataset.val=='REG'&&!CK.checked&&!stk().length)||!!window.rc);
     return false};
@@ -884,7 +885,7 @@ const cf=$('#clrF');if(cf)cf.onclick=()=>{F={};FCUR='GEL';if(location.hash=='#se
     if(i==1){const K=$('#aK'),KO=$('#aKO'),L=$('#aL'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),k=K.dataset.val,t=T.value.trim(),d=D.value.trim(),w=+W.value,p=+P.value,
       dyn=[];
      return [[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KO,k=='other'&&!KO.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
-      [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
+      [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':wc(t)>3?'მაქსიმუმ 3 სიტყვა':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
       [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,$('#aNego').checked?'':(!(p>0)?'მიუთითეთ ფასი (0-ზე მეტი)':p>100000000?'ფასი ძალიან მაღალია':'')]]}
     if(i==2)return [[$('#photoFld'),ph.length<3?`ატვირთეთ მინიმუმ 3 ფოტო (ახლა: ${ph.length})`:'']];
     if(i==3)return [[$('#rcptFld'),(PL.dataset.val!='REG'||CK.checked||stk().length>0)&&!window.rc?'ატვირთეთ გადახდის ქვითარი (სავალდებულოა ფასიანი განცხადებისთვის)':'']];
@@ -936,7 +937,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
    af.onsubmit=async e=>{e.preventDefault();if(window.aStep!=4)return tryStep(window.aStep+1);const K=$('#aK'),KO=$('#aKO'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),TM=$('#aTerms');
    const t=T.value.trim(),d=D.value.trim(),w=+W.value,p=priceGel(),k=K.dataset.val,L=$('#aL'),A={},dyn=fkeys(k).map(x=>{const el=$('#a_'+x),v=FD[x].t=='text'?el.value.trim():el.dataset.val;if(v)A[x]=v;return[el,'']});
    const n=check(af,[[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KO,k=='other'&&!KO.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
-    [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
+[T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':wc(t)>3?'მაქსიმუმ 3 სიტყვა':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
     [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,$('#aNego').checked?'':(!(p>0)?'მიუთითეთ ფასი (0-ზე მეტი)':p>100000000?'ფასი ძალიან მაღალია':'')],
     [$('#photoFld'),ph.length<3?`ატვირთეთ მინიმუმ 3 ფოტო (ახლა: ${ph.length})`:''],[$('#rcptFld'),(PL.dataset.val!='REG'||CK.checked||cleanStk($('#aSP .sval').value.split(',')).length>0)&&!window.rc?'ატვირთეთ გადახდის ქვითარი (სავალდებულოა ფასიანი განცხადებისთვის)':''],[TM,TM.checked?'':'გასაგრძელებლად დაეთანხმეთ წესებსა და პირობებს']]);
    const S=$('#formSum');
@@ -959,7 +960,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
   const sync=()=>{const ind=T.dataset.val=='individual';$('#eNL .lt').firstChild.textContent=ind?'სახელი და გვარი':'დასახელება'};T.onchange=sync;
   ef.onsubmit=e=>{e.preventDefault();const old=me.email,ty=T.dataset.val,ind=ty=='individual',O=$('#eTO'),N=$('#eN'),L=$('#eL'),E=$('#eE'),P=$('#eP'),W=$('#ePw'),W2=$('#ePw2'),U=$('#eU');
   const full=N.value.trim().replace(/\s+/g,' '),sp=full.indexOf(' '),n=ind&&sp>0?full.slice(0,sp):full,l=ind&&sp>0?full.slice(sp+1):'',em=E.value.trim(),tel=P.value.trim(),un=U.value.trim();
-   if(check(ef,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,ind?(!full?'შეიყვანეთ სახელი და გვარი':!l?'შეიყვანეთ სახელიც და გვარიც':''):nameMsg(n,'დასახელება')],
+   if(check(ef,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,ind?(!full?'შეიყვანეთ სახელი და გვარი':!l?'შეიყვანეთ სახელიც და გვარიც':''):nameMsg(n,'დასახელება')], 
     [E,emailMsg(em)||(!same(em,old)&&users.some(u=>same(u.email,em))?'ეს ელ-ფოსტა დაკავებულია':'')],[P,!tel?'შეიყვანეთ ტელეფონი':!isPhone(tel)?'არასწორი ტელეფონის ნომერი':''],
     [U,!un&&!me.username?'':unameMsg(un,old)],[W,W.value?pwMsg(W.value):''],[W2,W.value&&W2.value!=W.value?'პაროლები არ ემთხვევა':'']]))return;
    (me.pass?askPass:f=>f())(()=>{Object.assign(me,{regType:ty,regOther:ty=='other'?O.value.trim():'',shop:!ind,name:n,last:ind?l:'',email:em,phone:tel,username:un});if(W.value)me.pass=W.value;
@@ -1103,7 +1104,7 @@ hsIn.onkeydown=e=>{
 const myNotes=()=>me?(notes[me.email]||[]):[];
 function setBadge(){const n=myNotes().filter(x=>!x.r).length,b=$('#noteDot');b.textContent=n;b.style.display=n?'grid':'none'}
 function addNote(t){if(!me)return;(notes[me.email]=notes[me.email]||[]).unshift({t,d:Date.now(),r:0});save('notes',notes);setBadge()}
-$('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');const P=$('#notePanel'),l=myNotes();
+$('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');pmClose();const P=$('#notePanel'),l=myNotes();
  P.innerHTML=`<h4>შეტყობინებები</h4>${l.length?l.slice(0,20).map(n=>`<div class="note ${n.r?'':'new'}">${esc(n.t)}<small>${new Date(n.d).toLocaleString('ka-GE')}</small></div>`).join(''):'<div class="empty">შეტყობინებები არ არის</div>'}`;
  P.classList.toggle('show');l.forEach(n=>n.r=1);save('notes',notes);setBadge()};
 document.addEventListener('click',e=>{const b=e.target.closest('#fCur');if(!b)return;
@@ -1166,7 +1167,7 @@ pMenu.addEventListener('click',e=>{const a=e.target.closest('a');if(a){pmClose()
  if(e.target.closest('#pmOut')){pmClose();confirmLogout()}});
 document.addEventListener('keydown',e=>{if(e.key=='Escape')pmClose()});
 window.addEventListener('hashchange',pmClose);window.addEventListener('resize',pmClose);
-$('#loginBtn').onclick=()=>{if(!me)return openAuth('login');if(pMenu.classList.contains('show'))pmClose();else pmOpen()};
+$('#loginBtn').onclick=()=>{if(!me)return openAuth('login');$('#notePanel').classList.remove('show');if(pMenu.classList.contains('show'))pmClose();else pmOpen()};
 const modal=$('#modal'),AO={login:0,forgot:1,reg:2};let curAuth=null,busy=false;
 modal.onclick=e=>{if(e.target==modal)closeModal()};
 function closeModal(){modal.classList.remove('show');curAuth=null;window.__goAdd=false}
@@ -1330,3 +1331,9 @@ document.addEventListener('input',e=>{
  /* ელ-ფოსტა: ზედმეტი ინტერვალები იშლება, პატარა ასოებად გადადის */
 document.addEventListener('input',e=>{const t=e.target;if(!t||!/^(rE|eE|lE|fE)$/.test(t.id)||t.id=='lE')return;
  const v=t.value.replace(/\s+/g,'').toLowerCase();if(v!==t.value)t.value=v});
+
+ /* პროფილის მენიუ და შეტყობინებების პანელი ერთდროულად არასდროს იხსნება */
+document.addEventListener('click',e=>{
+ if(e.target.closest('#noteBtn'))pmClose();
+ else if(e.target.closest('#loginBtn'))$('#notePanel').classList.remove('show');
+},true);
