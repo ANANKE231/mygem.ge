@@ -1,4 +1,4 @@
-=/* =====================================================================
+/* =====================================================================
    mygem.ge — Bright, refined, minimalist jewelry marketplace
    Palette: pure white · cool light grays · charcoal text
    ===================================================================== */
@@ -2322,3 +2322,239 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
   .foot .soc a { width: 44px; height: 44px; }
   .copy { margin-top: 24px; padding-top: 16px; font-size: var(--fs-xs); line-height: 1.6; }
 }
+
+
+/* mygem.ge — responsive listing-card refinements.
+   Append AFTER existing stylesheet rules. */
+.grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 16px; }
+.grid > .card { min-width: 0; height: 100%; }
+.card { overflow: hidden; }
+.card .img { flex-shrink: 0; }
+.card .imgi { background-position: center; background-repeat: no-repeat; }
+.card .in { min-width: 0; gap: 0; }
+.card .trow { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.card .trow h4, .card h4 { min-width: 0; overflow-wrap: anywhere; line-height: 1.4; }
+.card .pline { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 8px 10px; min-width: 0; }
+.card .pline .price { flex: 0 1 auto; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.card .pline .cur { flex: 0 0 auto; margin: 0; }
+.card .cfoot { min-width: 0; margin-top: auto; gap: 8px; }
+.card .cfoot .tags, .card .cfoot .cbot, .card .stks { min-width: 0; flex-wrap: wrap; gap: 6px; }
+.card .loc, .card .cmeta { min-width: 0; overflow-wrap: anywhere; }
+.card .cact { flex-shrink: 0; }
+@media (min-width: 701px) and (max-width: 1100px) {
+  .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 12px; }
+}
+@media (max-width: 700px) {
+  .grid:not(.hscroll) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .card .in { padding: 11px; }
+  .card .trow h4 { font-size: 14px; }
+  .card .pline { margin-top: 8px; padding-bottom: 9px; gap: 7px; }
+  .card .pline .price { font-size: 17px; }
+  .card .cfoot { padding-top: 8px; }
+  .card .tg { white-space: normal; line-height: 1.3; }
+}
+@media (max-width: 480px) {
+  .grid:not(.hscroll) { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .grid:not(.hscroll) > .card { display: grid; grid-template-columns: minmax(100px, 34%) minmax(0, 1fr); align-items: stretch; }
+  .grid:not(.hscroll) > .card > .img { width: 100%; height: 100%; min-height: 160px; aspect-ratio: auto; border-radius: 0; }
+  .grid:not(.hscroll) > .card > .in { padding: 12px; }
+  .grid:not(.hscroll) > .card .pline { flex-direction: row; }
+  .grid:not(.hscroll) > .card .cfoot { margin-top: 8px; }
+  .grid:not(.hscroll) > .card .badge { font-size: 10px; padding: 4px 6px; }
+}
+@media (max-width: 360px) {
+  .grid:not(.hscroll) > .card { grid-template-columns: minmax(88px, 31%) minmax(0, 1fr); }
+  .grid:not(.hscroll) > .card > .in { padding: 9px; }
+  .card .pline .price { font-size: 15px; }
+}
+/* mygem.ge — Header and footer responsive improvements.
+   Paste at the very end of your existing stylesheet. */
+.top { min-width: 0; }
+.top .logo, .top .nav, .top .actions { min-width: 0; }
+.top .actions { flex-shrink: 0; }
+.top .nav > a { white-space: nowrap; }
+.foot { width: 100%; }
+.foot > * { min-width: 0; }
+.foot a, .foot p { overflow-wrap: anywhere; }
+
+@media (min-width: 801px) and (max-width: 1150px) {
+  .top { gap: 12px !important; padding-left: 3% !important; padding-right: 3% !important; }
+  .top .nav { gap: 0; }
+  .top .nav > a { padding-inline: 7px; font-size: 13px; }
+  .top .logo img, .top .logo img.wm { max-width: 190px !important; width: 100% !important; object-fit: contain; }
+  .foot { grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap: 18px; }
+}
+@media (max-width: 800px) {
+  .top {
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) auto !important;
+    grid-template-areas: 'logo actions' 'nav nav' !important;
+    column-gap: 8px !important;
+    row-gap: 5px !important;
+    align-items: center !important;
+    padding: 8px 4% !important;
+  }
+  .top .logo { grid-area: logo; display: flex; width: 100%; overflow: hidden; }
+  .top .logo img, .top .logo img.wm {
+    display: block; width: auto !important; height: auto !important;
+    max-width: 100% !important; max-height: 36px !important;
+    margin: 0 !important; object-fit: contain; object-position: left center;
+  }
+  .top .actions { grid-area: actions; display: flex; align-items: center; gap: 3px !important; margin: 0 !important; }
+  .top .actions .ib, .top .actions .btn.add { flex: none; width: 38px; min-width: 38px; height: 38px; min-height: 38px; padding: 0; }
+  .top .actions svg { max-width: 20px; max-height: 20px; }
+  .top .nav {
+    grid-area: nav; display: flex; align-items: center; width: 100%; min-width: 0;
+    overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap;
+    gap: 4px; padding: 3px 0 5px; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .top .nav::-webkit-scrollbar { display: none; }
+  .top .nav > a { flex: 0 0 auto; padding: 7px 10px !important; font-size: 13px; }
+  .top .hs { flex: 0 0 auto; margin-left: auto; }
+  .top .hs.open { flex: 1 0 180px; }
+  .top .hs.open input { width: min(230px, 55vw); }
+  footer { padding: 34px 5% calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .foot { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 26px 20px; align-items: start; }
+  .foot .fleft, .foot .fmid, .foot .fright { justify-self: stretch; text-align: left; align-items: flex-start; }
+  .foot .fleft { grid-column: 1 / -1; }
+  .foot .fcol { gap: 7px; }
+  .foot .fcol a:not(.fh) { display: inline-flex; align-items: center; min-height: 36px; }
+  .foot .soc { justify-content: flex-start; flex-wrap: wrap; }
+  .copy { margin-top: 26px; padding-top: 16px; line-height: 1.6; }
+}
+@media (max-width: 480px) {
+  .top { padding: 7px 3% !important; column-gap: 4px !important; }
+  .top .logo img, .top .logo img.wm { max-height: 32px !important; }
+  .top .actions { gap: 0 !important; }
+  .top .actions .ib, .top .actions .btn.add { width: 34px; min-width: 34px; height: 36px; min-height: 36px; }
+  .top .nav > a { padding: 7px 9px !important; font-size: 12px; }
+  .foot { grid-template-columns: minmax(0,1fr); gap: 22px; }
+  .foot .fleft, .foot .fmid, .foot .fright { grid-column: 1; justify-self: stretch; text-align: center; align-items: center; }
+  .foot .fcol { gap: 4px; }
+  .foot .fcol a:not(.fh) { justify-content: center; min-height: 40px; }
+  .foot .soc { justify-content: center; }
+  .foot .soc a { width: 44px; height: 44px; }
+  .copy { text-align: center; }
+}
+@media (max-width: 360px) {
+  .top .logo img, .top .logo img.wm { max-height: 28px !important; }
+  .top .actions .ib, .top .actions .btn.add { width: 32px; min-width: 32px; }
+}
+
+/* mygem.ge — Header and footer responsive improvements.
+   Paste at the very end of your existing stylesheet. */
+.top { min-width: 0; }
+.top .logo, .top .nav, .top .actions { min-width: 0; }
+.top .actions { flex-shrink: 0; }
+.top .nav > a { white-space: nowrap; }
+.foot { width: 100%; }
+.foot > * { min-width: 0; }
+.foot a, .foot p { overflow-wrap: anywhere; }
+
+@media (min-width: 801px) and (max-width: 1150px) {
+  .top { gap: 12px !important; padding-left: 3% !important; padding-right: 3% !important; }
+  .top .nav { gap: 0; }
+  .top .nav > a { padding-inline: 7px; font-size: 13px; }
+  .top .logo img, .top .logo img.wm { max-width: 190px !important; width: 100% !important; object-fit: contain; }
+  .foot { grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap: 18px; }
+}
+@media (max-width: 800px) {
+  .top {
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) auto !important;
+    grid-template-areas: 'logo actions' 'nav nav' !important;
+    column-gap: 8px !important;
+    row-gap: 5px !important;
+    align-items: center !important;
+    padding: 8px 4% !important;
+  }
+  .top .logo { grid-area: logo; display: flex; width: 100%; overflow: hidden; }
+  .top .logo img, .top .logo img.wm {
+    display: block; width: auto !important; height: auto !important;
+    max-width: 100% !important; max-height: 36px !important;
+    margin: 0 !important; object-fit: contain; object-position: left center;
+  }
+  .top .actions { grid-area: actions; display: flex; align-items: center; gap: 3px !important; margin: 0 !important; }
+  .top .actions .ib, .top .actions .btn.add { flex: none; width: 38px; min-width: 38px; height: 38px; min-height: 38px; padding: 0; }
+  .top .actions svg { max-width: 20px; max-height: 20px; }
+  .top .nav {
+    grid-area: nav; display: flex; align-items: center; width: 100%; min-width: 0;
+    overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap;
+    gap: 4px; padding: 3px 0 5px; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .top .nav::-webkit-scrollbar { display: none; }
+  .top .nav > a { flex: 0 0 auto; padding: 7px 10px !important; font-size: 13px; }
+  .top .hs { flex: 0 0 auto; margin-left: auto; }
+  .top .hs.open { flex: 1 0 180px; }
+  .top .hs.open input { width: min(230px, 55vw); }
+  footer { padding: 34px 5% calc(40px + env(safe-area-inset-bottom, 0px)); }
+  .foot { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 26px 20px; align-items: start; }
+  .foot .fleft, .foot .fmid, .foot .fright { justify-self: stretch; text-align: left; align-items: flex-start; }
+  .foot .fleft { grid-column: 1 / -1; }
+  .foot .fcol { gap: 7px; }
+  .foot .fcol a:not(.fh) { display: inline-flex; align-items: center; min-height: 36px; }
+  .foot .soc { justify-content: flex-start; flex-wrap: wrap; }
+  .copy { margin-top: 26px; padding-top: 16px; line-height: 1.6; }
+}
+@media (max-width: 480px) {
+  .top { padding: 7px 3% !important; column-gap: 4px !important; }
+  .top .logo img, .top .logo img.wm { max-height: 32px !important; }
+  .top .actions { gap: 0 !important; }
+  .top .actions .ib, .top .actions .btn.add { width: 34px; min-width: 34px; height: 36px; min-height: 36px; }
+  .top .nav > a { padding: 7px 9px !important; font-size: 12px; }
+  .foot { grid-template-columns: minmax(0,1fr); gap: 22px; }
+  .foot .fleft, .foot .fmid, .foot .fright { grid-column: 1; justify-self: stretch; text-align: center; align-items: center; }
+  .foot .fcol { gap: 4px; }
+  .foot .fcol a:not(.fh) { justify-content: center; min-height: 40px; }
+  .foot .soc { justify-content: center; }
+  .foot .soc a { width: 44px; height: 44px; }
+  .copy { text-align: center; }
+}
+@media (max-width: 360px) {
+  .top .logo img, .top .logo img.wm { max-height: 28px !important; }
+  .top .actions .ib, .top .actions .btn.add { width: 32px; min-width: 32px; }
+}
+
+/* mygem.ge — MOBILE CARD CORRECTION
+   Paste at the VERY END of your CSS, after earlier responsive patches.
+   Removes the cramped side-by-side image/content layout. */
+@media (max-width: 600px) {
+  .grid:not(.hscroll) { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
+  .grid:not(.hscroll) > .card {
+    display:flex; flex-direction:column; min-width:0; width:100%; height:auto;
+    overflow:hidden; border-radius:18px; box-shadow:0 4px 18px rgba(17,24,39,.07);
+  }
+  .grid:not(.hscroll) > .card > .img {
+    display:block; width:100%; height:auto; min-height:0;
+    aspect-ratio:16/10; flex:none; border-radius:0;
+  }
+  .grid:not(.hscroll) > .card > .img .imgi { inset:0; background-size:cover; background-position:center; }
+  .grid:not(.hscroll) > .card > .in {
+    display:flex; flex-direction:column; width:100%; min-width:0; padding:16px;
+  }
+  .card .cmeta { display:flex; flex-wrap:wrap; align-items:center; gap:5px 12px; }
+  .card .cmeta .loc { flex:1 1 auto; min-width:0; }
+  .card .trow { display:flex; align-items:flex-start; gap:10px; }
+  .card .trow h4, .card h4 { font-size:16px; line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
+  .card .pline { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:10px; padding:10px 0 12px; }
+  .card .pline .price { font-size:21px; white-space:normal; overflow-wrap:anywhere; }
+  .card .cfoot { margin-top:0; padding-top:10px; gap:10px; }
+  .card .tags, .card .stks { display:flex; flex-wrap:wrap; gap:7px; min-width:0; }
+  .card .tg, .card .stk { max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.35; }
+  .card .stk b { white-space:normal; overflow:visible; text-overflow:clip; }
+  .card .cbot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding-top:12px; margin-top:8px; }
+  .card .cbl { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+  .card .cdel { min-height:36px; height:auto; padding:7px 12px; font-size:12px; white-space:normal; }
+  .card .cdel.cedit { width:36px; height:36px; min-height:36px; padding:0; flex:none; }
+  .card .pstat { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+  .card .cacts { top:10px; right:10px; }
+  .card .cact { width:38px; height:38px; }
+}
+@media (max-width:360px) {
+  .grid:not(.hscroll) > .card > .img { aspect-ratio:4/3; }
+  .grid:not(.hscroll) > .card > .in { padding:12px; }
+  .card .pline .price { font-size:19px; }
+}
+
