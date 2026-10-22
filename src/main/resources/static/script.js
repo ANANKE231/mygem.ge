@@ -77,7 +77,7 @@ const isEmail=e=>e.length<=254&&!e.includes('..')&&/^[A-Za-z0-9](?:[A-Za-z0-9._%
 const isPhone=p=>{const d=p.replace(/\D/g,'');return /^\+?[0-9\s-]+$/.test(p)&&d.length>=9&&d.length<=15};
 const pwMsg=p=>!p?'შეიყვანეთ პაროლი':p.length<8?'პაროლი უნდა შეიცავდეს მინიმუმ 8 სიმბოლოს':!/[A-Za-zႠ-ჿ]/.test(p)||!/\d/.test(p)?'პაროლი უნდა შეიცავდეს ასოსაც და ციფრსაც':'';
 const nameMsg=(n,w='სახელი')=>!n?`შეიყვანეთ ${w}`:n.length<2?'მინიმუმ 2 სიმბოლო':'';
-const emailMsg=e=>!e?'შეიყვანეთ ელ-ფოსტა':!isEmail(e)?'არასწორი ელ-ფოსტა (მაგ: name@mail.com)':'';
+const emailMsg=e=>!e?'შეიყვანეთ ელ-ფოსტა':!isEmail(e)?'არასწორი ელ-ფოსტა (მაგ: name@gmail.com)':'';
 const unameMsg=(v,self='')=>!v?'შეიყვანეთ მომხმარებლის სახელი':!/^[A-Za-z0-9._-]{3,20}$/.test(v)?'3–20 სიმბოლო: ლათინური ასოები, ციფრები, . _ -':users.some(x=>x.username&&same(x.username,v)&&!same(x.email,self))?'ეს მომხმარებლის სახელი დაკავებულია':'';
 const loginMsg=v=>!v?'შეიყვანეთ ელ-ფოსტა ან მომხმარებლის სახელი':v.includes('@')?emailMsg(v):'';
 function err(el,msg){const w=el.closest('label,.fld');if(!w)return;w.classList.add('bad');let e=w.querySelector(':scope>.fe');if(!e){e=document.createElement('em');e.className='fe';w.append(e)}e.textContent=msg}
@@ -167,7 +167,7 @@ const regOf=u=>u.regType||(u.shop?'store':'individual');
 const regLabel=u=>regOf(u)=='other'?(u.regOther||'სხვა'):Object.fromEntries(REG)[regOf(u)];
 
 /* demo listings: photos are looked up in img/ (see DEMO_IMG); missing files fall back to an illustration */
-const DEMO_IMG={1:'/images/photo-1.jpg',2:'/images/photo-2.jpg',3:'/images/photo-3.jpg',4:'/images/photo-4.jpg',5:'/images/photo-5.jpg',6:'/images/photo-6.jpg',7:'/images/photo-7.jpg',8:'/images/photo-8.jpg',9:'/images/photo-9.jpg',10:'/images/photo-10.jpg'};
+const DEMO_IMG={1:'/images/პირველი.png',2:'/images/მეორე.png',3:'/images/მესამე.png',4:'/images/მეოთხე.png',5:'/images/მეხუთე.png',6:'/images/მეექვსე.png',7:'/images/მეშვიდე.png',8:'/images/მერვე.png',9:'/images/მეცხრე.png',10:'/images/მეათე.png'};
 const DEMO=[
  ['ოქროს ბეჭედი 585','ოქრო',4.2,780,'ქალის','💍','ring'],['ბრილიანტის ყელსაბამი','ბრილიანტი',6,4200,'ქალის','📿','necklace'],['ვერცხლის სამაჯური','ვერცხლი',18,190,'უნისექსი','⛓️','bracelet'],
  ['პლატინის საქორწინო ბეჭედი','პლატინა',5.5,2100,'კაცის','💍','ring'],['ოქროს საყურე 750','ოქრო',3.1,690,'ქალის','✨','earring'],['ოქროს ჯაჭვი 585','ოქრო',12,2300,'კაცის','⛓️','chain'],
@@ -190,7 +190,8 @@ items.forEach(p=>{if(p.attrs){if(p.attrs.style=='ვინტაჟური')p.
 items.forEach(p=>{if(p.owner=='demo'){p.photos=[];if(!p.attrs){p.attrs={metal:METALS.includes(p.cat)?p.cat:p.cat=='ბრილიანტი'?'თეთრი ოქრო':'',pur:(p.title.match(/\d{3}/)||[''])[0]};p.loc='თბილისი'}}});
 /* resolve demo photos that really exist, so the page never shows a broken image */
 const probeImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(src);i.onerror=()=>r(null);i.src=src});
-async function loadDemoPhotos(){await Promise.all(items.filter(p=>p.owner=='demo'&&DEMO_IMG[p.id]).map(async p=>{const ok=await probeImg(DEMO_IMG[p.id]);if(ok)p.photos=[ok]}))}
+async function loadDemoPhotos(){const done=Promise.all(items.filter(p=>p.owner=='demo'&&DEMO_IMG[p.id]).map(async p=>{const ok=await probeImg(DEMO_IMG[p.id]);if(ok)p.photos=[ok]}));
+ await Promise.race([done,new Promise(r=>setTimeout(r,1500))])}
 
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2800)}
 /* exchange rate: official NBG USD rate, cached; rounding happens only when displaying */
@@ -464,7 +465,7 @@ function openPhotos(id){const p=items.find(x=>String(x.id)===String(id));if(!own
    closeModal();toast('ფოტოები განახლდა ✓');rerender()}};
  draw()}
 function confirmLogout(){curAuth=null;modal.classList.add('show');
- $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('logout')}</div><h3>დარწმუნებული ხართ, რომ გსურთ გასვლა?</h3><div class="row2"><button type="button" class="btn" id="lgYes">დიახ</button><button type="button" class="btn alt" id="lgNo">არა</button></div></div>`;
+ $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('logout')}</div><h3>დარწმუნებული ხართ, რომ გსურთ გასვლა?</h3><div class="row2"><button type="button" class="btn danger" id="lgYes">დიახ, გასვლა</button><button type="button" class="btn alt" id="lgNo">არა</button></div></div>`;
  $('#lgNo').focus();$('#lgNo').onclick=closeModal;
  $('#lgYes').onclick=()=>{closeModal();me=null;save('me',null);try{sessionStorage.removeItem('gtok')}catch{}setLogin();if(location.hash=='#home'||!location.hash)route();else location.hash='home'}}
 
@@ -570,8 +571,8 @@ async function blogFetchSrv(){const u=blogApi();if(!u)return;
 async function saveBlog(){if(BDB.db){const r=await BDB.req('readwrite',s=>s.put(bposts,'posts'));if(r.ok){try{localStorage.removeItem('blogPosts')}catch{}return true}}return lsTry('blogPosts',bposts)}
 /* cover photo: centre-cropped to 3:2 (the proportion every blog card and article uses), max 1400 px wide */
 const blogImg=f=>new Promise(r=>{const x=new FileReader();x.onerror=x.onabort=()=>r(null);x.onload=()=>{const i=new Image();i.onerror=()=>r(null);
- i.onload=()=>{try{const w=i.naturalWidth||i.width,h=i.naturalHeight||i.height;if(!w||!h)return r(null);const W=Math.min(1400,w),H=Math.round(W*2/3),sc=Math.max(W/w,H/h),c=document.createElement('canvas');c.width=W;c.height=H;
-  const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,W,H);g.drawImage(i,(W-w*sc)/2,(H-h*sc)/2,w*sc,h*sc);const u=c.toDataURL('image/jpeg',.78);r(isData(u)&&u.length>200?u:null)}catch{r(null)}};i.src=x.result};x.readAsDataURL(f)});
+ i.onload=()=>{try{const w=i.naturalWidth||i.width,h=i.naturalHeight||i.height;if(!w||!h)return r(null);const W=Math.min(1400,w),H=Math.round(W*h/w),c=document.createElement('canvas');c.width=W;c.height=H;
+const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,W,H);g.drawImage(i,0,0,W,H);const u=c.toDataURL('image/jpeg',.78);r(isData(u)&&u.length>200?u:null)}catch{r(null)}};i.src=x.result};x.readAsDataURL(f)});
 /* text <-> body lines: one line = one paragraph; "# " heading, "- " list item, **bold** (exactly what the article page already renders) */
 const blogLines=t=>String(t).split('\n').map(x=>x.trim()).filter(Boolean);
 const blogTxt=b=>b.reduce((a,x,i)=>a+(i?(x.startsWith('- ')&&b[i-1].startsWith('- ')?'\n':'\n\n'):'')+x,'');
@@ -613,6 +614,18 @@ function blogDel(id){const cur=blogMine(),b=cur.find(x=>String(x.id)===String(id
 function blogExport(){if(!isAdmin())return;const js='/* mygem.ge blog posts written in the admin panel - generated '+new Date().toISOString().slice(0,10)+' */\nwindow.BLOG_EXTRA='+JSON.stringify(blogMine())+';\n',
  a=document.createElement('a');a.href=URL.createObjectURL(new Blob([js],{type:'text/javascript'}));a.download='blog-extra.js';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('blog-extra.js ჩამოიტვირთა ✓')}
 
+
+/* სავალდებულო ველები: წითელი ვარსკვლავი */
+const REQ=['lE','lP','fE','fP','fP2','rT','rN','rE','rU','rP','rW','rW2','eN','eE','eP','aK','aL','aT','aD','aW','aP','photoFld','rcptFld','aTerms'];
+function markReq(root=document){
+ REQ.forEach(id=>{const el=root.querySelector('#'+id);if(!el)return;
+  const w=el.closest('label,.fld');if(!w||w.querySelector('.rq'))return;
+  const s=document.createElement('i');s.className='rq';s.textContent='*';s.setAttribute('aria-hidden','true');
+  if(w.classList.contains('chk')){w.append(s);return}
+  let host=w.matches('.fld')?w.querySelector(':scope>span'):null;
+  if(!host){const tn=[...w.childNodes].find(n=>n.nodeType==3&&n.textContent.trim());if(!tn)return;
+   host=document.createElement('span');host.className='lt';tn.replaceWith(host);host.append(tn)}
+  const cu=host.querySelector('.cur');cu?cu.before(s):host.append(s)})}
 /* ---------- password field ---------- */
 const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="see"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></g><g class="off"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.9 9.9 0 0112 5c6 0 10 7 10 7a17 17 0 01-3.2 4M6.5 6.6A17 17 0 002 12s4 7 10 7c1.7 0 3.200-.4 4.500-1.100"/><path d="M9.900 9.900a3 3 0 004.200 4.200"/></g></svg>';
 const pw=(id,l,ac='current-password')=>`<label>${l}<div class="pw"><input id="${id}" type="password" autocomplete="${ac}"><button type="button" class="eye" data-eye aria-label="პაროლის ჩვენება/დამალვა">${EYE}</button></div></label>`;
@@ -628,10 +641,14 @@ const homeBlog=()=>{const b=blogList().slice(0,3);if(!b.length)return '';
 
 /* ---------- views ---------- */
 const views={
-home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ათასობით ოქროს, ვერცხლისა და ბრილიანტის ნივთი ერთ სივრცეში</p><div class="sbox">${filters()}</div></section>
+home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ძვირფასი სამკაულების უსაზღვრო არჩევანი ერთ სივრცეში.</p><div class="sbox">${filters()}</div></section>
 ${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').reverse(),'ჯერ არ არის Super VIP განცხადებები')}
-<section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').reverse(),'ჯერ არ არის VIP განცხადებები',true)}
+<section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
+${homeBlog()}`},home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ძვირფასი სამკაულების უსაზღვრო არჩევანი ერთ სივრცეში.</p><div class="sbox">${filters()}</div></section>
+${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').reverse(),'ჯერ არ არის Super VIP განცხადებები')}
+${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').reverse(),'ჯერ არ არის VIP განცხადებები',true)}
+<section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeBlog()}`},
 search(){const r=pub().filter(match).sort((a,b)=>vr(b)-vr(a));
  return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results"><h2 style="margin-bottom:14px">ნაპოვნია: ${r.length}</h2>${r.length?grid(r):'<div class="empty">ვერაფერი მოიძებნა 😔</div>'}</div></div>`},
@@ -687,7 +704,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
    <div class="pmeta"><span>${ui('calendar')}${dateStr(p.created)}</span><span>${ui('eye')}${n} ნახვა</span></div>
    <h1 class="ptitle">${esc(p.title)}</h1>
    <div class="pprice">${p.nego?'<span class="price nego">ფასი შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</span>${curSw(p.id,c)}`}</div>
-   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button><button type="button" class="pa pic ai" data-try="${p.id}" aria-label="AI აირჩიე და მოირგე" title="AI აირჩიე და მოირგე">${TRY_ICON}<span class="lb">AI აირჩიე და მოირგე</span></button>${ownerOf(p)?`<button type="button" class="pa pic" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}<span class="lb">ფოტოები</span></button>`:''}${canDel(p)?`<button type="button" class="pa pic del" data-del="${p.id}" aria-label="განცხადების წაშლა" title="განცხადების წაშლა">${ui('trash')}<span class="lb">წაშლა</span></button>`:''}</div>
+   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button>${ownerOf(p)?`<button type="button" class="pa pic" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}<span class="lb">ფოტოები</span></button>`:''}${canDel(p)?`<button type="button" class="pa pic del" data-del="${p.id}" aria-label="განცხადების წაშლა" title="განცხადების წაშლა">${ui('trash')}<span class="lb">წაშლა</span></button>`:''}</div>
    <div class="pattrs">${rows.map(r=>`<div class="pr2"><span>${r[0]}</span><b>${r[2]?ico(r[2]):''}${esc(r[1])}</b></div>`).join('')}</div>
    <div class="pdesc"><h3>აღწერა</h3><p>${esc(p.desc||'')}</p>${p.audio?`<div class="pvoice"><h3>ხმოვანი აღწერა</h3>${audPlayer(p.audio)}</div>`:''}</div>
    <div class="pseller">
@@ -703,8 +720,8 @@ profile(tab='mine'){if(!me){openAuth('login');return ''}
  const mine=items.filter(p=>p.owner==me.email).sort((a,b)=>(b.created||0)-(a.created||0)||(+b.id||0)-(+a.id||0)),ind=regOf(me)=='individual',nm=ind?me.name+' '+(me.last||''):me.name;
  const since=me.created?new Date(me.created).toLocaleDateString('ka-GE',{year:'numeric',month:'long',day:'numeric'}):'—';
  return `<div class="page"><div class="panel"><div class="prof-head"><div class="ava">${me.avatar?`<img src="${me.avatar}">`:ui('user')}</div><div class="ph-info"><h2>${esc(nm)}</h2><small class="pmail">${ui('mail')}${esc(me.email)}</small><div class="stats"><span class="stat"><i>${ui('tag')}</i><span><b>${esc(regLabel(me))}</b></span></span><span class="stat"><i>${ui('calendar')}</i><span>ანგარიში შექმნილია: <b>${since}</b></span></span><span class="stat"><i>${ui('gem')}</i><span>განცხადებები: <b>${mine.length}</b></span></span></div><label class="btn alt sm">${ui('camera')}ფოტოს შეცვლა<input type="file" id="avIn" accept="image/*" hidden></label>${me.avatar?`<button type="button" class="btn alt sm" id="avDel" style="margin-left:8px">${ui('trash')}ფოტოს წაშლა</button>`:''}</div><a href="#add" class="btn" style="margin-left:auto">${ui('plus')}დამატება</a></div>
- <div class="tabs"><button data-tab="mine" class="${tab=='mine'?'on':''}">${ui('grid')}ჩემი განცხადებები</button><button data-tab="edit" class="${tab=='edit'?'on':''}">${ui('sliders')}პარამეტრები</button>${isAdmin()?`<button data-tab="pay" class="${tab=='pay'?'on':''}">${ui('tag')}გადახდები${pendingPay().length?` (${pendingPay().length})`:''}</button>`:''}${isAdmin()?`<button data-tab="blog" class="${tab=='blog'?'on':''}">${ui('image')}ბლოგი</button>`:''}<button class="btn alt" id="logout">${ui('logout')}გასვლა</button></div>
- ${tab=='pay'?payPanel():tab=='blog'?blogPanel():tab=='edit'?`<form class="form" id="eForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('eT',{list:DD.reg,val:regOf(me),other:1,otherPh:'მიუთითეთ რეგისტრაციის ტიპი'}),'full')}<label id="eNL" class="${ind?'':'full'}">${ind?'სახელი':'დასახელება'}<input id="eN" value="${esc(me.name)}"></label><label id="eLL" style="${ind?'':'display:none'}">გვარი<input id="eL" value="${esc(me.last||'')}"></label><label class="full">ელ-ფოსტა<input id="eE" type="email" value="${esc(me.email)}" autocomplete="email"></label><div class="duo full"><label>მომხმარებლის სახელი<input id="eU" value="${esc(me.username||'')}" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="eP" value="${esc(me.phone)}" autocomplete="tel"></label></div>${pw('ePw','ახალი პაროლი','new-password')}${pw('ePw2','გაიმეორეთ პაროლი','new-password')}<button class="btn full" type="submit">შენახვა</button></form>`:mine.length?grid(mine):'<div class="empty">ჩანაწერი არ არის</div>'}</div></div>`}};
+ <div class="tabs"><button data-tab="mine" class="${tab=='mine'?'on':''}">${ui('user')}ჩემი პროფილი</button>${isAdmin()?`<button data-tab="pay" class="${tab=='pay'?'on':''}">${ui('tag')}გადახდები${pendingPay().length?` (${pendingPay().length})`:''}</button>`:''}${isAdmin()?`<button data-tab="blog" class="${tab=='blog'?'on':''}">${ui('image')}ბლოგი</button>`:''}<button class="btn alt" id="logout">${ui('logout')}გასვლა</button></div>
+ ${tab=='pay'?payPanel():tab=='blog'?blogPanel():tab=='edit'?`<h3 class="psub" style="margin:0 0 14px">პარამეტრები</h3><form class="form" id="eForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('eT',{list:DD.reg,val:regOf(me),other:1,otherPh:'მიუთითეთ რეგისტრაციის ტიპი'}),'full')}<label id="eNL" class="full">${ind?'სახელი და გვარი':'დასახელება'}<input id="eN" value="${esc(ind?(me.name+' '+(me.last||'')).trim():me.name)}" autocomplete="name"></label><label id="eLL" hidden><input id="eL" type="hidden" value="${esc(me.last||'')}"></label><label class="full">ელ-ფოსტა<input id="eE" type="email" value="${esc(me.email)}" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="name@mail.com"></label><div class="duo full"><label>მომხმარებლის სახელი<input id="eU" value="${esc(me.username||'')}" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="eP" value="${esc(me.phone)}" autocomplete="tel" inputmode="tel" maxlength="17" placeholder="5__ ___ ___"></label></div>${pw('ePw','ახალი პაროლი','new-password')}${pw('ePw2','გაიმეორეთ პაროლი','new-password')}<button class="btn full" type="submit">შენახვა</button></form>`:mine.length?grid(mine):'<div class="empty">ჩანაწერი არ არის</div>'}</div></div>`}};
 
 const ORDER={home:0,search:1,product:1.5,seller:1.6,calculator:2,blog:3,post:3.1,favs:4,add:5,profile:6};
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -788,7 +805,7 @@ function drawRc(){const r=window.rc,P=$('#rcPrev');if(!P)return;
  const b=$('#rcRm');if(b)b.onclick=()=>{window.rc=null;drawRc()};if(r)clearOne($('#rcptFld'))}
 
 /* ---------- bindings ---------- */
-function bind(){initDD();bindV2();reveal();
+function bind(){initDD();markReq();bindV2();reveal();
  [['f','#fT'],['a','#aK']].forEach(([pre,sel])=>{const t=$(sel);if(t&&!t.dataset.bd){t.dataset.bd=1;t.addEventListener('change',()=>setDyn(pre,t.dataset.val,readDyn(pre),pre=='f'?readNum():{}))}});
  const g=$('#goS');if(g){g.onclick=()=>{F={t:$('#fT').dataset.val,o:$('#fTO').value.trim(),l:$('#fl').dataset.val,x:readDyn('f'),w1:+(($('#fw1')||{}).value)||0,w2:+(($('#fw2')||{}).value)||0,p1:+$('#fp1').value||0,p2:+$('#fp2').value||0};if(location.hash=='#search')route();else location.hash='search'};
   const cf=$('#clrF');if(cf)cf.onclick=()=>{F={};if(location.hash=='#search')route();else{setDD($('#fT'),'');$('#fTO').value='';setDD($('#fl'),'');setDyn('f','',{},{})}};
@@ -819,7 +836,7 @@ function bind(){initDD();bindV2();reveal();
    const wrap=af.closest('.addwrap'),PN=$$('.astep',af),NV=$$('.lpc-i',wrap),seen=new Set([1]),ddv=el=>{const b=el&&el.querySelector('.dd-val');return el&&el.dataset.val&&b?b.textContent.replace(/\s+/g,' ').trim():''};
    const stk=()=>cleanStk($('#aSP .sval').value.split(','));
    const doneOf=i=>{if(i==1){const K=$('#aK'),L=$('#aL'),k=K.dataset.val,KO=$('#aKO');
-     return !!(k&&(k!='other'||(KO&&KO.value.trim()))&&L.dataset.val&&fkeys(k).every(x=>{const el=$('#a_'+x);return el&&(FD[x].t=='text'?el.value.trim():el.dataset.val)})&&$('#aT').value.trim().length>=3&&$('#aD').value.trim().length>=10&&+$('#aW').value>0&&($('#aNego').checked||+$('#aP').value>0))}
+     return !!(k&&(k!='other'||(KO&&KO.value.trim()))&&L.dataset.val&&$('#aT').value.trim().length>=3&&$('#aD').value.trim().length>=10&&+$('#aW').value>0&&($('#aNego').checked||+$('#aP').value>0))}
     if(i==2)return ph.length>=3;
     if(i==3)return seen.has(3)&&((PL.dataset.val=='REG'&&!CK.checked&&!stk().length)||!!window.rc);
     return false};
@@ -862,7 +879,7 @@ function bind(){initDD();bindV2();reveal();
    /* ---- per-step validation: forward navigation is blocked until the current step is valid; entered data is never cleared ---- */
    const FS=$('#formSum'),stepList=i=>{
     if(i==1){const K=$('#aK'),KO=$('#aKO'),L=$('#aL'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),k=K.dataset.val,t=T.value.trim(),d=D.value.trim(),w=+W.value,p=+P.value,
-      dyn=fkeys(k).map(x=>{const el=$('#a_'+x),v=FD[x].t=='text'?el.value.trim():el.dataset.val;return[el,v?'':(FD[x].t=='text'?'შეიყვანეთ ':'აირჩიეთ ')+FD[x].l]});
+      dyn=[];
      return [[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KO,k=='other'&&!KO.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
       [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
       [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,$('#aNego').checked?'':(!(p>0)?'მიუთითეთ ფასი (0-ზე მეტი)':p>100000000?'ფასი ძალიან მაღალია':'')]]}
@@ -914,7 +931,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
     tmr=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);TM.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / 1:00';$('#aBar').style.width=Math.min(100,s/AUD_SEC*100)+'%';if(s>=AUD_SEC)stopRec()},250)};
    goStep(1,false);
    af.onsubmit=async e=>{e.preventDefault();if(window.aStep!=4)return tryStep(window.aStep+1);const K=$('#aK'),KO=$('#aKO'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),TM=$('#aTerms');
-   const t=T.value.trim(),d=D.value.trim(),w=+W.value,p=priceGel(),k=K.dataset.val,L=$('#aL'),A={},dyn=fkeys(k).map(x=>{const el=$('#a_'+x),v=FD[x].t=='text'?el.value.trim():el.dataset.val;if(v)A[x]=v;return[el,v?'':(FD[x].t=='text'?'შეიყვანეთ ':'აირჩიეთ ')+FD[x].l]});
+   const t=T.value.trim(),d=D.value.trim(),w=+W.value,p=priceGel(),k=K.dataset.val,L=$('#aL'),A={},dyn=fkeys(k).map(x=>{const el=$('#a_'+x),v=FD[x].t=='text'?el.value.trim():el.dataset.val;if(v)A[x]=v;return[el,'']});
    const n=check(af,[[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KO,k=='other'&&!KO.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
     [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
     [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,$('#aNego').checked?'':(!(p>0)?'მიუთითეთ ფასი (0-ზე მეტი)':p>100000000?'ფასი ძალიან მაღალია':'')],
@@ -936,10 +953,10 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
 
  /* profile edit */
  const ef=$('#eForm');if(ef){const T=$('#eT');if(regOf(me)=='other')$('#eTO').value=me.regOther||'';
-  const sync=()=>{const ind=T.dataset.val=='individual';$('#eLL').style.display=ind?'':'none';$('#eNL').firstChild.textContent=ind?'სახელი':'დასახელება';$('#eNL').classList.toggle('full',!ind)};T.onchange=sync;
+  const sync=()=>{const ind=T.dataset.val=='individual';$('#eNL .lt').firstChild.textContent=ind?'სახელი და გვარი':'დასახელება'};T.onchange=sync;
   ef.onsubmit=e=>{e.preventDefault();const old=me.email,ty=T.dataset.val,ind=ty=='individual',O=$('#eTO'),N=$('#eN'),L=$('#eL'),E=$('#eE'),P=$('#eP'),W=$('#ePw'),W2=$('#ePw2'),U=$('#eU');
-   const n=N.value.trim(),l=L.value.trim(),em=E.value.trim(),tel=P.value.trim(),un=U.value.trim();
-   if(check(ef,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,nameMsg(n,ind?'სახელი':'დასახელება')],[L,ind?nameMsg(l,'გვარი'):''],
+  const full=N.value.trim().replace(/\s+/g,' '),sp=full.indexOf(' '),n=ind&&sp>0?full.slice(0,sp):full,l=ind&&sp>0?full.slice(sp+1):'',em=E.value.trim(),tel=P.value.trim(),un=U.value.trim();
+   if(check(ef,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,ind?(!full?'შეიყვანეთ სახელი და გვარი':!l?'შეიყვანეთ სახელიც და გვარიც':''):nameMsg(n,'დასახელება')],
     [E,emailMsg(em)||(!same(em,old)&&users.some(u=>same(u.email,em))?'ეს ელ-ფოსტა დაკავებულია':'')],[P,!tel?'შეიყვანეთ ტელეფონი':!isPhone(tel)?'არასწორი ტელეფონის ნომერი':''],
     [U,!un&&!me.username?'':unameMsg(un,old)],[W,W.value?pwMsg(W.value):''],[W2,W.value&&W2.value!=W.value?'პაროლები არ ემთხვევა':'']]))return;
    (me.pass?askPass:f=>f())(()=>{Object.assign(me,{regType:ty,regOther:ty=='other'?O.value.trim():'',shop:!ind,name:n,last:ind?l:'',email:em,phone:tel,username:un});if(W.value)me.pass=W.value;
@@ -1024,7 +1041,7 @@ function finishReg(u){users.push(u);save('users',users);me=u;save('me',me);addNo
 async function smsStart(u,fm){const btn=fm.querySelector('button[type=submit]'),t=btn.textContent;btn.disabled=true;btn.textContent='იგზავნება…';
  try{await sPost({action:'sms_send',phone:normPhone(u.phone)});smsVerify(u)}
  catch(e){btn.disabled=false;btn.textContent=t;err($('#rP'),SERR[e]||SERR.server)}}
-function smsBack(u){renderAuth('reg');const set=(i,v)=>{const el=$('#'+i);if(el)el.value=v||''};setDD($('#rT'),u.regType,true);if(u.regType=='other')set('rTO',u.regOther);set('rN',u.name);set('rL',u.last);set('rE',u.email);set('rU',u.username);set('rP',u.phone)}
+function smsBack(u){renderAuth('reg');const set=(i,v)=>{const el=$('#'+i);if(el)el.value=v||''};setDD($('#rT'),u.regType,true);if(u.regType=='other')set('rTO',u.regOther);set('rN',(u.name+' '+(u.last||'')).trim());set('rL',u.last);set('rE',u.email);set('rU',u.username);set('rP',u.phone)}
 function smsVerify(u){const B=$('#modalBody'),ph=normPhone(u.phone);curAuth='sms';
  B.innerHTML=`<h3>ტელეფონის დადასტურება</h3><p>კოდი გაიგზავნა ნომერზე <b>${esc(ph)}</b>. შეიყვანეთ მიღებული კოდი.</p><form class="form" id="smsForm" novalidate><label>დადასტურების კოდი<input id="smsC" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="······"></label><button class="btn" type="submit">დადასტურება</button></form><div class="smsrow"><button type="button" class="link" id="smsRe" disabled>თავიდან გაგზავნა</button><button type="button" class="link" id="smsBk">უკან, ნომრის შესაცვლელად</button></div>`;
  const re=$('#smsRe');let n=60;const tick=()=>{if(!document.body.contains(re))return;if(n>0){re.disabled=true;re.textContent=`თავიდან გაგზავნა (${n--})`;setTimeout(tick,1000)}else{re.disabled=false;re.textContent='თავიდან გაგზავნა'}};tick();
@@ -1085,8 +1102,9 @@ $('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');co
 document.addEventListener('click',e=>{
  const cc=e.target.closest('a[href="#collection"]');if(cc){e.preventDefault();F={};if(location.hash=='#search')route();else location.hash='search'}
  const cl=e.target.closest('a[href="#calculator"]'),ch=$('#calcHome');if(cl&&ch&&(!location.hash||location.hash=='#home')){e.preventDefault();ch.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'})}
- const cd=e.target.closest('.card[data-id]');if(cd&&!e.target.closest('[data-fav],[data-cshare],[data-cs],[data-del],[data-eph]'))window.open(location.href.split('#')[0]+'#product:'+cd.dataset.id,'_blank','noopener');
- const so=e.target.closest('.sr[data-id]');if(so){window.open(location.href.split('#')[0]+'#product:'+so.dataset.id,'_blank','noopener')}
+  const cd=e.target.closest('.card[data-id]');if(cd&&!e.target.closest('[data-fav],[data-cshare],[data-cs],[data-del],[data-eph]')){
+ window.open(location.href.split('#')[0]+'#product:'+cd.dataset.id,'_blank','noopener')}
+ const so=e.target.closest('.sr[data-id]');if(so){location.hash='product:'+so.dataset.id}
  const pf=e.target.closest('[data-pfav]');if(pf){if(!me)openAuth('login');else{const id=+pf.dataset.pfav;favs=favs.includes(id)?favs.filter(x=>x!=id):[...favs,id];save('favs',favs);setFavCnt();const on=favs.includes(id);pf.classList.toggle('on',on);pf.setAttribute('aria-pressed',on);const lb=on?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება';pf.setAttribute('aria-label',lb);pf.title=lb}}
  const rcb=e.target.closest('[data-rcpt]');if(rcb)openReceipt(rcb.dataset.rcpt);
  const pok=e.target.closest('[data-payok]');if(pok)payDecide(pok.dataset.payok,true);
@@ -1130,7 +1148,7 @@ function setLogin(){setFavCnt();$('#loginBtn').innerHTML=me&&me.avatar?`<img src
 const pMenu=document.createElement('div');pMenu.className='pmenu';pMenu.id='pMenu';document.body.append(pMenu);
 function pmClose(){pMenu.classList.remove('show')}
 function pmOpen(){const b=$('#loginBtn'),r=b.getBoundingClientRect(),nm=(regOf(me)=='individual'?me.name+' '+(me.last||''):me.name).trim(),np=isAdmin()?pendingPay().length:0;
- pMenu.innerHTML=`<div class="pm-head"><div class="pm-ava">${me.avatar?`<img src="${esc(me.avatar)}" alt="">`:esc((me.name[0]||'U').toUpperCase())}</div><div class="pm-id"><b>${esc(nm)}</b><small>${esc(me.email)}</small></div></div><div class="pm-sep"></div><div class="pm-list"><a href="#profile:mine">ჩემი განცხადებები</a><a href="#add">დამატება</a><a href="#favs">ფავორიტები</a><a href="#profile:edit">პარამეტრები</a>${isAdmin()?`<a href="#profile:pay">გადახდები${np?`<span class="pm-bdg">${np}</span>`:''}</a>`:''}</div><div class="pm-sep"></div><div class="pm-list"><button type="button" id="pmOut">გასვლა</button></div>`;
+ pMenu.innerHTML=`<div class="pm-head"><div class="pm-ava">${me.avatar?`<img src="${esc(me.avatar)}" alt="">`:esc((me.name[0]||'U').toUpperCase())}</div><div class="pm-id"><b>${esc(nm)}</b><small>${esc(me.email)}</small></div></div><div class="pm-sep"></div><div class="pm-list"><a href="#profile:mine">ჩემი პროფილი</a><a href="#add">დამატება</a><a href="#favs">ფავორიტები</a><a href="#profile:edit">პარამეტრები</a>${isAdmin()?`<a href="#profile:pay">გადახდები${np?`<span class="pm-bdg">${np}</span>`:''}</a>`:''}</div><div class="pm-sep"></div><div class="pm-list"><button type="button" id="pmOut"><span class="pm-ic">${ui('logout')}<span>გასვლა</span></span></button></div>`;
  pMenu.style.top=(r.bottom+8)+'px';pMenu.style.right=Math.max(8,innerWidth-r.right)+'px';pMenu.classList.add('show')}
 pMenu.addEventListener('click',e=>{const a=e.target.closest('a');if(a){pmClose();if(location.hash==a.getAttribute('href'))route();return}
  if(e.target.closest('#pmOut')){pmClose();confirmLogout()}});
@@ -1224,17 +1242,17 @@ function renderAuth(m){const B=$('#modalBody');curAuth=m;
   $('#authForm').onsubmit=e=>{e.preventDefault();const fm=e.target,E=$('#fE'),P=$('#fP'),P2=$('#fP2'),em=E.value.trim(),u=users.find(u=>same(u.email,em));
    if(check(fm,[[E,emailMsg(em)||(u?(u.google&&!u.pass?GONLY:''):'ასეთი ელ-ფოსტა ვერ მოიძებნა')],[P,pwMsg(P.value)],[P2,!P2.value?'გაიმეორეთ პაროლი':P2.value!=P.value?'პაროლები არ ემთხვევა':'']]))return;
    u.pass=P.value;save('users',users);toast('პაროლი შეიცვალა ✓');openAuth('login')}}
- else{B.innerHTML=`<h3>რეგისტრაცია</h3><form class="form" id="authForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('rT',{list:DD.reg,val:'individual',other:1,otherPh:'მიუთითეთ როგორ გსურთ რეგისტრაცია'}))}<label id="rNL">სახელი<input id="rN" autocomplete="given-name"></label><label id="rLL">გვარი<input id="rL" autocomplete="family-name"></label><label>ელ-ფოსტა<input id="rE" type="email" autocomplete="email"></label><label>მომხმარებლის სახელი<input id="rU" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="rP" type="tel" autocomplete="tel"></label>${pw('rW','პაროლი','new-password')}${pw('rW2','გაიმეორეთ პაროლი','new-password')}<button class="btn" type="submit">რეგისტრაცია</button></form><button type="button" class="link" id="toLog">უკვე გაქვთ ანგარიში? შესვლა</button>`;
+ else{B.innerHTML=`<h3>რეგისტრაცია</h3><form class="form" id="authForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('rT',{list:DD.reg,val:'individual',other:1,otherPh:'მიუთითეთ როგორ გსურთ რეგისტრაცია'}))}<label id="rNL">სახელი და გვარი<input id="rN" autocomplete="name" placeholder="მაგ: გიორგი მაისურაძე"></label><label id="rLL" hidden><input id="rL" type="hidden"></label><label>ელ-ფოსტა<input id="rE" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="name@mail.com"></label><label>მომხმარებლის სახელი<input id="rU" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="rP" type="tel" autocomplete="tel" inputmode="tel" maxlength="17" placeholder="5__ ___ ___"></label>${pw('rW','პაროლი','new-password')}${pw('rW2','გაიმეორეთ პაროლი','new-password')}<button class="btn" type="submit">რეგისტრაცია</button></form><button type="button" class="link" id="toLog">უკვე გაქვთ ანგარიში? შესვლა</button>`;
   initDD(B);const rt=$('#rT');
-  const sync=()=>{const ind=rt.dataset.val=='individual';$('#rLL').style.display=ind?'':'none';$('#rNL').firstChild.textContent=ind?'სახელი':'დასახელება'};rt.onchange=sync;
+const sync=()=>{const ind=rt.dataset.val=='individual';$('#rNL .lt').firstChild.textContent=ind?'სახელი და გვარი':'დასახელება'};rt.onchange=sync;
   $('#toLog').onclick=()=>openAuth('login');
   $('#authForm').onsubmit=e=>{e.preventDefault();const fm=e.target,ty=rt.dataset.val,ind=ty=='individual',O=$('#rTO'),N=$('#rN'),L=$('#rL'),E=$('#rE'),U=$('#rU'),P=$('#rP'),W=$('#rW'),W2=$('#rW2');
-   const n=N.value.trim(),l=L.value.trim(),em=E.value.trim().toLowerCase(),un=U.value.trim(),tel=P.value.trim();
-   if(check(fm,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,nameMsg(n,ind?'სახელი':'დასახელება')],[L,ind?nameMsg(l,'გვარი'):''],
+   const full=N.value.trim().replace(/\s+/g,' '),sp=full.indexOf(' '),n=ind&&sp>0?full.slice(0,sp):full,l=ind&&sp>0?full.slice(sp+1):'',em=E.value.trim().toLowerCase(),un=U.value.trim(),tel=P.value.trim();
+if(check(fm,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,ind?(!full?'შეიყვანეთ სახელი და გვარი':!l?'შეიყვანეთ სახელიც და გვარიც':''):nameMsg(n,'დასახელება')],
     [E,emailMsg(em)||(users.some(x=>same(x.email,em))?'ეს ელ-ფოსტა დაკავებულია':'')],[U,unameMsg(un)],[P,!tel?'შეიყვანეთ ტელეფონი':!isPhone(tel)?'არასწორი ტელეფონის ნომერი':phoneTaken(tel)?'ეს ნომერი უკვე გამოყენებულია':smsOn()&&!normPhone(tel)?'მიუთითეთ ნომერი ფორმატით 5XX XXX XXX ან +კოდით':''],[W,pwMsg(W.value)],[W2,!W2.value?'გაიმეორეთ პაროლი':W2.value!=W.value?'პაროლები არ ემთხვევა':'']]))return;
    const u={regType:ty,regOther:ty=='other'?O.value.trim():'',shop:!ind,name:n,last:ind?l:'',email:em,phone:tel,username:un,pass:W.value,created:Date.now()};
    if(!smsOn())return finishReg(u);smsStart(u,fm)}}
- initDD(B);if(m=='login'||m=='reg')gMount(B)}
+ initDD(B);markReq(B);if(m=='login'||m=='reg')gMount(B)}
 
 /* ---------- cookies & start ---------- */
 (()=>{
@@ -1259,7 +1277,9 @@ function renderAuth(m){const B=$('#modalBody');curAuth=m;
  window.mygemConsent={get:state,has:c=>c=='essential'||!!state()[c],run:(cat,fn)=>{subs.push({cat,fn,done:false});flush()},open:openP};
  bar.classList.toggle('show',!read());flush();
 })();
-setLogin();window.addEventListener('hashchange',route);HYD=hydrate();Promise.all([HYD,loadBlog()]).then(()=>{route();loadDemoPhotos().then(()=>{if(!/^#(add|profile:edit)/.test(location.hash))route()})});loadRate();
+setLogin();window.addEventListener('hashchange',route);HYD=hydrate();Promise.all([HYD,loadDemoPhotos()]).then(route);
+loadBlog().then(()=>{const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post')route()});
+loadRate();
 /* the header height depends on the (large, responsive) logo: publish it as --hh so dropdowns, sticky panels and anchor scrolling always sit just below it */
 (()=>{const t=$('.top');if(!t)return;const set=()=>document.documentElement.style.setProperty('--hh',t.offsetHeight+'px');set();
  if(window.ResizeObserver)new ResizeObserver(set).observe(t);window.addEventListener('resize',set);window.addEventListener('load',set)})();
