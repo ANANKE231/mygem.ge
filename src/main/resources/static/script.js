@@ -105,6 +105,9 @@ const TL=Object.fromEntries(TYPES);
 const GEM='<svg class="pi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9 3l-1 6 4 12M15 3l1 6-4 12"/></svg>';
 const CROWN='<svg class="crown" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 7l4.500 4L12 4l4.500 7L21 7l-2 11H5z"/><rect x="5" y="19.500" width="14" height="2" rx="1"/></svg>';
 const vr=p=>p.vip=='SUPER VIP'?2:p.vip?1:0;
+const rk=p=>{const k=pkgOf(p);return k=='SUPER VIP'?2:k?1:0};
+const fresh=p=>Math.max(+p.created||0,(p.pay&&+p.pay.verifiedAt)||0);
+const byPkg=(a,b)=>rk(b)-rk(a)||fresh(b)-fresh(a);
 /* paid packages (VIP / Super VIP) stay hidden from the public until the admin confirms the payment; Regular listings go live at once */
 const held=p=>!!p.hold&&!(me&&(same(me.email,p.owner)||isAdmin()));
 const pub=()=>items.filter(p=>!held(p));
@@ -642,15 +645,15 @@ const homeBlog=()=>{const b=blogList().slice(0,3);if(!b.length)return '';
 /* ---------- views ---------- */
 const views={
 home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ძვირფასი სამკაულების უსაზღვრო არჩევანი ერთ სივრცეში.</p><div class="sbox">${filters()}</div></section>
-${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').reverse(),'ჯერ არ არის Super VIP განცხადებები')}
-${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').reverse(),'ჯერ არ არის VIP განცხადებები',true)}
+${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').sort(byPkg),'ჯერ არ არის Super VIP განცხადებები')}
+${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').sort(byPkg),'ჯერ არ არის VIP განცხადებები',true)}
 <section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeBlog()}`},home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ძვირფასი სამკაულების უსაზღვრო არჩევანი ერთ სივრცეში.</p><div class="sbox">${filters()}</div></section>
 ${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').reverse(),'ჯერ არ არის Super VIP განცხადებები')}
 ${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').reverse(),'ჯერ არ არის VIP განცხადებები',true)}
 <section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeBlog()}`},
-search(){const r=pub().filter(match).sort((a,b)=>vr(b)-vr(a));
+search(){const r=pub().filter(match).sort(byPkg);
  return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results"><h2 style="margin-bottom:14px">ნაპოვნია: ${r.length}</h2>${r.length?grid(r):'<div class="empty">ვერაფერი მოიძებნა 😔</div>'}</div></div>`},
 blog(){return `<div class="page blog"><h2 class="bh">ბლოგი</h2><p class="bsub">რჩევები, გზამკვლევები და ინსპირაცია სამკაულების სამყაროდან</p>${isAdmin()?`<div class="badm"><button type="button" class="btn sm" data-bnew>${ui('plus')}სტატიის დამატება</button></div>`:''}<div class="bgrid">${blogList().map((b,i)=>`<a class="bcard" href="#post:${b.id}"><span class="bimg"><img src="${b.img}" alt="${esc(b.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="bbody"><small class="bm">${b.min} წთ კითხვა</small><b>${esc(b.t)}</b><span class="bex">${esc(b.ex)}</span></span></a>`).join('')}</div></div>`},
 post(t){const L=blogList(),i=L.findIndex(b=>String(b.id)===String(t)),b=L[i];if(!b)return `<div class="page"><div class="panel empty">სტატია ვერ მოიძებნა<div style="margin-top:16px"><a class="btn" href="#blog">ბლოგზე დაბრუნება</a></div></div></div>`;
@@ -704,7 +707,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
    <div class="pmeta"><span>${ui('calendar')}${dateStr(p.created)}</span><span>${ui('eye')}${n} ნახვა</span></div>
    <h1 class="ptitle">${esc(p.title)}</h1>
    <div class="pprice">${p.nego?'<span class="price nego">ფასი შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</span>${curSw(p.id,c)}`}</div>
-   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button>${ownerOf(p)?`<button type="button" class="pa pic" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}<span class="lb">ფოტოები</span></button>`:''}${canDel(p)?`<button type="button" class="pa pic del" data-del="${p.id}" aria-label="განცხადების წაშლა" title="განცხადების წაშლა">${ui('trash')}<span class="lb">წაშლა</span></button>`:''}</div>
+   <div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}">${ui('heart')}<span class="lb">ფავორიტები</span></button><button type="button" class="pa pic" data-share="${p.id}" aria-label="გაზიარება" title="გაზიარება">${ui('share')}<span class="lb">გაზიარება</span></button><div class="pact"><button type="button" class="pa pic ${f?'on':''}" data-pfav="${p.id}" ...>...</button><button type="button" class="pa pic" data-share="${p.id}" ...>...</button>${ownerOf(p)?`...`:''}${canDel(p)?`...`:''}</div</div>
    <div class="pattrs">${rows.map(r=>`<div class="pr2"><span>${r[0]}</span><b>${r[2]?ico(r[2]):''}${esc(r[1])}</b></div>`).join('')}</div>
    <div class="pdesc"><h3>აღწერა</h3><p>${esc(p.desc||'')}</p>${p.audio?`<div class="pvoice"><h3>ხმოვანი აღწერა</h3>${audPlayer(p.audio)}</div>`:''}</div>
    <div class="pseller">
