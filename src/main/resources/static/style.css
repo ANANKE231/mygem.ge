@@ -1852,7 +1852,7 @@ body::before, body::after { display: none !important; content: none !important; 
 .aud-h i .ic { width: 18px; height: 18px; }
 #audioFld .bhelp { margin-top: 0; }
 .aud-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.aud-acts .btn.sm { margin-top: 0; min-height: 42px; padding: 0 18px; border-radius: 999px; cursor: pointer; gap: 8px; }
+.aud-acts .btn.sm { margin-top: 0; min-height: 42px; padding: 0 18px; border-radius: 999px; cursor: pointer; gap: 8px; flex-direction: row; white-space: nowrap; }
 .aud-acts .btn.alt.sm { background: #fff; border-color: var(--cream2); }
 .aud-acts .btn.alt.sm:hover { background: #F0F0FA; border-color: var(--btn); color: var(--btn); }
 .aud-tm { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; font-size: var(--fs-md); color: var(--err); }
@@ -2209,3 +2209,39 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
   gap: 8px;
 }
 .layout aside .prng .prow input { min-width: 0; width: 100%; padding: 0 12px; }
+
+/* ბარათის სათაური: სრულად ჩანს, საჭიროების შემთხვევაში გადადის ახალ ხაზზე */
+.card h4,
+.card .trow h4 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.card .trow { align-items: flex-start; }
+/* ===== ფილტრი: ფასის / წონის სათაურების გასწორება ===== */
+
+/* საერთო: სათაური ჩვეულებრივი ხაზია, ზედმეტი სიმაღლე და სივრცე აღარ აქვს */
+.layout aside .prng > span {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  min-height: 0;
+  white-space: nowrap;
+}
+
+/* "ფასი (₾)" ერთიანად ჩანს, გადამრთველი მარჯვენა კიდეზეა */
+.layout aside .prng > .plab { min-height: 32px; }
+.layout aside .prng > .plab .cur { margin-left: auto; }
+.layout aside .prng .plab b {
+  font-family: var(--font-price);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+/* ბოლო უწყვილო ველი (მაგ. "სქესი") სრულ სიგანეზე */
+.layout aside .fgrid .dyn > .fld:last-child:nth-child(even),
+.layout aside .fgrid .dyn > label:last-child:nth-child(even) {
+  grid-column: 1 / -1;
+}
