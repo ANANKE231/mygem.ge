@@ -1,106 +1,119 @@
-/* mygem.ge — collection toolbar + list-view cards. Site tokens: white cards, soft borders, navy (#000080). Load after style.css */
+/* mygem.ge — collection page: toolbar (count · view toggle · period · sort) + list-view cards.
+   Load AFTER script.js. Overrides views.search; no edits in script.js needed. */
+(()=>{
+ const CS={s:'dd',p:'0',v:'grid',pg:1,sig:''};
+ const PER=15;
+ const SORTS=[['dd','თარიღი კლებადი'],['da','თარიღი ზრდადი'],['pd','ფასი კლებადი'],['pa','ფასი ზრდადი'],['sd','სინჯი კლებადი'],['sa','სინჯი ზრდადი']];
+ const PERS=[['0','ყველა დრო'],['1','დღეს'],['7','ბოლო 7 დღე'],['30','ბოლო 30 დღე']];
+ const VL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+ const VG='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="16" height="3.5" rx="1"/><rect x="4" y="10.3" width="16" height="3.5" rx="1"/><rect x="4" y="15.6" width="16" height="3.5" rx="1"/></svg>';
 
-/* toolbar */
-.sbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 16px; background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: var(--card-r); box-shadow: var(--card-sh); position: relative; z-index: 5; }
-.sbar h2 { margin: 0; font-size: var(--fs-lg); font-weight: 500; color: var(--tx); }
-.sbar h2 b { font-weight: 600; color: var(--btn); }
-.sctl { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.sctl .ddw { min-width: 180px; }
-.sctl .dd-btn { height: 40px; font-size: var(--fs-md); border-radius: var(--r); }
-.sctl .dd.open .dd-btn, .sctl .dd-btn:focus-visible { border-color: var(--btn); box-shadow: 0 0 0 3px rgba(0, 0, 128, 0.15); }
-.sctl .dd-list { min-width: 100%; width: max-content; left: auto; right: 0; }
-.sctl .dd-opt.sel { background: #E8E8F7; color: var(--btn); }
-.vtog { display: flex; align-items: center; gap: 4px; }
-.vtog button { width: 36px; height: 36px; border: 0; border-radius: var(--r); background: none; color: #9AA0A6; cursor: pointer; display: grid; place-items: center; transition: background 0.2s, color 0.2s; }
-.vtog button svg { width: 20px; height: 20px; }
-.vtog button:hover { background: var(--hov); color: var(--tx); }
-.vtog button.on { color: var(--btn); background: #E8E8F7; }
-.vtog button:focus-visible { outline: 3px solid rgba(0, 0, 128, 0.35); outline-offset: 2px; }
-
-/* list view: horizontal card (photo | details + specs | location, price) */
-.lgrid { display: flex; flex-direction: column; gap: 14px; }
-.lcard { display: flex; gap: 20px; padding: 12px; background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: 20px; box-shadow: var(--card-sh); cursor: pointer; transition: border-color 0.25s, box-shadow 0.25s; }
-.lcard:hover { border-color: #D3D3EE; box-shadow: 0 8px 22px rgba(17, 24, 39, 0.10); }
-.lcard:focus-visible { outline: 3px solid rgba(0, 0, 128, 0.35); outline-offset: 2px; }
-.limg { position: relative; flex: 0 0 240px; align-self: flex-start; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: linear-gradient(160deg, #EEF0F2, #E3E4E6); }
+ /* ---------- sorting ---------- */
+ const sinji=p=>{const v=parseInt(p.attrs&&p.attrs.pur,10);return isNaN(v)?null:v};
+ const sn=(x,y,dir)=>{const a=sinji(x),b=sinji(y);if(a===null&&b===null)return 0;if(a===null)return 1;if(b===null)return -1;return dir*(a-b)};
+ const sortList=l=>{
+  const c=p=>p.created||0,
+        days=+CS.p||0,
+        a=days?l.filter(p=>c(p)>=Date.now()-days*864e5):[...l],
+        pr=(x,y,dir)=>{if(x.nego&&y.nego)return 0;if(x.nego)return 1;if(y.nego)return -1;return dir*(x.price-y.price)},
+        f={dd:(x,y)=>c(y)-c(x),da:(x,y)=>c(x)-c(y),pd:(x,y)=>pr(x,y,-1),pa:(x,y)=>pr(x,y,1),sd:(x,y)=>sn(x,y,-1),sa:(x,y)=>sn(x,y,1)}[CS.s]||((x,y)=>c(y)-c(x));
 <<<<<<< HEAD
-.limgi { position: absolute; inset: 0; display: grid; place-items: center; background-size: cover; background-position: center; color: var(--gold); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+  return a.sort(f)};
 =======
-.limgi { position: absolute; inset: 0; display: grid; place-items: center; background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important; color: var(--gold); transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+    const rank=p=>p.vip=='SUPER VIP'?2:p.vip?1:0;
+  return a.sort((x,y)=>rank(y)-rank(x)||f(x,y))};
 >>>>>>> 28ae1ab (a)
-.limgi svg.ill { width: 38%; height: auto; opacity: 0.8; }
-@media (hover: hover) and (pointer: fine) { .lcard:hover .limgi { transform: scale(1.04); } }
 
-.lbody { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main side" "foot side"; grid-template-rows: 1fr auto; gap: 12px 24px; padding: 2px 6px 2px 0; }
-.lmain { grid-area: main; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.ltitle { margin: 0; font-size: var(--fs-xl); font-weight: 600; line-height: 1.3; color: var(--tx); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lmain .pstat { margin-top: 0; }
-.lspecs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 28px; }
-.lsp { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: var(--fs-base); color: #4B5563; }
-.lsp svg { flex: none; width: 20px; height: 20px; color: #9AA0A6; }
-.lsp span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ /* ---------- list-view card ---------- */
+ const si=d=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+ const I={
+  metal:ICONS.coin,
+  pur:UI.tag,
+  weight:'<path d="M12 4v16M6 20h12M5 7h14M5 7l-3 7a3 3 0 006 0zM19 7l-3 7a3 3 0 006 0z"/>',
+  gen:UI.user,
+  stone:UI.gem,
+  cond:SI.new
+ };
+ const ago=ts=>{const m=Math.max(0,Math.floor((Date.now()-ts)/6e4));
+  if(m<1)return 'ახლახან';if(m<60)return m+' წუთის წინ';
+  const h=Math.floor(m/60);if(h<24)return h+' საათის წინ';
+  const d=Math.floor(h/24);if(d<30)return d+' დღის წინ';
+  const mo=Math.floor(d/30);if(mo<12)return mo+' თვის წინ';return Math.floor(mo/12)+' წლის წინ'};
+ const specsOf=p=>{const a=p.attrs||{},tn=typeName(p);
+  return [
+   [I.metal,a.metal||p.cat],
+   [I.pur,a.pur?a.pur+' სინჯი':''],
+   [I.weight,p.weight?p.weight+' გრ':''],
+   [ICONS[p.type]||ICONS.other,tn],
+   [I.gen,p.gender],
+   [I.stone,a.stone],
+   [I.cond,a.cond]
+  ].filter(x=>x[1]).slice(0,4)};
+ const listCard=p=>{
+  const c=pc[p.id]||'GEL',f=favs.includes(p.id),hex=cardHex(p),cond=(p.attrs&&p.attrs.cond)||'',
+   sp=specsOf(p).map(([ic,t])=>`<div class="lsp">${si(ic)}<span>${esc(t)}</span></div>`).join(''),
+   price=p.nego?'<span class="price nego">ფასი შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</span>${curSw(p.id,c)}`,
+   badge=p.vip?`<span class="lvip ${p.vip=='VIP'?'v':'s'}">${esc(p.vip)}</span>`:'';
+  return `<div class="lcard" data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}"${hex?` style="background:${hex}"`:''}>
+  <div class="limg"><div class="limgi" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div></div>
+  <div class="lbody">
+   <div class="lmain"><h4 class="ltitle">${esc(p.title)}</h4>${ownChip(p)}<div class="lspecs">${sp}</div></div>
+   <div class="lside">
+    <div class="ltop">${p.loc?`<span class="lloc">${esc(p.loc)}</span>`:''}${cond?`<span class="lcond">${esc(cond)}</span>`:''}<button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>
+    <div class="lprice">${price}</div>
+    ${stkHTML(p)}
+   </div>
+   <div class="lfoot">${badge}<span class="lago">${ago(p.created||Date.now())}</span><span class="ldot">·</span>${vwHTML(p.id)}</div>
+  </div>
+ </div>`};
 
-.lside { grid-area: side; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; min-width: 150px; }
-.ltop { display: flex; align-items: center; gap: 14px; font-size: var(--fs-md); }
-.lloc { color: var(--tx); }
-.lcond { color: #2FA66A; font-weight: 500; }
-.lcard .cact { flex: none; width: 30px; height: 30px; border: 0; background: transparent; backdrop-filter: none; box-shadow: none; color: var(--tx); margin-right: -4px; }
-.lcard .cact svg.ic { width: 20px; height: 20px; }
-.lcard .cact:hover { background: transparent; box-shadow: none; color: var(--err); }
-.lprice { display: flex; align-items: center; gap: 10px; }
-.lprice .price { font-size: 24px; font-weight: 600; }
-.lprice .price.nego { font-size: var(--fs-lg); }
-.lside .stks { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 260px; }
-.lside .stk { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid #E3E4E6; border-radius: 999px; background: #fff; box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08); color: #2B3138; font-size: var(--fs-xs); font-weight: 500; line-height: 1.2; white-space: nowrap; }
-.lside .stk .se { font-size: 14px; line-height: 1; }
-.lside .stk b { font-weight: 500; }
+ /* grid card = the site's card(), with the same svg icons as the list card instead of emoji tags */
+ const tagsOf=p=>specsOf(p).slice(0,3).map(([ic,t])=>`<span class="tg">${si(ic)}${esc(t)}</span>`).join('');
+ const gridCard=p=>card(p).replace(/<div class="tags">[\s\S]*?<\/div>/,`<div class="tags">${tagsOf(p)}</div>`);
 
-.lfoot { grid-area: foot; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; font-size: var(--fs-sm); color: #8A9099; }
-.lvip { padding: 4px 10px; border-radius: 8px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.3px; color: #fff; line-height: 1.3; }
-.lvip.s { background: #F4511E; }
-.lvip.v { background: var(--btn); }
-.lfoot .vw { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm); color: #8A9099; }
-.lfoot .vw .ic { width: 14px; height: 14px; }
+ /* pagination */
+ const pager=(cur,tot)=>{if(tot<2)return '';
+  const set=new Set([1,tot,cur-1,cur,cur+1]);if(cur<=3){set.add(2);set.add(3)}if(cur>=tot-2){set.add(tot-1);set.add(tot-2)}
+  const nums=[...set].filter(n=>n>=1&&n<=tot).sort((a,b)=>a-b);let h='',prev=0;
+  nums.forEach(n=>{if(n-prev>1)h+='<span class="pgd">…</span>';h+=`<button type="button" class="pgb${n==cur?' on':''}" data-page="${n}"${n==cur?' aria-current="page"':''}>${n}</button>`;prev=n});
+  return `<nav class="pager" aria-label="გვერდები"><button type="button" class="pgb nx" data-page="${cur-1}" aria-label="წინა"${cur<=1?' disabled':''}>${ui('prev')}</button>${h}<button type="button" class="pgb nx" data-page="${cur+1}" aria-label="შემდეგი"${cur>=tot?' disabled':''}>${ui('next')}</button></nav>`};
 
-@media (max-width: 900px) {
-  .limg { flex-basis: 180px; }
-  .lprice .price { font-size: 20px; }
-}
-@media (max-width: 700px) {
-  .sbar { padding: 10px 12px; }
-  .sctl { width: 100%; justify-content: space-between; }
-  .sctl .ddw { min-width: 0; flex: 1 1 120px; }
-  .lcard { gap: 12px; padding: 10px; border-radius: 16px; }
-  .limg { flex-basis: 120px; aspect-ratio: 1 / 1; }
-  .lbody { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "side" "foot"; grid-template-rows: auto; gap: 8px; padding: 0; }
-  .ltitle { font-size: var(--fs-base); }
-  .lspecs { grid-template-columns: 1fr; gap: 6px; }
-  .lsp { font-size: var(--fs-md); }
-  .lside { align-items: flex-start; flex-direction: row; flex-wrap: wrap; justify-content: space-between; min-width: 0; gap: 8px; }
-  .ltop { order: 2; margin-left: auto; }
-  .lprice { order: 1; }
-  .lside .stks { order: 3; justify-content: flex-start; max-width: none; flex-basis: 100%; }
-}
+ views.search=function(){
+  const r=sortList(pub().filter(match)),sig=JSON.stringify([F,CS.s,CS.p]);
+  if(sig!==CS.sig){CS.sig=sig;CS.pg=1}
+  const tot=Math.max(1,Math.ceil(r.length/PER));if(CS.pg>tot)CS.pg=tot;if(CS.pg<1)CS.pg=1;
+  const pageItems=r.slice((CS.pg-1)*PER,CS.pg*PER);
+  return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results">
+  <div class="sbar">
+   <h2><b>${r.length}</b> განცხადება</h2>
+   <div class="sctl">
+    <div class="vtog">
+     <button type="button" data-view="list" class="${CS.v=='list'?'on':''}" aria-label="სია" title="სია" aria-pressed="${CS.v=='list'}">${VL}</button>
+     <button type="button" data-view="grid" class="${CS.v=='grid'?'on':''}" aria-label="ბადე" title="ბადე" aria-pressed="${CS.v=='grid'}">${VG}</button>
+    </div>
+    ${dd('sortP',{list:PERS,val:CS.p})}
+    ${dd('sortS',{list:SORTS,val:CS.s})}
+   </div>
+  </div>
+  ${r.length?(CS.v=='list'?`<div class="lgrid">${pageItems.map(listCard).join('')}</div>`:`<div class="grid">${pageItems.map(gridCard).join('')}</div>`)+pager(CS.pg,tot):'<div class="empty">ვერაფერი მოიძებნა 😔</div>'}
+  </div></div>`};
 
-/* grid card tags: same svg icons as the list card */
-.card .tg svg { flex: none; width: 14px; height: 14px; color: #9AA0A6; }
-
-/* pagination (15 per page) */
-.pager { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 28px 0 8px; }
-.pgb { min-width: 40px; height: 40px; padding: 0 10px; border: 1px solid var(--cream2); border-radius: var(--r); background: #fff; color: var(--tx); font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer; display: inline-grid; place-items: center; transition: background 0.2s, border-color 0.2s, color 0.2s; }
-.pgb svg { width: 18px; height: 18px; }
-.pgb:hover:not(:disabled):not(.on) { background: var(--hov); border-color: var(--btn); }
-.pgb.on { background: var(--btn); border-color: var(--btn); color: #fff; cursor: default; }
-.pgb:disabled { opacity: 0.4; cursor: default; }
-.pgb:focus-visible { outline: 3px solid rgba(0, 0, 128, 0.35); outline-offset: 2px; }
-.pgd { min-width: 24px; text-align: center; color: var(--mu); }
-@media (max-width: 480px) { .pgb { min-width: 36px; height: 36px; } }
-
-/* VIP markers: identical pill (same look and colours) on the home collections, collection grid, favourites, profile and in the list view.
-   SUPER VIP = red-orange, VIP = blue. #app + !important so no older rule can override it. */
-#app .card .badge { padding: 4px 10px; border-radius: 8px; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.3px; line-height: 1.3; text-transform: none; color: #fff !important; box-shadow: none !important; background: #F4511E !important; }
-#app .card .badge.s { background: #000080 !important; }
-#app .card .badge .crown { display: none; }
-#app .lvip { color: #fff; }
-#app .lvip.s { background: #F4511E; }
-#app .lvip.v { background: #000080; }
+ /* ---------- events ---------- */
+ document.addEventListener('change',e=>{   /* dropdown "change" does not bubble: capture phase */
+  const t=e.target;if(!t||!t.id)return;
+  if(t.id=='sortS'){CS.s=t.dataset.val||'dd';CS.pg=1;rerender()}
+  else if(t.id=='sortP'){CS.p=t.dataset.val||'0';CS.pg=1;rerender()}
+ },true);
+ document.addEventListener('click',e=>{
+  const pgb=e.target.closest&&e.target.closest('[data-page]');
+  if(pgb&&!pgb.disabled){CS.pg=+pgb.dataset.page||1;rerender();const t=document.querySelector('.sbar');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});return}
+  const b=e.target.closest&&e.target.closest('[data-view]');
+  if(b){CS.v=b.dataset.view=='list'?'list':'grid';rerender();return}
+  const c=e.target.closest&&e.target.closest('.lcard[data-id]');
+  if(c&&!e.target.closest('[data-fav],[data-cs]'))window.open(location.href.split('#')[0]+'#product:'+c.dataset.id,'_blank','noopener');
+ });
+ document.addEventListener('keydown',e=>{
+  if(e.key=='Enter'&&e.target.matches&&e.target.matches('.lcard[data-id]')&&!e.target.closest('[data-fav],[data-cs]'))
+   window.open(location.href.split('#')[0]+'#product:'+e.target.dataset.id,'_blank','noopener');
+ });
+})();
