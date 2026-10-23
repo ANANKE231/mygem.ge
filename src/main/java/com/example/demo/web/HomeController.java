@@ -12,9 +12,18 @@ public class HomeController {
 
 	@GetMapping({"/", "/index.html"})
 	public ResponseEntity<Resource> index() {
+		return page("templates/index.html");
+	}
+
+	@GetMapping({"/admin", "/admin/"})
+	public ResponseEntity<Resource> admin() {
+		return page("templates/admin.html");
+	}
+
+	private ResponseEntity<Resource> page(String classpath) {
 		return ResponseEntity.ok()
 				.contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
-				.body(new ClassPathResource("templates/index.html"));
+				.body(new ClassPathResource(classpath));
 	}
 
 }
