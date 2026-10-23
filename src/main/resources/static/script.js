@@ -131,7 +131,7 @@ const LOC=['თბილისი','ბათუმი','ქუთაისი',
 const FD={metal:{l:'ლითონის ტიპი',o:METALS},pur:{l:'სინჯი'},gen:{l:'სქესი',o:GEN},stone:{l:'ქვის ტიპი',o:STONES},
  rsize:{l:'ბეჭდის ზომა',o:Array.from({length:15},(_,i)=>String(15+i*.5))},clen:{l:'ჯაჭვის სიგრძე (სმ)',o:['35','40','45','50','55','60','70','80']},
  clasp:{l:'საკეტის ტიპი',o:['ბოქლი','კარაბინი']},etype:{l:'საყურის ტიპი',o:['სტუდები','ჩამოკიდებული','ჯაჭვიანი','ჰუფები']},
- bsize:{l:'სამაჯურის ზომა (სმ)',o:['15','16','17','18','19','20','21','22']},cond:{l:'მდგომარეობა',o:['ახალი','ახალივით','კარგი','მცირე გამოყენების კვალი','ანტიკური','ვინტაჟი','მეორადი']},
+ bsize:{l:'სამაჯურის ზომა (სმ)',o:['15','16','17','18','19','20','21','22']},cond:{l:'მდგომარეობა',o:['ახალი','ახალივით','კარგი','მცირე გამოყენების კვალი','ანტიკური','მეორადი']},
  style:{l:'სტილი',o:['თანამედროვე','კლასიკური','მინიმალისტური','საქორწილო','ვინტაჟი','ლუქსი']},year:{l:'გამოშვების წელი',o:['1800-1850','1850-1900','1900-1950','1950-2000','2000-2005']},brand:{l:'ბრენდი',t:'text'}};
 /* price and weight are always present in the form/filters; the lists below hold the extra fields */
 const FS={ring:['metal','pur','gen','stone','rsize','cond','style'],necklace:['metal','pur','gen','stone','clen','clasp','cond','style'],
@@ -1141,11 +1141,20 @@ function hsPos(){if(innerWidth>900){const r=hs.getBoundingClientRect(),w=Math.mi
 window.addEventListener('resize',()=>{if(sRes.classList.contains('show'))hsPos()});
 function hsClose(){hs.classList.remove('open');hsIn.value='';hsX.hidden=true;sRes.classList.remove('show')}
 const hsX=document.createElement('button');hsX.type='button';hsX.className='hsx';hsX.hidden=true;hsX.setAttribute('aria-label','ძებნის გასუფთავება');hsX.title='ძებნის გასუფთავება';hsX.textContent='×';hsIn.after(hsX);
-hsX.onclick=e=>{e.stopPropagation();hsIn.value='';hsRun();hsIn.focus()};
+hsX.onclick=e=>{e.stopPropagation();hsY=window.scrollY;hsIn.value='';hsRun();hsIn.focus({preventScroll:true});hsKeep()};
 function hsGo(){const q=hsIn.value.trim();if(!q)return;F={q};sRes.classList.remove('show');if(location.hash=='#search')route();else location.hash='search'}
+/* ძებნის ველზე ფოკუსი/ჩაწერა გვერდს ზემოთ აღარ ასქროლებს */
+let hsY=0,hsLock=0;
+const hsHold=()=>{if(Math.abs(window.scrollY-hsY)>1)window.scrollTo({top:hsY,behavior:'instant'})};
+const hsKeep=(ms=500)=>{hsLock=Date.now()+ms;hsHold();requestAnimationFrame(hsHold)};
+window.addEventListener('scroll',()=>{if(Date.now()<hsLock)hsHold()},{passive:true});
+hsIn.addEventListener('focus',()=>{hsY=window.scrollY;hsKeep(900)});
+hsIn.addEventListener('beforeinput',()=>{hsY=window.scrollY;hsKeep(400)});
+hsIn.addEventListener('input',()=>hsKeep(400));
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(document.activeElement===hsIn)hsKeep(600)});
 $('#hsBtn').onclick=e=>{e.stopPropagation();
  if(hs.classList.contains('open')){if(hsIn.value.trim())hsGo();else hsClose()}
- else{hs.classList.add('open');hsIn.focus()}};
+ else{hsY=window.scrollY;hs.classList.add('open');hsIn.focus({preventScroll:true});hsKeep()}};
 hsIn.oninput=hsRun;
 hsIn.onkeydown=e=>{
  if(e.key=='Enter'){e.preventDefault();hsGo()}
@@ -1342,7 +1351,7 @@ if(check(fm,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგ
  bar.classList.toggle('show',!read());flush();
 })();
 setLogin();window.addEventListener('hashchange',route);HYD=hydrate();Promise.all([HYD,loadDemoPhotos()]).then(route);
-loadBlog().then(()=>{const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post')route()});
+loadBlog().then(()=>{const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post'){const y=window.scrollY;route();if(y>0)setTimeout(()=>window.scrollTo({top:y,behavior:'instant'}),500)}});
 loadRate();
 /* the header height depends on the (large, responsive) logo: publish it as --hh so dropdowns, sticky panels and anchor scrolling always sit just below it */
 (()=>{const t=$('.top');if(!t)return;const set=()=>document.documentElement.style.setProperty('--hh',t.offsetHeight+'px');set();
@@ -1413,3 +1422,9 @@ document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('.rg
 document.addEventListener('keydown',e=>{if(e.key=='Escape')$$('.rg.open').forEach(x=>x.classList.remove('open'))});
 let rgT=0;new MutationObserver(()=>{cancelAnimationFrame(rgT);rgT=requestAnimationFrame(rgAll)}).observe(document.body,{childList:true,subtree:true});
 rgAll();
+/* დასახელება: მაქსიმუმ 3 სიტყვა — მესამე სიტყვის შემდეგ ინტერვალი და მეოთხე სიტყვა იბლოკება */
+document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!='aT')return;
+ const w=t.value.replace(/^\s+/,'').replace(/\s+/g,' ').split(' ');
+ let out=w.slice(0,3).join(' ');
+ if(w.length<3&&/\s$/.test(t.value))out+=' ';
+ if(out!==t.value)t.value=out});

@@ -1985,14 +1985,7 @@ a.sh:focus-visible { outline: 3px solid rgba(0, 0, 128, .35); outline-offset: 4p
 @media (max-width: 380px) {
   .top .logo img, .top .logo img.wm { max-width: calc(90vw - 150px) !important; }
 }
-body:has(.dd.open) .fw { opacity: 0; pointer-events: none; transition: opacity .15s; }
 
-/* =====================================================================
-   FIX: a long selected value (e.g. "ვარდისფერი ოქრო") no longer stretches the
-   filter panel. Grid columns were "1fr" (= minmax(auto, 1fr)), so the nowrap
-   dropdown text widened the column and the fields spilled out of the card
-   over the results. Columns are now minmax(0, 1fr) and long text gets "...".
-   ===================================================================== */
 .layout aside, .layout aside .sbox { min-width: 0; }
 .fgrid, .layout aside .fgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .fgrid > *, .fgrid .fld, .fgrid .ddw, .fgrid .dd, .fgrid .prng, .fgrid .pwrow { min-width: 0; }
@@ -2895,9 +2888,9 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
   }
   .rg-p { padding: 12px 0; }
 }
-
-/* ჩატის ბუშტი არ დაფაროს პანელი */
-body:has(.rg.open) .fw { opacity: 0; pointer-events: none; }
+@media (max-width: 640px) {
+  body:has(.rg.open) .fw { opacity: 0; pointer-events: none; }
+}
 /* =====================================================================
    FIX: ფასის/წონის ველში არჩეული მნიშვნელობა ერთ ხაზზე ჩანს
    ===================================================================== */
@@ -3066,18 +3059,23 @@ body:has(.rg.open) .fw { opacity: 0; pointer-events: none; }
 }
 
 
-/* Dropdown-ის გახსნისას ქვედა სექციების ჩამოწევა */
+
+/* ფასის/წონის პანელი ბარათებზე გადაფარვით იხსნება, გვერდს არ ჩამოწევს */
+.hero,
 .hero:has(.rg.open) {
-  padding-bottom: 470px !important;
-  transition: padding-bottom 0.25s ease;
+  padding-bottom: 48px !important;
 }
 
-.hero {
-  transition: padding-bottom 0.25s ease;
+/* ვალუტის ღილაკი ფასის ქვემოთ, მარცხნივ: ბარათი + პროდუქტის გვერდი */
+.card .pline,
+.grid:not(.hscroll) > .card .pline,
+.pprice {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
 }
-
-@media (max-width: 640px) {
-  .hero:has(.rg.open) {
-    padding-bottom: 470px !important;
-  }
-}
+.card .pline .cur,
+.pprice .cur { margin: 0 !important; }
