@@ -3127,3 +3127,46 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
   min-height: 28px;
 }
 .card .tg { flex: 0 0 auto; }
+.pinfo.tint { background: var(--bc); border: 1px solid rgba(17,24,39,.1); border-radius: 16px; padding: 22px; }
+.pinfo.tint .pattrs, .pinfo.tint .pseller { background: rgba(255,255,255,.65); }
+.rbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #eee;border-radius:20px;padding:12px 18px;margin-bottom:16px}
+.rbar h2{margin:0;color:#000080}
+.rtools{display:flex;align-items:center;gap:10px}
+.rtools .ddw{min-width:170px}
+.vt{display:flex;gap:6px}
+.vt button{width:40px;height:40px;border:0;border-radius:12px;background:transparent;color:#8a8a99;display:grid;place-items:center;cursor:pointer}
+.vt button.on{background:#e8e8f8;color:#000080}
+.vt .ic{width:20px;height:20px}
+
+.rows{display:flex;flex-direction:column;gap:16px}
+.card.lrow{display:grid;grid-template-columns:300px 1fr auto;gap:26px;padding:16px;background:#fff;border:1px solid #eee;border-radius:20px;cursor:pointer;align-items:stretch}
+.lrow .limg{aspect-ratio:4/3;border-radius:16px;background:#ececf0 center/cover no-repeat;display:grid;place-items:center;color:#4a7be8}
+.lrow .limg .ill{width:45%;height:45%;stroke-width:1.2}
+.lrow .lmid{display:flex;flex-direction:column;min-width:0}
+.lrow h4{margin:0 0 14px;font-size:20px}
+.lrow .lattr{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px}
+.lrow .lattr span{display:flex;align-items:center;gap:10px;color:#444}
+.lrow .lfoot{margin-top:auto;display:flex;align-items:center;gap:8px;color:#8a8a99;font-size:14px}
+.lvip{padding:5px 12px;border-radius:8px;color:#fff;font-weight:700;font-size:13px;background:#ff5a1f}
+.lvip.v{background:#000080}
+.lrow .lside{display:flex;flex-direction:column;align-items:flex-end;gap:14px;min-width:190px}
+.lrow .ltop{display:flex;align-items:center;gap:14px}
+.lrow .pline{display:flex;align-items:center;gap:10px;margin-top:6px}
+.lrow .price{font-size:24px;font-weight:700}
+.lrow .cbl{margin-top:auto;display:flex;gap:8px}
+
+@media(max-width:700px){
+ .card.lrow{grid-template-columns:120px 1fr;gap:12px}
+ .lrow .lside{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}
+ .lrow .lattr{grid-template-columns:1fr}
+ .rtools .ddw{min-width:130px}
+}
+
+
+
+/* ყოველთვის ერთი ჰორიზონტალური განცხადება */
+.results .rows {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px;
+}
