@@ -124,15 +124,15 @@ const REG=[['individual','ფიზიკური პირი'],['store','მ�
 const DD={cat:mk(CATS),gen:mk(GEN),type:TYPES.map(([k,l])=>[k,l,k]),reg:REG};
 /* ---------- category-specific fields ---------- */
 const METALS=['თეთრი ოქრო','ვარდისფერი ოქრო','ოქრო','ყვითელი ოქრო','ვერცხლი','პლატინა'],GOLDM=['თეთრი ოქრო','ვარდისფერი ოქრო','ოქრო','ყვითელი ოქრო'];
-const PUR_G=['375','583','584','585','750','875','916','958','999'],PUR_S=['800','830','875','925','960','999'],PUR_P=['850','900','950','999'];
+const PUR_G=['375','500','583','584','585','750','875','916','958','999'],PUR_S=['800','830','875','925','960','999'],PUR_P=['850','900','950','999'];
 const purFor=m=>GOLDM.includes(m)?PUR_G:m=='ვერცხლი'?PUR_S:m=='პლატინა'?PUR_P:[...new Set([...PUR_G,...PUR_S,...PUR_P])].sort((a,b)=>a-b);
 const STONES=['აკვამარინი','ალმასი','ამეთვისტო','ბრილიანტი','გრანატი','ზურმუხტი','თვლები','კორალი','კუბური ცირკონია','ლალი','მარგალიტი','საფირონი','სერდოლიკი','ტოპაზი','ქვის გარეშე'];
 const LOC=['თბილისი','ბათუმი','ქუთაისი','რუსთავი','გორი','ზუგდიდი','ფოთი','ხაშური','თელავი','სხვა'];
 const FD={metal:{l:'ლითონის ტიპი',o:METALS},pur:{l:'სინჯი'},gen:{l:'სქესი',o:GEN},stone:{l:'ქვის ტიპი',o:STONES},
  rsize:{l:'ბეჭდის ზომა',o:Array.from({length:15},(_,i)=>String(15+i*.5))},clen:{l:'ჯაჭვის სიგრძე (სმ)',o:['35','40','45','50','55','60','70','80']},
  clasp:{l:'საკეტის ტიპი',o:['ბოქლი','კარაბინი']},etype:{l:'საყურის ტიპი',o:['სტუდები','ჩამოკიდებული','ჯაჭვიანი','ჰუფები']},
- bsize:{l:'სამაჯურის ზომა (სმ)',o:['15','16','17','18','19','20','21','22']},cond:{l:'მდგომარეობა',o:['ახალი','ახალივით','მცირე გამოყენების კვალი','ანტიკური','მეორადი']},
- style:{l:'სტილი',o:['თანამედროვე','კლასიკური','მინიმალისტური','საქორწილო','ვინტაჟი']},year:{l:'გამოშვების წელი',o:['1800-1850','1850-1900','1900-1950','1950-2000','2000-2005']},brand:{l:'ბრენდი',t:'text'}};
+ bsize:{l:'სამაჯურის ზომა (სმ)',o:['15','16','17','18','19','20','21','22']},cond:{l:'მდგომარეობა',o:['ახალი','ახალივით','კარგი','მცირე გამოყენების კვალი','ანტიკური','ვინტაჟი','მეორადი']},
+ style:{l:'სტილი',o:['თანამედროვე','კლასიკური','მინიმალისტური','საქორწილო','ვინტაჟი','ლუქსი']},year:{l:'გამოშვების წელი',o:['1800-1850','1850-1900','1900-1950','1950-2000','2000-2005']},brand:{l:'ბრენდი',t:'text'}};
 /* price and weight are always present in the form/filters; the lists below hold the extra fields */
 const FS={ring:['metal','pur','gen','stone','rsize','cond','style'],necklace:['metal','pur','gen','stone','clen','clasp','cond','style'],
  earring:['metal','pur','gen','stone','etype','cond','style'],cross:['metal','pur','gen'],other:['metal','pur','gen','stone','cond','style'],
@@ -142,15 +142,18 @@ const fkeys=t=>FS[t]||['metal','pur','gen'];
 const av=(p,k)=>k=='gen'?p.gender:(p.attrs||{})[k];
 /* filter option lists per item type (exactly the options requested); a type missing here (ring, or no type chosen) uses the full lists above */
 const GF=[['ქალის','ქალი'],['კაცის','მამაკაცი']],GF1=[['ქალის','ქალი']],GF2=[['კაცის','მამაკაცი'],['ქალის','ქალი']];
+const cm=l=>l.map(x=>[x,x+' სმ']);
 const FF={
- necklace:{metal:['ვარდისფერი ოქრო','ოქრო','ყვითელი ოქრო'],pur:['585','750'],gen:GF,stone:['ამეთვისტო','ბრილიანტი','კორალი'],clen:[['45','45 სმ'],['60','60 სმ']],clasp:['ბოქლი','კარაბინი'],cond:['ახალი','ახალივით'],style:['თანამედროვე','კლასიკური','მინიმალისტური','საქორწილო']},
- earring:{metal:['ვარდისფერი ოქრო','ვერცხლი','ოქრო','ყვითელი ოქრო'],pur:['583','585','750'],gen:GF1,stone:['აკვამარინი','ბრილიანტი','გრანატი','კორალი','კუბური ცირკონია','მარგალიტი'],etype:['სტუდები','ჩამოკიდებული','ჯაჭვიანი','ჰუფები'],cond:['ანტიკური','ახალივით','მცირე გამოყენების კვალი'],style:['კლასიკური','მინიმალისტური']},
- cross:{metal:['ოქრო'],pur:['585'],gen:GF2},
- bracelet:{metal:['ოქრო'],pur:['585'],gen:GF2,bsize:[['22','22 სმ']],cond:['ახალი']},
- brooch:{metal:['ვერცხლი','ოქრო'],pur:['583'],stone:['სერდოლიკი'],cond:['ანტიკური','ახალივით','მცირე გამოყენების კვალი'],style:['ვინტაჟი','კლასიკური']},
- coin:{metal:['ოქრო'],pur:['916'],cond:['ახალივით','მცირე გამოყენების კვალი']},
- watch:{},chain:{},
- other:{metal:['ვერცხლი','ოქრო'],pur:['585'],gen:GF1,stone:['ბრილიანტი','თვლები'],cond:['ახალი','ახალივით','მცირე გამოყენების კვალი'],style:['საქორწილო']}};
+ ring:{metal:METALS,pur:purFor(''),gen:GF2,stone:STONES,rsize:FD.rsize.o,cond:FD.cond.o,style:FD.style.o},
+ necklace:{metal:METALS,pur:purFor(''),gen:GF2,stone:STONES,clen:cm(FD.clen.o),clasp:FD.clasp.o,cond:FD.cond.o,style:FD.style.o},
+ earring:{metal:METALS,pur:purFor(''),gen:GF2,stone:STONES,etype:FD.etype.o,cond:FD.cond.o,style:FD.style.o},
+ cross:{metal:METALS,pur:purFor(''),gen:GF2},
+ bracelet:{metal:METALS,pur:purFor(''),gen:GF2,bsize:cm(FD.bsize.o),cond:FD.cond.o},
+ brooch:{metal:METALS,pur:purFor(''),gen:GF2,cond:FD.cond.o},
+ coin:{metal:METALS,pur:purFor(''),cond:FD.cond.o,year:FD.year.o},
+ watch:{metal:METALS,pur:purFor(''),cond:FD.cond.o,gen:GF2,brand:[]},
+ chain:{metal:METALS,pur:purFor(''),cond:FD.cond.o,gen:GF2},
+ other:{metal:METALS,pur:purFor(''),gen:GF2,stone:STONES,cond:FD.cond.o,style:FD.style.o}};
 const toPairs=l=>l.map(x=>Array.isArray(x)?x:[String(x),String(x)]);
 let FCUR='GEL';   /* ფილტრის ვალუტა: 'GEL' ან 'USD' */
 const priceSym=()=>FCUR=='USD'?'$':'₾';
@@ -177,7 +180,20 @@ const regOf=u=>u.regType||(u.shop?'store':'individual');
 const regLabel=u=>regOf(u)=='other'?(u.regOther||'სხვა'):Object.fromEntries(REG)[regOf(u)];
 
 /* demo listings: photos are looked up in img/ (see DEMO_IMG); missing files fall back to an illustration */
-const DEMO_IMG={1:'/images/პირველი.png',2:'/images/მეორე.png',3:'/images/მესამე.png',4:'/images/მეოთხე.png',5:'/images/მეხუთე.png',6:'/images/მეექვსე.png',7:'/images/მეშვიდე.png',8:'/images/მერვე.png',9:'/images/მეცხრე.png',10:'/images/მეათე.png'};
+
+const DEMO_IMG = {
+  1: "/images/photo-1.jpg",
+  2: "/images/photo-2.jpg",
+  3: "/images/photo-3.jpg",
+  4: "/images/photo-4.jpg",
+  5: "/images/photo-5.jpg",
+  6: "/images/photo-6.jpg",
+  7: "/images/photo-7.jpg",
+  8: "/images/photo-8.jpg",
+  9: "/images/photo-9.jpg",
+  10: "/images/photo-10.jpg"
+};
+
 const DEMO=[
  ['ოქროს ბეჭედი 585','ოქრო',4.2,780,'ქალის','💍','ring'],['ბრილიანტის ყელსაბამი','ბრილიანტი',6,4200,'ქალის','📿','necklace'],['ვერცხლის სამაჯური','ვერცხლი',18,190,'უნისექსი','⛓️','bracelet'],
  ['პლატინის საქორწინო ბეჭედი','პლატინა',5.5,2100,'კაცის','💍','ring'],['ოქროს საყურე 750','ოქრო',3.1,690,'ქალის','✨','earring'],['ოქროს ჯაჭვი 585','ოქრო',12,2300,'კაცის','⛓️','chain'],
@@ -196,7 +212,7 @@ async function hydrate(){if(!(await IDB.open()))return;
  try{if(!fail){const ks=await IDB.keys();if(ks.ok)(ks.v||[]).forEach(k=>{if(!(k in IDB.sig))IDB.del(k)})}
   if(IDB.dirty||items.some(heavy)){IDB.dirty=false;save('items',items)}}catch{}}
 DEMO.forEach(d=>{if(!items.some(x=>x.id===d.id))items.push(d)});
-items.forEach(p=>{if(p.attrs){if(p.attrs.style=='ვინტაჟური')p.attrs.style='ვინტაჟი';if(p.attrs.etype=='ჰეფები')p.attrs.etype='ჰუფები';if(p.attrs.cond=='ვინტაჟი')p.attrs.cond='მცირე გამოყენების კვალი'}});
+items.forEach(p=>{if(p.attrs){if(p.attrs.style=='ვინტაჟური')p.attrs.style='ვინტაჟი';if(p.attrs.etype=='ჰეფები')p.attrs.etype='ჰუფები';}});
 items.forEach(p=>{if(p.owner=='demo'){p.photos=[];if(!p.attrs){p.attrs={metal:METALS.includes(p.cat)?p.cat:p.cat=='ბრილიანტი'?'თეთრი ოქრო':'',pur:(p.title.match(/\d{3}/)||[''])[0]};p.loc='თბილისი'}}});
 /* resolve demo photos that really exist, so the page never shows a broken image */
 const probeImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(src);i.onerror=()=>r(null);i.src=src});
@@ -1383,8 +1399,8 @@ document.addEventListener('click',e=>{
 })();
 
 /* ფასი / წონა: ჩამოსაშლელი დიაპაზონი */
-function rgAll(){$$('.rg').forEach(g=>{const i=$$('input',g),a=i[0].value,b=i[1].value,u=g.dataset.rg=='p'?priceSym():'გრ',v=g.querySelector('.rg-val');
- v.textContent=a&&b?`${a} – ${b} ${u}`:a?`${a}-დან ${u}`:b?`${b}-მდე ${u}`:'ყველა';v.classList.toggle('ph',!a&&!b)})}
+function rgAll(){$$('.rg').forEach(g=>{const i=$$('input',g),a=i[0].value,b=i[1].value,v=g.querySelector('.rg-val');
+ v.textContent=a&&b?`${a} – ${b}`:a?`${a}-დან`:b?`${b}-მდე`:'ყველა';v.classList.toggle('ph',!a&&!b)})}
 document.addEventListener('click',e=>{
  const g=e.target.closest('.rg'),btn=e.target.closest('.rg-btn');
  $$('.rg.open').forEach(x=>{if(x!==g)x.classList.remove('open')});
