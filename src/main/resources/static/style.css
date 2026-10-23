@@ -214,7 +214,7 @@ svg.pi { width: 18px; height: 18px; flex: none; }
 .hero h1 { font-size: var(--fs-h1); font-weight: 500; letter-spacing: -0.8px; line-height: 1.15; margin-bottom: 12px; color: #ffffff; }
 .hero > p { color: rgba(255, 255, 255, 0.82); font-size: var(--fs-lg); max-width: 680px; margin: 0 auto 32px; }
 
-.sbox { max-width: 1040px; margin: auto; background: var(--w); border-radius: 6px; padding: 24px; box-shadow: 0 8px 30px rgba(17, 24, 39, 0.07); border: 1px solid var(--line); }
+.sbox { max-width: 1300px; margin: auto; background: var(--w); border-radius: 6px; padding: 24px; box-shadow: 0 8px 30px rgba(17, 24, 39, 0.07); border: 1px solid var(--line); }
 
 .fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; text-align: left; }
 .fgrid label, .fld, .form label { font-size: var(--fs-sm); font-weight: 500; color: var(--mu); display: flex; flex-direction: column; gap: 6px; }
