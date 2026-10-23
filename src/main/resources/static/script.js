@@ -177,7 +177,7 @@ const regOf=u=>u.regType||(u.shop?'store':'individual');
 const regLabel=u=>regOf(u)=='other'?(u.regOther||'სხვა'):Object.fromEntries(REG)[regOf(u)];
 
 /* demo listings: photos are looked up in img/ (see DEMO_IMG); missing files fall back to an illustration */
-const DEMO_IMG={1:'/images/პირველი.png',2:'/images/მეორე.png',3:'/images/მესამე.png',4:'/images/მეოთხე.png',5:'/images/მეხუთე.png',6:'/images/მეექვსე.png',7:'/images/მეშვიდე.png',8:'/images/მერვე.png',9:'/images/მეცხრე.png',10:'/images/მეათე.png'};
+const DEMO_IMG={1:'/images/photo-1.jpg',2:'/images/photo-2.jpg',3:'/images/photo-3.jpg',4:'/images/photo-4.jpg',5:'/images/photo-5.jpg',6:'/images/photo-6.jpg',7:'/images/photo-7.jpg',8:'/images/photo-8.jpg',9:'/images/photo-9.jpg',10:'/images/photo-10.jpg'};
 const DEMO=[
  ['ოქროს ბეჭედი 585','ოქრო',4.2,780,'ქალის','💍','ring'],['ბრილიანტის ყელსაბამი','ბრილიანტი',6,4200,'ქალის','📿','necklace'],['ვერცხლის სამაჯური','ვერცხლი',18,190,'უნისექსი','⛓️','bracelet'],
  ['პლატინის საქორწინო ბეჭედი','პლატინა',5.5,2100,'კაცის','💍','ring'],['ოქროს საყურე 750','ოქრო',3.1,690,'ქალის','✨','earring'],['ოქროს ჯაჭვი 585','ოქრო',12,2300,'კაცის','⛓️','chain'],
@@ -200,8 +200,7 @@ items.forEach(p=>{if(p.attrs){if(p.attrs.style=='ვინტაჟური')p.
 items.forEach(p=>{if(p.owner=='demo'){p.photos=[];if(!p.attrs){p.attrs={metal:METALS.includes(p.cat)?p.cat:p.cat=='ბრილიანტი'?'თეთრი ოქრო':'',pur:(p.title.match(/\d{3}/)||[''])[0]};p.loc='თბილისი'}}});
 /* resolve demo photos that really exist, so the page never shows a broken image */
 const probeImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(src);i.onerror=()=>r(null);i.src=src});
-async function loadDemoPhotos(){const done=Promise.all(items.filter(p=>p.owner=='demo'&&DEMO_IMG[p.id]).map(async p=>{const ok=await probeImg(DEMO_IMG[p.id]);if(ok)p.photos=[ok]}));
- await Promise.race([done,new Promise(r=>setTimeout(r,1500))])}
+async function loadDemoPhotos(){await Promise.all(items.filter(p=>p.owner=='demo'&&DEMO_IMG[p.id]).map(async p=>{const ok=await probeImg(DEMO_IMG[p.id]);if(ok)p.photos=[ok]}))}
 
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2800)}
 /* exchange rate: official NBG USD rate, cached; rounding happens only when displaying */
