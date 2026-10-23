@@ -38,7 +38,12 @@
 .lcard .cact { flex: none; width: 30px; height: 30px; border: 0; background: transparent; backdrop-filter: none; box-shadow: none; color: var(--tx); margin-right: -4px; }
 .lcard .cact svg.ic { width: 20px; height: 20px; }
 .lcard .cact:hover { background: transparent; box-shadow: none; color: var(--err); }
-.lprice { display: flex; align-items: center; gap: 10px; }
+.lprice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
 .lprice .price { font-size: 24px; font-weight: 600; }
 .lprice .price.nego { font-size: var(--fs-lg); }
 .lside .stks { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 260px; }
@@ -137,4 +142,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lcard, .limgi, .pgb { transition: none; }
+}
+@media (max-width: 900px) {
+  .lprice {
+    align-items: flex-start;
+  }
 }
