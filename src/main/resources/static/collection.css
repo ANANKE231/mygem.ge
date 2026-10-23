@@ -10,12 +10,7 @@
 .sctl .dd.open .dd-btn, .sctl .dd-btn:focus-visible { border-color: var(--btn); box-shadow: 0 0 0 3px rgba(0, 0, 128, 0.15); }
 .sctl .dd-list { min-width: 100%; width: max-content; left: auto; right: 0; }
 .sctl .dd-opt.sel { background: #E8E8F7; color: var(--btn); }
-.vtog { display: flex; align-items: center; gap: 4px; }
-.vtog button { width: 36px; height: 36px; border: 0; border-radius: var(--r); background: none; color: #9AA0A6; cursor: pointer; display: grid; place-items: center; transition: background 0.2s, color 0.2s; }
-.vtog button svg { width: 20px; height: 20px; }
-.vtog button:hover { background: var(--hov); color: var(--tx); }
-.vtog button.on { color: var(--btn); background: #E8E8F7; }
-.vtog button:focus-visible { outline: 3px solid rgba(0, 0, 128, 0.35); outline-offset: 2px; }
+
 
 /* list view: horizontal card (photo | details + specs | location, price) */
 .lgrid { display: flex; flex-direction: column; gap: 14px; }
@@ -131,17 +126,15 @@
   .lcard { flex-direction: column; }
   .limg { flex-basis: auto; width: 100%; aspect-ratio: 16 / 10; }
   .sctl { gap: 8px; }
-  .vtog { margin-left: auto; }
 }
 
 /* touch: დიდი შეხების არეალი, hover ეფექტების გარეშე */
 @media (hover: none) and (pointer: coarse) {
-  .vtog button { width: 44px; height: 44px; }
   .lcard .cact { width: 44px; height: 44px; }
   .pgb { min-width: 44px; height: 44px; }
   .lcard:hover { border-color: var(--card-bd); box-shadow: var(--card-sh); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lcard, .limgi, .vtog button, .pgb { transition: none; }
+  .lcard, .limgi, .pgb { transition: none; }
 }
