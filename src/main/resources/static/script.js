@@ -132,7 +132,7 @@ const FD={metal:{l:'ლითონის ტიპი',o:METALS},pur:{l:'სი
  rsize:{l:'ბეჭდის ზომა',o:Array.from({length:15},(_,i)=>String(15+i*.5))},clen:{l:'ჯაჭვის სიგრძე (სმ)',o:['35','40','45','50','55','60','70','80']},
  clasp:{l:'საკეტის ტიპი',o:['ბოქლი','კარაბინი']},etype:{l:'საყურის ტიპი',o:['სტუდები','ჩამოკიდებული','ჯაჭვიანი','ჰუფები']},
  bsize:{l:'სამაჯურის ზომა (სმ)',o:['15','16','17','18','19','20','21','22']},cond:{l:'მდგომარეობა',o:['ახალი','ახალივით','კარგი','მცირე გამოყენების კვალი','ანტიკური','მეორადი']},
- style:{l:'სტილი',o:['თანამედროვე','კლასიკური','მინიმალისტური','საქორწილო','ვინტაჟი','ლუქსი']},year:{l:'გამოშვების წელი',o:['1800-1850','1850-1900','1900-1950','1950-2000','2000-2005']},brand:{l:'ბრენდი',t:'text'}};
+ style:{l:'სტილი',o:['თანამედროვე','კლასიკური','მინიმალისტური','საქორწილო','ლუქსი']},year:{l:'გამოშვების წელი',o:['1800-1850','1850-1900','1900-1950','1950-2000','2000-2005']},brand:{l:'ბრენდი',t:'text'}};
 /* price and weight are always present in the form/filters; the lists below hold the extra fields */
 const FS={ring:['metal','pur','gen','stone','rsize','cond','style'],necklace:['metal','pur','gen','stone','clen','clasp','cond','style'],
  earring:['metal','pur','gen','stone','etype','cond','style'],cross:['metal','pur','gen'],other:['metal','pur','gen','stone','cond','style'],
@@ -212,7 +212,7 @@ async function hydrate(){if(!(await IDB.open()))return;
  try{if(!fail){const ks=await IDB.keys();if(ks.ok)(ks.v||[]).forEach(k=>{if(!(k in IDB.sig))IDB.del(k)})}
   if(IDB.dirty||items.some(heavy)){IDB.dirty=false;save('items',items)}}catch{}}
 DEMO.forEach(d=>{if(!items.some(x=>x.id===d.id))items.push(d)});
-items.forEach(p=>{if(p.attrs){if(p.attrs.style=='ვინტაჟური')p.attrs.style='ვინტაჟი';if(p.attrs.etype=='ჰეფები')p.attrs.etype='ჰუფები';}});
+items.forEach(p=>{if(p.attrs){if(p.attrs.etype=='ჰეფები')p.attrs.etype='ჰუფები';}});
 items.forEach(p=>{if(p.owner=='demo'){p.photos=[];if(!p.attrs){p.attrs={metal:METALS.includes(p.cat)?p.cat:p.cat=='ბრილიანტი'?'თეთრი ოქრო':'',pur:(p.title.match(/\d{3}/)||[''])[0]};p.loc='თბილისი'}}});
 /* resolve demo photos that really exist, so the page never shows a broken image */
 const probeImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(src);i.onerror=()=>r(null);i.src=src});
@@ -1422,9 +1422,8 @@ document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('.rg
 document.addEventListener('keydown',e=>{if(e.key=='Escape')$$('.rg.open').forEach(x=>x.classList.remove('open'))});
 let rgT=0;new MutationObserver(()=>{cancelAnimationFrame(rgT);rgT=requestAnimationFrame(rgAll)}).observe(document.body,{childList:true,subtree:true});
 rgAll();
-/* დასახელება: მაქსიმუმ 3 სიტყვა — მესამე სიტყვის შემდეგ ინტერვალი და მეოთხე სიტყვა იბლოკება */
+/* დასახელება: მაქსიმუმ 3 სიტყვა — მეოთხე სიტყვა იბლოკება */
 document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!='aT')return;
- const w=t.value.replace(/^\s+/,'').replace(/\s+/g,' ').split(' ');
- let out=w.slice(0,3).join(' ');
- if(w.length<3&&/\s$/.test(t.value))out+=' ';
+ const v=t.value.replace(/^\s+/,'').replace(/\s+/g,' '),w=v.split(' ');
+ const out=w.length>3?w.slice(0,3).join(' '):v;
  if(out!==t.value)t.value=out});

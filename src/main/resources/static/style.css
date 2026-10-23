@@ -3079,3 +3079,51 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 }
 .card .pline .cur,
 .pprice .cur { margin: 0 !important; }
+/* =====================================================================
+   ყველა ბარათი ერთი სიმაღლისაა (სტიკერის, ფერის, ტეგების მიუხედავად)
+   ===================================================================== */
+
+/* 1) ბადე: ყველა რიგი ერთნაირი სიმაღლისაა (ყველაზე მაღალი ბარათის ტოლი) */
+.grid:not(.hscroll) {
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+}
+
+/* 2) VIP / Super VIP ჰორიზონტალური რიგი: ბარათები ერთნაირად იჭიმება */
+.hsec .grid.hscroll { align-items: stretch; }
+
+/* 3) ბარათი ივსებს მთელ უჯრას, შიგთავსი ვერტიკალურად იჭიმება */
+.grid > .card,
+.grid:not(.hscroll) > .card {
+  height: auto !important;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+.card .in { flex: 1 1 auto; }
+
+/* 4) ქვედა ნაწილი (ტეგები, სტიკერები, წაშლა) ყოველთვის ბარათის ბოლოში დგას */
+.card .cfoot { margin-top: auto !important; }
+
+/* 5) სათაური: ყოველთვის ზუსტად 2 ხაზის ადგილი, გრძელი სათაური იკვეცება */
+.card .trow h4,
+.card h4 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.35;
+  min-height: calc(1.35em * 2);
+}
+
+/* 6) მდებარეობა/ნახვების ხაზს მუდმივი სიმაღლე აქვს */
+.card .cmeta { min-height: 18px; }
+
+/* 7) ტეგები: ერთ ხაზზე, ზედმეტი იმალება და არ ზრდის ბარათს */
+.card .tags {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  min-height: 28px;
+}
+.card .tg { flex: 0 0 auto; }
