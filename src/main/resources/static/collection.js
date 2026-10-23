@@ -1,12 +1,11 @@
 /* mygem.ge — collection page: toolbar (count · view toggle · period · sort) + list-view cards.
    Load AFTER script.js. Overrides views.search; no edits in script.js needed. */
 (()=>{
- const CS={s:'dd',p:'0',v:'grid',pg:1,sig:''};
+ const CS={s:'dd',p:'0',pg:1,sig:''};
  const PER=15;
  const SORTS=[['dd','თარიღი კლებადი'],['da','თარიღი ზრდადი'],['pd','ფასი კლებადი'],['pa','ფასი ზრდადი'],['sd','სინჯი კლებადი'],['sa','სინჯი ზრდადი']];
  const PERS=[['0','ყველა დრო'],['1','დღეს'],['7','ბოლო 7 დღე'],['30','ბოლო 30 დღე']];
- const VL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
- const VG='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="16" height="3.5" rx="1"/><rect x="4" y="10.3" width="16" height="3.5" rx="1"/><rect x="4" y="15.6" width="16" height="3.5" rx="1"/></svg>';
+ 
 
  /* ---------- sorting ---------- */
  const sinji=p=>{const v=parseInt(p.attrs&&p.attrs.pur,10);return isNaN(v)?null:v};
@@ -64,10 +63,7 @@
  </div>`};
 
  /* grid card = the site's card(), with the same svg icons as the list card instead of emoji tags */
- const tagsOf=p=>specsOf(p).slice(0,3).map(([ic,t])=>`<span class="tg">${si(ic)}${esc(t)}</span>`).join('');
- const gridCard=p=>card(p).replace(/<div class="tags">[\s\S]*?<\/div>/,`<div class="tags">${tagsOf(p)}</div>`);
 
- /* pagination */
  const pager=(cur,tot)=>{if(tot<2)return '';
   const set=new Set([1,tot,cur-1,cur,cur+1]);if(cur<=3){set.add(2);set.add(3)}if(cur>=tot-2){set.add(tot-1);set.add(tot-2)}
   const nums=[...set].filter(n=>n>=1&&n<=tot).sort((a,b)=>a-b);let h='',prev=0;
@@ -83,15 +79,11 @@
   <div class="sbar">
    <h2><b>${r.length}</b> განცხადება</h2>
    <div class="sctl">
-    <div class="vtog">
-     <button type="button" data-view="list" class="${CS.v=='list'?'on':''}" aria-label="სია" title="სია" aria-pressed="${CS.v=='list'}">${VL}</button>
-     <button type="button" data-view="grid" class="${CS.v=='grid'?'on':''}" aria-label="ბადე" title="ბადე" aria-pressed="${CS.v=='grid'}">${VG}</button>
-    </div>
     ${dd('sortP',{list:PERS,val:CS.p})}
     ${dd('sortS',{list:SORTS,val:CS.s})}
    </div>
   </div>
-  ${r.length?(CS.v=='list'?`<div class="lgrid">${pageItems.map(listCard).join('')}</div>`:`<div class="grid">${pageItems.map(gridCard).join('')}</div>`)+pager(CS.pg,tot):'<div class="empty">ვერაფერი მოიძებნა </div>'}
+  ${r.length?`<div class="lgrid">${pageItems.map(listCard).join('')}</div>`+pager(CS.pg,tot):'<div class="empty">ვერაფერი მოიძებნა </div>'}
   </div></div>`};
 
  /* ---------- events ---------- */
@@ -103,8 +95,6 @@
  document.addEventListener('click',e=>{
   const pgb=e.target.closest&&e.target.closest('[data-page]');
   if(pgb&&!pgb.disabled){CS.pg=+pgb.dataset.page||1;rerender();const t=document.querySelector('.sbar');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});return}
-  const b=e.target.closest&&e.target.closest('[data-view]');
-  if(b){CS.v=b.dataset.view=='list'?'list':'grid';rerender();return}
   const c=e.target.closest&&e.target.closest('.lcard[data-id]');
   if(c&&!e.target.closest('[data-fav],[data-cs]'))window.open(location.href.split('#')[0]+'#product:'+c.dataset.id,'_blank','noopener');
  });
