@@ -3466,3 +3466,969 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 #svipSec {
   margin-top: -20px !important;
 }
+[data-theme="dark"] .pubpop {
+  background: #121418 !important;
+}
+
+[data-theme="dark"] .pubpop .pubbox {
+  background: #1b1e24 !important;
+  border-color: #343b46 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+}
+
+[data-theme="dark"] .pubpop .pubbox h3 {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .pubpop .pubbox p {
+  color: #b9c0cb !important;
+}
+
+[data-theme="dark"] .pubpop .pubbox .btn {
+  background: #6269e8;
+  color: #fff;
+}
+/* ქუქის ბანერი — სხვა ელემენტებმა არ გადაფაროს */
+#cookie {
+  z-index: 10000 !important;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  pointer-events: auto !important;
+}
+
+#ckPrefs {
+  z-index: 10001 !important;
+}
+
+#cookie .ck-acts {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+#cookie .ck-acts button,
+#ckPrefs button {
+  position: relative;
+  min-height: 44px;
+  touch-action: manipulation;
+  pointer-events: auto !important;
+}
+
+/* მობილურის ჰედერი */
+@media (max-width: 700px) {
+  .top {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+  }
+
+  .top .logo {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .top .logo img.wm {
+    width: 108px !important;
+    height: auto !important;
+    max-width: 108px !important;
+    max-height: 26px !important;
+    object-fit: contain;
+  }
+
+  .top .actions {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    gap: 5px !important;
+    margin-left: auto;
+  }
+
+  .top .actions .ib {
+    width: 32px !important;
+    height: 36px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+  }
+
+  .top .actions .btn.add {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    justify-content: center;
+  }
+
+  .top .actions .btn.add .t {
+    display: none !important;
+  }
+
+  .top .nav {
+    order: 3;
+    display: flex !important;
+    flex: 1 0 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px !important;
+    min-width: 0;
+    margin: 0 !important;
+  }
+
+  .top .nav > a {
+    padding: 7px 3px !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+
+  .top .hs {
+    margin-left: auto;
+  }
+
+  #cookie {
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: calc(100% - 20px);
+    padding: 14px;
+  }
+
+  #cookie .ck-acts > button {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  .top .logo img.wm {
+    width: 90px !important;
+    max-width: 90px !important;
+  }
+
+  .top .actions {
+    gap: 2px !important;
+  }
+}
+@media (max-width: 700px) {
+  .lcard {
+    display: grid !important;
+    grid-template-columns: 110px minmax(0, 1fr) !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    border-radius: 16px;
+    align-items: start;
+  }
+
+  .lcard .limg {
+    grid-column: 1;
+    grid-row: 1;
+    width: 110px !important;
+    height: 110px !important;
+    min-height: 0 !important;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .lcard .lbody {
+    display: contents !important;
+  }
+
+  .lcard .lmain {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .lcard .ltitle {
+    margin: 0 0 8px !important;
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .lcard .lspecs {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .lcard .lsp {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--mu);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .lcard .lsp svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .lcard .lside {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    margin: 0 !important;
+  }
+
+  .lcard .lprice {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 !important;
+  }
+
+  .lcard .lprice .price {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    font-size: 21px;
+    line-height: 1.3;
+  }
+
+  .lcard .lprice .cur {
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  .lcard .ltop {
+    grid-column: 1 / -1;
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    margin: 0 !important;
+  }
+
+  .lcard .lloc,
+  .lcard .lcond {
+    font-size: 12px;
+  }
+
+  .lcard .ltop .cact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-left: auto !important;
+    flex-shrink: 0;
+  }
+
+  .lcard .lside > .stks {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  .lcard .lfoot {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin: 0 !important;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    color: var(--mu);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .lcard .lvip {
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .lcard .lago {
+    margin-left: auto;
+  }
+
+  .lcard .ldot {
+    display: none;
+  }
+
+  .lcard .lfoot .vw {
+    margin: 0;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 360px) {
+  .lcard {
+    grid-template-columns: 90px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  .lcard .limg {
+    width: 90px !important;
+    height: 90px !important;
+  }
+
+  .lcard .ltitle {
+    font-size: 14px;
+  }
+}
+@media (max-width: 700px) {
+  .lcard .lfoot {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 7px 12px;
+    margin: 0 !important;
+    padding: 0 0 12px !important;
+    border-top: 0 !important;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .lcard .lvip {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .lcard .lfoot .vw {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    font-size: 11px;
+    color: var(--mu);
+    white-space: nowrap;
+  }
+
+  .lcard .lago {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0 !important;
+    font-size: 11px;
+    color: var(--mu);
+  }
+
+  .lcard .ldot {
+    display: none;
+  }
+
+  .lcard .limg,
+  .lcard .lmain {
+    grid-row: 2;
+  }
+
+  .lcard .lside {
+    grid-row: 3;
+  }
+}
+.top .logo {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 24px 0 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.top .logo img.wm {
+  display: block;
+  width: 150px !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  object-fit: contain;
+  filter: none !important;
+}
+
+.top .logo:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+.top .logo:focus-visible {
+  outline: 2px solid #9aafff;
+  outline-offset: 5px;
+}
+
+@media (max-width: 700px) {
+  .top .logo {
+    margin: 0 !important;
+  }
+
+  .top .logo img.wm {
+    width: 105px !important;
+  }
+}
+
+/* რედაქტირება: ფორმა მარცხნივ, არსებული პრევიუ მარჯვნივ */
+.editpg .addwrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 24px;
+}
+
+.editpg .addwrap > .panel {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.editpg .addwrap > .lpc {
+  display: block;
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: calc(var(--hh, 64px) + 20px);
+  min-width: 0;
+}
+
+.editpg .lpv-card .card {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+/* ტელეფონზე პრევიუ ფორმის ქვემოთ */
+@media (max-width: 900px) {
+  .editpg .addwrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editpg .addwrap > .panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .editpg .addwrap > .lpc {
+    grid-column: 1;
+    grid-row: 2;
+    position: static;
+    width: 100%;
+    max-width: 360px;
+    max-height: none;
+    margin-inline: auto;
+    overflow: visible;
+  }
+}
+@media (min-width: 901px) {
+  .editpg .addwrap {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+
+  .editpg .addwrap > .lpc {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .editpg .addwrap > .panel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+/* პროფილი — ტელეფონი */
+@media (max-width: 700px) {
+  /* მხოლოდ პროფილის პანელი */
+  .panel:has(.tabs) {
+    padding: 18px 12px;
+    min-width: 0;
+  }
+
+  .panel:has(.tabs) .tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    max-width: 100%;
+    padding-bottom: 8px;
+  }
+
+  .panel:has(.tabs) .tabs > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .panel:has(.tabs) .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .panel:has(.tabs) .card {
+    width: 100%;
+    min-width: 0;
+    max-width: 420px;
+    margin-inline: auto;
+  }
+
+  .panel:has(.tabs) .card > .img {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    min-height: 0;
+  }
+
+  .panel:has(.tabs) .card .in {
+    padding: 14px;
+    min-width: 0;
+  }
+
+  .panel:has(.tabs) .card h4 {
+    overflow-wrap: anywhere;
+  }
+
+  .panel:has(.tabs) .card .pline {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .panel:has(.tabs) .card .cbot {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .panel:has(.tabs) .card .cbl {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .panel:has(.tabs) .card .cbl > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 100px;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
+    padding: 10px 12px;
+    gap: 6px;
+    font-size: 13px;
+    touch-action: manipulation;
+  }
+
+  .panel:has(.tabs) .card .cbl > button svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  /* რედაქტირების ხატულას წარწერაც დაემატება */
+  .panel:has(.tabs) .cedit[data-edit]::after {
+    content: "რედაქტირება";
+  }
+
+  .mchips {
+    max-width: 100%;
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .mchip {
+    flex-shrink: 0;
+    min-height: 44px;
+  }
+
+  /* რედაქტირება — პრევიუ ზემოთ, ფორმა ქვემოთ */
+  .editpg {
+    padding-inline: 12px;
+  }
+
+  .editpg .addwrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .editpg .addwrap > .lpc {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+    position: static;
+    width: 100%;
+    max-width: 360px;
+    max-height: none;
+    margin-inline: auto;
+    overflow: visible;
+  }
+
+  .editpg .addwrap > .panel {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    padding: 20px 14px;
+  }
+
+  .editpg .lpv-h {
+    align-items: center;
+  }
+
+  .editpg .lpv-h b {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .editpg .form,
+  .editpg .trio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editpg .form > *,
+  .editpg .trio > * {
+    min-width: 0;
+  }
+
+  .editpg .form .full,
+  .editpg .form .dyn {
+    grid-column: 1 / -1;
+  }
+
+  .editpg .form .dyn {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editpg .anav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .editpg .anav > .btn {
+    flex: 1 1 120px;
+    min-height: 44px;
+    margin: 0 !important;
+    justify-content: center;
+  }
+
+  .editpg .aud-acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+/* პროფილის ბარათების მოქმედებები */
+.panel:has(.tabs) .card .cbl {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.panel:has(.tabs) .card .cbl > button {
+  position: static !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 11px 8px !important;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: normal;
+  touch-action: manipulation;
+}
+
+.panel:has(.tabs) .card .cbl > button svg {
+  position: static !important;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 0 !important;
+}
+
+.panel:has(.tabs) .cedit[data-edit]::before {
+  content: none !important;
+}
+
+.panel:has(.tabs) .cedit[data-edit]::after {
+  content: "რედაქტირება";
+  position: static !important;
+  display: inline !important;
+  transform: none !important;
+  margin: 0 !important;
+  font: inherit;
+  color: inherit;
+}
+
+.panel:has(.tabs) .card .cbl > [data-del] {
+  grid-column: 1 / -1;
+}
+
+/* დადასტურების ფანჯარა ტელეფონზე */
+@media (max-width: 700px) {
+  #modal {
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  #modalBox {
+    width: 100%;
+    max-width: 440px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 24px 18px;
+  }
+
+  #modalBox .confirm h3 {
+    font-size: 19px;
+    line-height: 1.5;
+  }
+
+  #modalBox .confirm p {
+    overflow-wrap: anywhere;
+  }
+
+  #modalBox .confirm .row2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  #modalBox .confirm .row2 > button {
+    width: 100%;
+    min-height: 46px;
+    margin: 0;
+  }
+}
+/* პროფილის მოქმედებები — კომპიუტერი და ტელეფონი */
+.panel:has(.tabs) .card .cbl {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 8px !important;
+  width: 100%;
+}
+
+/* ყველა ღილაკი ცალკე ხაზზე */
+.panel:has(.tabs) .card .cbl > button {
+  position: relative !important;
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  grid-column: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  height: auto !important;
+  padding: 10px 12px !important;
+  margin: 0 !important;
+  gap: 7px !important;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  touch-action: manipulation;
+}
+
+/* წაშლის/გათიშვის უხილავი არე აღარ გადაეფაროს სხვებს */
+.panel:has(.tabs) .card .cbl > button::before,
+.panel:has(.tabs) .card .cbl > button::after {
+  content: none !important;
+  pointer-events: none !important;
+}
+
+/* რედაქტირების წარწერა — ღილაკის შიგნით */
+.panel:has(.tabs) .card .cbl > .cedit[data-edit]::after {
+  content: "რედაქტირება" !important;
+  position: static !important;
+  inset: auto !important;
+  display: inline !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  font: inherit;
+  color: inherit;
+  pointer-events: none !important;
+}
+
+.panel:has(.tabs) .card .cbl > button svg {
+  width: 17px !important;
+  height: 17px !important;
+  flex: 0 0 17px !important;
+}
+
+.panel:has(.tabs) .card .cbl > [data-del] {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+}
+.top a.logo {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  text-decoration: none !important;
+}
+
+.top a.logo:not(:focus-visible) {
+  outline: none !important;
+}
+
+.top a.logo::before,
+.top a.logo::after {
+  content: none !important;
+}
+
+.top .logo img.wm {
+  display: block;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+@media (max-width: 700px) {
+  #modal:has(.confirm) {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 20000 !important;
+    padding: 16px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow-y: auto;
+  }
+
+  #modal:has(.confirm).show {
+    display: flex !important;
+  }
+
+  #modalBox:has(.confirm) {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 320px !important;
+    max-height: calc(100dvh - 32px);
+    margin: auto !important;
+    padding: 20px 16px !important;
+    border-radius: 18px;
+    overflow-y: auto;
+    pointer-events: auto !important;
+  }
+
+  #modalBox .confirm .ci {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 12px;
+  }
+
+  #modalBox .confirm .ci svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  #modalBox .confirm h3 {
+    margin: 0 0 10px;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  #modalBox .confirm p {
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  #modalBox .confirm .row2 {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  #modalBox .confirm .row2 > button {
+    position: relative !important;
+    box-sizing: border-box;
+    width: 100% !important;
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 10px !important;
+    font-size: 13px;
+    touch-action: manipulation;
+    pointer-events: auto !important;
+  }
+
+  #modalBox .confirm .row2 > button::before,
+  #modalBox .confirm .row2 > button::after {
+    content: none !important;
+    pointer-events: none !important;
+  }
+}
+#themeToggle {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+#themeToggle:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+#themeToggle:focus-visible {
+  outline: 2px solid #858cff;
+  outline-offset: 3px;
+}
+.top a.logo,
+.top a.logo:focus,
+.top a.logo:focus-visible,
+.top a.logo:active {
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+/* ===== ლოგო — dark mode ===== */
+[data-theme="dark"] .top a.logo,
+[data-theme="dark"] .top a.logo:hover,
+[data-theme="dark"] .top a.logo:focus,
+[data-theme="dark"] .top a.logo:focus-visible,
+[data-theme="dark"] .top a.logo:active {
+  outline: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+[data-theme="dark"] .top .logo img.wm {
+  border-radius: 6px;
+  /* ფერები უცვლელია, ოდნავ ნათდება და წვრილი ნათელი კონტური ემატება */
+  filter:
+    brightness(1.3)
+    saturate(1.1)
+    drop-shadow(0 0 1px rgba(255, 255, 255, .75))
+    drop-shadow(0 0 10px rgba(140, 150, 255, .28)) !important;
+}

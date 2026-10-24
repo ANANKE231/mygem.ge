@@ -55,8 +55,12 @@
   const mount = () => {
     const app = document.getElementById('app');
     if (!app) return;
-    const h = location.hash;
-    if (!(h === '' || h === '#' || h === '#home')) return;
+    let h = location.hash;
+try {
+  h = decodeURIComponent(h);
+} catch (_) {}
+
+if (!['', '#', '#home', '#მთავარი'].includes(h)) return;
     if (closed || document.getElementById('adSec')) return;
     const anchor = document.getElementById('svipSec') || document.getElementById('calcHome');
     if (!anchor) return;

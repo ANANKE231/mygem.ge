@@ -452,7 +452,7 @@ function confirmDelete(id){const p=items.find(x=>String(x.id)===String(id));if(!
  $('#dlYes').onclick=()=>{if(!canDel(p))return closeModal();const ownerMail=p.owner;
   items=items.filter(x=>x.id!==p.id);favs=favs.filter(x=>x!==p.id);delete pv[p.id];delete pc[p.id];
   save('items',items);save('favs',favs);save('pv',pv);setFavCnt();closeModal();toast('განცხადება წაიშალა ✓');
-  if(location.hash.startsWith('#profile'))route();else location.hash='profile:mine'}}
+  if(parseHash()[0] === 'profile')route();else location.hash='profile:mine'}}
 /* ---------- photo editor: the owner can delete (and add) photos of an existing listing ---------- */
 const AUD_MB=5,AUD_SEC=60,AUP='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>',AMIC='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
 const fmtT=t=>{t=Math.max(0,Math.floor(t||0));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
@@ -547,7 +547,7 @@ function rowCard(p){
   </div></div>`}
 function card(p,plain){const f=favs.includes(p.id),c=p.id==='preview'?(p.cur||'GEL'):(pc[p.id]||p.cur||'GEL'),tn=typeName(p),hex=plain?'':cardHex(p);
  const tags=[[CATE[p.cat],p.cat],[TYPEE[p.type],tn],['⚖',p.weight?p.weight+' გრ':''],['🔖',p.attrs&&p.attrs.pur?p.attrs.pur+' სინჯი':''],[GENE[p.gender],p.gender]].filter(x=>x[1]).slice(0,3).map(([e,t])=>`<span class="tg">${e?`<i class="te" aria-hidden="true">${e}\uFE0E</i>`:''}${esc(t)}</span>`).join('');
- return `<div class="card${p.vip?(p.vip=='VIP'?' is-vip':' is-svip'):''}${cardCls(hex)}"${hex?` style="--bc:${hex}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}<div class="img"><div class="imgi" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div></div><div class="in"><div class="cmeta"><small class="loc">${esc(p.loc||'')}</small>${vwHTML(p.id)}</div><div class="trow"><h4>${esc(p.title)}</h4><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>${ownChip(p)}<div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${curSw(p.id,c)}`}</div>${(()=>{const own=canDel(p)&&location.hash.startsWith('#profile'),sk=plain?'':stkHTML(p);return tags||sk||own?`<div class="cfoot">${tags?`<div class="tags">${tags}</div>`:''}${sk}${own?`<div class="cbot"><span class="cbl">${ownerOf(p)?`<button type="button" class="cdel cedit" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}</button>`:''}<button type="button" class="cdel" data-del="${p.id}" aria-label="განცხადების წაშლა" title="წაშლა">${ui('trash')}<span>წაშლა</span></button></span></div>`:''}</div>`:''})()}</div></div>`}
+ return `<div class="card${p.vip?(p.vip=='VIP'?' is-vip':' is-svip'):''}${cardCls(hex)}"${hex?` style="--bc:${hex}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}<div class="img"><div class="imgi" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div></div><div class="in"><div class="cmeta"><small class="loc">${esc(p.loc||'')}</small>${vwHTML(p.id)}</div><div class="trow"><h4>${esc(p.title)}</h4><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>${ownChip(p)}<div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${curSw(p.id,c)}`}</div>${(()=>{const own=canDel(p)&&(parseHash()[0] === 'profile'),sk=plain?'':stkHTML(p);return tags||sk||own?`<div class="cfoot">${tags?`<div class="tags">${tags}</div>`:''}${sk}${own?`<div class="cbot"><span class="cbl">${ownerOf(p)?`<button type="button" class="cdel cedit" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}</button>`:''}<button type="button" class="cdel" data-del="${p.id}" aria-label="განცხადების წაშლა" title="წაშლა">${ui('trash')}<span>წაშლა</span></button></span></div>`:''}</div>`:''})()}</div></div>`}
 const grid=l=>`<div class="grid">${l.map(p=>card(p)).join('')}</div>`;
 const rowGrid=l=>`<div class="hrow"><div class="grid hscroll">${l.map(p=>card(p,1)).join('')}</div></div>`;
 
@@ -1545,3 +1545,13 @@ document.addEventListener('click', e => {
   toggleCur(button.dataset.cs);
 }, true);
 Promise.all([gCfg(), gLib()]).catch(() => {});
+/* წაშლის ღილაკმა ჯერ დადასტურების ფანჯარა გახსნას */
+document.addEventListener('click', function (e) {
+  const button = e.target.closest('[data-del]');
+  if (!button) return;
+
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  confirmDelete(button.dataset.del);
+}, true);

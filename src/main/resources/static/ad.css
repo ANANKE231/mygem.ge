@@ -115,6 +115,7 @@ a.adimg:hover { filter: brightness(1.04); }
   .adb { height: 38px; }
 }
 
+
 /* touch მოწყობილობები: დიდი შეხების არეალი, hover-ის გარეშე */
 @media (hover: none) and (pointer: coarse) {
   .adb { min-height: 44px; }
@@ -129,3 +130,23 @@ a.adimg:hover { filter: brightness(1.04); }
 
 @media (prefers-reduced-motion: reduce) { .adb, a.adimg, .adx, .adsec { transition: none; } }
 @media print { .adsec { display: none; } }
+#adSec .adbtns {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+#adSec .adbtns .adb {
+  justify-content: center;
+  min-width: 0;
+}
+
+#adSec .adbtns a[href^="mailto:"] {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: fit-content;
+  min-width: 160px;
+}

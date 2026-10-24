@@ -63,7 +63,7 @@
    cur=Object.keys(PLANS).find(k=>PLANS[k].name==p.vip),
    plist=[['REG',p.vip?`ცვლილების გარეშე — ${p.vip}`:'Regular — უფასო'],...['VIP','SVIP'].filter(k=>k!=cur).map(k=>[k,planLabel(k)])],
    boost=note+fld('განცხადების ტიპი',dd('aPlan',{list:plist,val:'REG'}),'full')+'<p class="planinfo full" id="planInfo"></p>'+payBox();
-   return `<div class="page addpg"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button><div class="addwrap"><aside class="lpc" aria-label="Listing Preview Card"><div class="lpv" id="lpv" aria-live="polite"></div></aside><div class="panel"><h2 style="margin-bottom:16px;color:var(--pd)">განცხადების რედაქტირება</h2>
+   return `<div class="page addpg editpg"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button><div class="addwrap"><aside class="lpc" aria-label="Listing Preview Card"><div class="lpv" id="lpv" aria-live="polite"></div></aside><div class="panel"><h2 style="margin-bottom:16px;color:var(--pd)">განცხადების რედაქტირება</h2>
  <form class="form" id="editForm" novalidate><div class="fsum full" id="formSum" hidden></div>
  <section class="astep"><h3 class="astep-h full">ძირითადი ინფორმაცია</h3>
  ${fld('ნივთის ტიპი',dd('aK',{list:DD.type,other:1,otherPh:'ნივთის დასახელება',val:p.type||''}))}${fld('მდებარეობა',dd('aL',{list:mk(LOC),val:p.loc||''}))}<div class="dyn" id="aDyn">${fRender('a',p.type||'')}</div>
@@ -80,7 +80,9 @@
 
  /* ---------- რედაქტირების ფორმის ლოგიკა ---------- */
  function bindEdit(){const af=$('#editForm');if(!af)return;
-  const p=items.find(x=>String(x.id)===String(location.hash.split(':')[1]));if(!p||!ownerOf(p))return;
+  const [, editId] = parseHash();
+const p = items.find(x => String(x.id) === String(editId));
+if (!p || !ownerOf(p)) return;
   const KO=$('#aKO');if(KO)KO.value=p.typeOther||'';
   setDyn('a',p.type||'',{...(p.attrs||{}),gen:p.gender||''});
   /* ფასი */
@@ -145,7 +147,7 @@
   if(old){CK.checked=!!old.color;if(old.color)setPick($('#aCP'),okHex(old.colorHex)?old.colorHex:BC_DEF);stkSync($('#aSP'),cleanStk(old.stickers))}
    showCB();
   /* ---- ცოცხალი პროტოტიპი: იგივე card() ბარათი, რასაც გამოქვეყნებული განცხადება იყენებს ---- */
-  {const PV=$('#lpv');let pvT=0,pvOpen=innerWidth>900;
+  {const PV=$('#lpv');let pvT=0,pvOpen=true;
    if(PV)PV.addEventListener('toggle',e=>{if(e.target.matches('details'))pvOpen=e.target.open},true);
    const draw=()=>{clearTimeout(pvT);pvT=setTimeout(()=>{if(!PV)return;
     const k=$('#aK').dataset.val||p.type||'',KOe=$('#aKO'),A=readDyn('a'),pk=PLs.dataset.val,sv=$('#aSP .sval'),sel=cleanStk(sv?sv.value.split(','):[]),nego=$('#aNego').checked,
@@ -345,7 +347,69 @@ else if(em)em.remove()}
   if(!ownerOf(p))return;
   if(p.state=='blocked')return toast('განცხადება დაბლოკილია ადმინისტრატორის მიერ');
   if(t.hasAttribute('data-renew')){p.renewedAt=Date.now();delete p.expNote;toast('განცხადება გააქტიურდა ✓ (+1 თვე)')}
-  else{const off=p.state!='off';p.state=off?'off':'';toast(off?'განცხადება გაითიშა — საჯაროდ აღარ ჩანს':'განცხადება ჩაირთო ✓')}
+else {
+  const off = p.state !== 'off';
+
+  if (off) {
+  curAuth = null;
+
+  $('#modalBody').innerHTML = `
+    <div class="confirm">
+      <div class="ci">${ui('edit')}</div>
+
+      <h3>ნამდვილად გსურთ განცხადების გათიშვა?</h3>
+
+      <p>
+        «${esc(p.title)}»<br>
+        განცხადება საჯაროდ აღარ გამოჩნდება.
+        ხელახლა ჩართვას თქვენი პროფილიდან შეძლებთ.
+      </p>
+
+      <div class="row2">
+        <button type="button" class="btn danger" id="offYes">
+          დიახ, გათიშვა
+        </button>
+        <button type="button" class="btn alt" id="offNo">
+          გაუქმება
+        </button>
+      </div>
+    </div>
+  `;
+
+  $('#modalBox').classList.remove('wide');
+  modal.classList.add('show');
+
+  $('#offNo').onclick = closeModal;
+
+  $('#offYes').onclick = () => {
+    if (!ownerOf(p)) return closeModal();
+
+    if (p.state === 'blocked') {
+      closeModal();
+      return toast('განცხადება დაბლოკილია ადმინისტრატორის მიერ');
+    }
+
+    p.state = 'off';
+    applyVis(p);
+    save('items', items);
+
+    closeModal();
+    toast('განცხადება გაითიშა — საჯაროდ აღარ ჩანს');
+    rerender();
+  };
+
+  $('#offNo').focus();
+  return;
+}
+
+  p.state = off ? 'off' : '';
+
+  toast(
+    off
+      ? 'განცხადება გაითიშა — საჯაროდ აღარ ჩანს'
+      : 'განცხადება ჩაირთო ✓'
+  );
+}
   applyVis(p);save('items',items);rerender()},true);
 
  /* bind()-ს ბოლოში ემატება bindEdit + ღილაკების ჩასმა */
@@ -355,5 +419,9 @@ else if(em)em.remove()}
 
  /* წუთობრივი sweep-ის route() არ უნდა გადაწეროს რედაქტირების ფორმა */
  const _route=window.route;
- window.route=function(){if(/^#edit:/.test(location.hash)&&$('#editForm'))return;return _route.apply(this,arguments)};
+ window.route = function () {
+  const [page] = parseHash();
+  if (page === 'edit' && $('#editForm')) return;
+  return _route.apply(this, arguments);
+};
 })();
