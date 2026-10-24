@@ -12,7 +12,7 @@
 (function () {
   try {
     var t = localStorage.getItem('theme');
-    if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (t !== 'dark' && t !== 'light') t = 'light';
     document.documentElement.dataset.theme = t;
     var m = document.querySelector('meta[name="theme-color"]');
     if (m) m.content = t === 'dark' ? '#121418' : '#ffffff';
@@ -21,7 +21,7 @@
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600&family=Noto+Serif+Georgian:wght@400;500&display=swap">
 <link rel="stylesheet" href="/static/collection.css?v=4">
-<link rel="stylesheet" href="/static/style.css?v=5">
+<link rel="stylesheet" href="/static/style.css?v=6">
 <link rel="stylesheet" href="/static/ad.css?v=4">
 </head>
 <body>
@@ -38,6 +38,10 @@
   </nav>
   <div class="actions">
     <a href="#add" class="btn add" aria-label="დამატება"><span class="pl" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="t">დამატება</span></a>
+    <div class="langsw" role="group" aria-label="Language">
+      <button type="button" data-setlang="ka">ქარ</button>
+      <button type="button" data-setlang="en">EN</button>
+    </div>
     <button type="button" class="ib" id="themeToggle" aria-label="თემის შეცვლა">
   <svg class="sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
   <svg class="moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
@@ -104,10 +108,11 @@
 <script>/* Same-origin Google sign-in. Set GOOGLE_CLIENT_ID for the OAuth web client. */window.AUTH_API="/api/auth/google";</script>
 <script>/* URL of the deployed blog-worker.js (see SETUP-BLOG.md), e.g. "https://mygem-blog.YOURNAME.workers.dev". Empty = blog posts stay in the admin's browser only. */window.BLOG_API="";</script>
 <script>/* SMS-ით ტელეფონის დადასტურება გამორთულია. ჩასართავად წაშალეთ ეს ხაზი და გამართეთ window.SMS_API */window.SMS_VERIFY=false;</script>
+<script src="/static/i18n.js?v=2"></script>
 <script src="/static/tryon.js?v=4"></script>
 <script src="/static/blog.js?v=4"></script>
 <script src="/static/blog-extra.js?v=4"></script>
-<script src="/static/script.js?v=6"></script>
+<script src="/static/script.js?v=7"></script>
 <script src="/static/collection.js?v=4"></script>
 <script src="/static/widget.js?v=4"></script>
 <script src="/static/ad.js?v=4"></script>

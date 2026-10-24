@@ -232,7 +232,8 @@ const usdOf=g=>money(rdiv(toS(g)*100n,toS(RATE)));
 const gm=s=>String(s).replace(/,/g,'\u00A0').replace('.',',');
 const gelTxt=g=>{const [i,f]=(Math.abs(+g)||0).toFixed(2).split('.');return i.replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0')+(f=='00'?'':','+f)+'\u00A0₾'};
 const fmt=(g,c='GEL')=>c=='GEL'?gelTxt(g):'$'+usdOf(g);
-function rateText(){const d=new Date(RATE_DATE+'T12:00:00'),ds=isNaN(d)?RATE_DATE:d.toLocaleDateString('ka-GE',{day:'numeric',month:'long',year:'numeric'});return `საქართველოს ეროვნული ბანკის ოფიციალური კურსი: 1 $ = ${RATE.toFixed(4)} ₾ (${ds})`}
+const uiLoc=()=>window.MYGEM_LANG==='en'?'en-GB':'ka-GE';
+function rateText(){const d=new Date(RATE_DATE+'T12:00:00'),ds=isNaN(d)?RATE_DATE:d.toLocaleDateString(uiLoc(),{day:'numeric',month:'long',year:'numeric'});return `საქართველოს ეროვნული ბანკის ოფიციალური კურსი: 1 $ = ${RATE.toFixed(4)} ₾ (${ds})`}
 const curSw=(id,c)=>`<button type="button" class="cur sm${c=='USD'?' on':''}" data-cs="${id}" role="switch" aria-checked="${c=='USD'}" aria-label="ფასი დოლარში" title="${c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'}"><span class="cl">₾</span><span class="trk"><i></i></span><span class="cl">$</span></button>`;
 function toggleCur(id){const c=curOf(id)=='GEL'?'USD':'GEL';pc[id]=c;
  $$(`[data-cs="${id}"]`).forEach(b=>{b.classList.toggle('on',c=='USD');b.setAttribute('aria-checked',c=='USD');b.title=c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'});
@@ -277,7 +278,7 @@ const ui=(k,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" fill="none" stroke=
 
 /* ---------- product page helpers ---------- */
 let pv=load('pv',{});
-const dateStr=ts=>new Date(ts).toLocaleDateString('ka-GE',{day:'numeric',month:'long',year:'numeric'});
+const dateStr=ts=>new Date(ts).toLocaleDateString(uiLoc(),{day:'numeric',month:'long',year:'numeric'});
 /* view counter shown on every card; kept in sync live and across tabs */
 const vwHTML=id=>`<small class="vw" data-vw="${id}">${ui('eye')}<span>${pv[id]||0} ნახვა</span></small>`;
 const vwRefresh=()=>$$('[data-vw]').forEach(e=>{const s=e.querySelector('span');if(s)s.textContent=(pv[e.dataset.vw]||0)+' ნახვა'});
@@ -328,7 +329,7 @@ const planOf=n=>Object.values(PLANS).find(x=>x.name==n);
 const isAdmin=()=>!!me&&(window.ADMIN_EMAILS||[]).some(e=>same(e,me.email));
 const pendingPay=()=>items.filter(p=>p.pay&&p.pay.status=='pending');
 const notifyOwner=(p,t)=>{if(p.owner&&p.owner!='demo')pushNote(p.owner,t)};
-const fdt=ts=>new Date(ts).toLocaleString('ka-GE');
+const fdt=ts=>new Date(ts).toLocaleString(uiLoc());
 /* automatic expiry: VIP / Super VIP / color switch off by themselves when their time is up */
 function sweep(){const now=Date.now();let ch=false;
  items.forEach(p=>{
@@ -570,7 +571,7 @@ const mxOk=p=>!!p&&Object.keys(MX_LIM).every(k=>p[k]>=MX_LIM[k][0]&&p[k]<=MX_LIM
 {const c=load('metalPx',null);if(c&&mxOk(c.px)){MX=c.px;MXM={src:c.src||'',date:c.date||''}}}
 const metalGel=k=>MX[k]/OZ*RATE;   /* GEL per gram of pure metal */
 const usdN=x=>(+x).toLocaleString('en-US',{maximumFractionDigits:2});
-function metalText(){const d=new Date(String(MXM.date||'').slice(0,10)+'T12:00:00'),ds=isNaN(d)?'':' ('+d.toLocaleDateString('ka-GE',{day:'numeric',month:'long',year:'numeric'})+')',
+function metalText(){const d=new Date(String(MXM.date||'').slice(0,10)+'T12:00:00'),ds=isNaN(d)?'':' ('+d.toLocaleDateString(uiLoc(),{day:'numeric',month:'long',year:'numeric'})+')',
   pr=`ოქრო $${usdN(MX.au)} · ვერცხლი $${usdN(MX.ag)} · პლატინა $${usdN(MX.pt)} / ტროას უნცია`;
  return MXM.src=='lbma'?`ლითონების ფასი: LBMA-ს ოფიციალური ფიქსინგი${ds} — ${pr}`
   :MXM.src=='spot'?`ლითონების ფასი: მსოფლიო ბაზრის მიმდინარე ფასი${ds} — ${pr}`
@@ -785,7 +786,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
 profile(tab='mine'){if(!me){openAuth('login');return ''}
   if((tab=='pay'||tab=='blog')&&!isAdmin())tab='mine';
  const mine=items.filter(p=>p.owner==me.email).sort((a,b)=>(b.created||0)-(a.created||0)||(+b.id||0)-(+a.id||0)),ind=regOf(me)=='individual',nm=ind?me.name+' '+(me.last||''):me.name;
- const since=me.created?new Date(me.created).toLocaleDateString('ka-GE',{year:'numeric',month:'long',day:'numeric'}):'—';
+ const since=me.created?new Date(me.created).toLocaleDateString(uiLoc(),{year:'numeric',month:'long',day:'numeric'}):'—';
  return `<div class="page"><div class="panel"><div class="prof-head"><div class="ava">${me.avatar?`<img src="${me.avatar}">`:ui('user')}</div><div class="ph-info"><h2>${esc(nm)}</h2><small class="pmail">${ui('mail')}${esc(me.email)}</small><div class="stats"><span class="stat"><i>${ui('tag')}</i><span><b>${esc(regLabel(me))}</b></span></span><span class="stat"><i>${ui('calendar')}</i><span>ანგარიში შექმნილია: <b>${since}</b></span></span><span class="stat"><i>${ui('gem')}</i><span>განცხადებები: <b>${mine.length}</b></span></span></div><label class="btn alt sm">${ui('camera')}ფოტოს შეცვლა<input type="file" id="avIn" accept="image/*" hidden></label>${me.avatar?`<button type="button" class="btn alt sm" id="avDel" style="margin-left:8px">${ui('trash')}ფოტოს წაშლა</button>`:''}</div><a href="#add" class="btn" style="margin-left:auto">${ui('plus')}დამატება</a></div>
  <div class="tabs"><button data-tab="mine" class="${tab=='mine'?'on':''}">${ui('user')}ჩემი პროფილი</button>${isAdmin()?`<button data-tab="pay" class="${tab=='pay'?'on':''}">${ui('tag')}გადახდები${pendingPay().length?` (${pendingPay().length})`:''}</button>`:''}${isAdmin()?`<button data-tab="blog" class="${tab=='blog'?'on':''}">${ui('image')}ბლოგი</button>`:''}<button class="btn alt" id="logout">${ui('logout')}გასვლა</button></div>
  ${tab=='pay'?payPanel():tab=='blog'?blogPanel():tab=='edit'?`<h3 class="psub" style="margin:0 0 14px">პარამეტრები</h3><form class="form" id="eForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('eT',{list:DD.reg,val:regOf(me),other:1,otherPh:'მიუთითეთ რეგისტრაციის ტიპი'}),'full')}<label id="eNL" class="full">${ind?'სახელი და გვარი':'დასახელება'}<input id="eN" value="${esc(ind?(me.name+' '+(me.last||'')).trim():me.name)}" autocomplete="name"></label><label id="eLL" hidden><input id="eL" type="hidden" value="${esc(me.last||'')}"></label><label class="full">ელ-ფოსტა<input id="eE" type="email" value="${esc(me.email)}" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="name@mail.com"></label><div class="duo full"><label>მომხმარებლის სახელი<input id="eU" value="${esc(me.username||'')}" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="eP" value="${esc(me.phone)}" autocomplete="tel" inputmode="tel" maxlength="17" placeholder="5__ ___ ___"></label></div>${pw('ePw','ახალი პაროლი','new-password')}${pw('ePw2','გაიმეორეთ პაროლი','new-password')}<button class="btn full" type="submit">შენახვა</button></form>`:mine.length?grid(mine):'<div class="empty">ჩანაწერი არ არის</div>'}</div></div>`}};
@@ -809,14 +810,14 @@ const hashOf=(v,t)=>'#'+(v=='post'?SL.blog:SL[v]||v)+(t?'/'+(v=='profile'?TB[t]|
 const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 /* page transition: same slide + fade language as the Login <-> Registration swap */
 function route(){sweep();let[h,t]=parseHash();if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
- const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
+ const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
  navN++;lastIdx=idx;
  if(REDUCE){render();return}
  if(navN==1){render();app.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'none'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});return}
  app.getAnimations().forEach(a=>a.cancel());
  const out=app.animate([{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${-40*dir}px)`}],{duration:170,easing:'ease',fill:'forwards'});
  out.onfinish=()=>{if(tok!=rTok)return;render();app.animate([{opacity:0,transform:`translateX(${40*dir}px)`},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.8,.2,1)'});out.cancel()}}
-function showProfile(tab){if(tab!='blog'){bedit=null;bcv=''}$('#app').innerHTML=views.profile(tab);bind()}
+function showProfile(tab){if(tab!='blog'){bedit=null;bcv=''}$('#app').innerHTML=views.profile(tab);bind();if(window.applyLang)window.applyLang(document.body)}
 
 /* reveal-on-scroll for collection cards (re-triggers each time a card scrolls into view) */
 let io=null;
@@ -1071,7 +1072,7 @@ const gApi=()=>String(window.AUTH_API||window.TRYON_API||'').trim();
 const gPost=async b=>{const r=await fetch(gApi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw d.error||'server';return d};
 let gCfgP=null,gLibP=null,gInit=null,gBusy=false;
 const gCfg=()=>gCfgP||(gCfgP=gPost({action:'auth_config'}).catch(e=>{gCfgP=null;throw e}));
-const gLib=()=>gLibP||(gLibP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client?hl=ka';s.async=true;s.onload=ok;s.onerror=()=>{gLibP=null;s.remove();no('network')};document.head.append(s)}));
+const gLib=()=>gLibP||(gLibP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client?hl='+(window.MYGEM_LANG==='en'?'en':'ka');s.async=true;s.onload=ok;s.onerror=()=>{gLibP=null;s.remove();no('network')};document.head.append(s)}));
 function gShow(msg,muted){const n=$('#gNote');if(!n){if(msg)toast(msg);return}n.textContent=msg||'';n.hidden=!msg;n.classList.toggle('mu',!!muted)}
 function gMount(B){
  const wrap=document.createElement('div');wrap.className='gblock';
@@ -1085,7 +1086,7 @@ else B.append(wrap);
   if(!alive())return;
   if(!c.ready||!c.clientId){gShow(GERR.google_not_configured,true);return}
   if(gInit!==c.clientId){google.accounts.id.initialize({client_id:c.clientId,callback:gCred,ux_mode:'popup',auto_select:false,itp_support:true});gInit=c.clientId}
-  google.accounts.id.renderButton(host,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',logo_alignment:'left',locale:'ka',width:Math.max(200,Math.min(400,host.clientWidth||320))})
+  google.accounts.id.renderButton(host,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',logo_alignment:'left',locale:window.MYGEM_LANG==='en'?'en':'ka',width:Math.max(200,Math.min(400,host.clientWidth||320))})
  }).catch(e=>{if(alive())gShow(GERR[e]||GERR.network,true)})}
 const gTokSet=t=>{try{sessionStorage.setItem('gtok',t)}catch{}};
 const jwtExp=t=>{try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp*1000}catch{return 0}};
@@ -1109,7 +1110,7 @@ function blogToken(){const c=gTokGet();if(c)return Promise.resolve(c);
    if(gInit!==cfg.clientId){google.accounts.id.initialize({client_id:cfg.clientId,callback:gCred,ux_mode:'popup',auto_select:false,itp_support:true});gInit=cfg.clientId}
    window.__gWait=t=>{closeModal();done(t)};
    const h=$('#gAdm');if(!h)return done(null);
-   google.accounts.id.renderButton(h,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',logo_alignment:'left',locale:'ka',width:260})
+   google.accounts.id.renderButton(h,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',logo_alignment:'left',locale:window.MYGEM_LANG==='en'?'en':'ka',width:260})
   }catch(e){note(BERR[e]||BERR.network)}})}
 async function blogCall(body,tok){let r;
  try{r=await fetch(blogApi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,token:tok})})}catch{throw 'network'}
@@ -1213,7 +1214,7 @@ const myNotes=()=>me?(notes[me.email]||[]):[];
 function setBadge(){const n=myNotes().filter(x=>!x.r).length,b=$('#noteDot');b.textContent=n;b.style.display=n?'grid':'none'}
 function addNote(t){if(!me)return;(notes[me.email]=notes[me.email]||[]).unshift({t,d:Date.now(),r:0});save('notes',notes);setBadge()}
 $('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');pmClose();const P=$('#notePanel'),l=myNotes();
- P.innerHTML=`<h4>შეტყობინებები</h4>${l.length?l.slice(0,20).map(n=>`<div class="note ${n.r?'':'new'}">${esc(n.t)}<small>${new Date(n.d).toLocaleString('ka-GE')}</small></div>`).join(''):'<div class="empty">შეტყობინებები არ არის</div>'}`;
+ P.innerHTML=`<h4>შეტყობინებები</h4>${l.length?l.slice(0,20).map(n=>`<div class="note ${n.r?'':'new'}">${esc(n.t)}<small>${new Date(n.d).toLocaleString(uiLoc())}</small></div>`).join(''):'<div class="empty">შეტყობინებები არ არის</div>'}`;
  P.classList.toggle('show');l.forEach(n=>n.r=1);save('notes',notes);setBadge()};
 document.addEventListener('click',e=>{const b=e.target.closest('#fCur');if(!b)return;
  FCUR=FCUR=='USD'?'GEL':'USD';const on=FCUR=='USD';
@@ -1555,3 +1556,4 @@ document.addEventListener('click', function (e) {
 
   confirmDelete(button.dataset.del);
 }, true);
+window.rerender=()=>{gInit=null;route()};
