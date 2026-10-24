@@ -8,6 +8,201 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&display=swap">
 <style>
+   /* ადმინის პანელი და ავტორიზაცია */
+html {
+  scrollbar-gutter: stable;
+}
+
+.app > *,
+.topbar > *,
+.ph > *,
+.ed > *,
+.two > * {
+  min-width: 0;
+}
+
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+
+button,
+.btn,
+.nv,
+.lnk {
+  touch-action: manipulation;
+}
+
+.login {
+  min-height: 100dvh;
+  padding: 24px 16px;
+}
+
+.lcard {
+  max-width: 400px;
+  padding: 28px 24px;
+  border-radius: 20px;
+}
+
+.lcard input {
+  min-height: 46px;
+}
+
+.lcard .btn {
+  min-height: 46px;
+}
+
+.lcard .eye {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.lerr:empty {
+  display: none;
+}
+
+main {
+  width: 100%;
+  margin-inline: auto;
+}
+
+.topbar {
+  flex-wrap: wrap;
+}
+
+.modal .box {
+  max-height: calc(100dvh - 32px);
+  overscroll-behavior: contain;
+}
+
+.modal.drawer .box {
+  height: 100dvh;
+  max-height: 100dvh;
+}
+
+@media (max-width: 860px) {
+  .side {
+    gap: 4px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    overscroll-behavior-x: contain;
+  }
+
+  .side .nv {
+    flex: 0 0 76px;
+    width: 76px;
+    min-height: 58px;
+    padding: 8px 4px;
+    font-size: 10px;
+  }
+
+  .topbar {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .gs {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .gs input {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  main {
+    padding: 20px 12px
+      calc(110px + env(safe-area-inset-bottom));
+  }
+
+  .ph {
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .ph h1 {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .ph .btn,
+  .mf .btn,
+  .row-a .btn {
+    min-height: 44px;
+  }
+
+  .modal {
+    padding: 12px;
+  }
+
+  .modal .box {
+    padding: 20px 16px;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .modal.drawer .box {
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .mh h2 {
+    font-size: 19px;
+    overflow-wrap: anywhere;
+  }
+
+  .mf,
+  .row-a {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .mf > .btn,
+  .row-a > .btn {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  .toast {
+    left: 12px;
+    right: 12px;
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .lcard {
+    padding: 24px 18px;
+  }
+
+  .lcard h1 {
+    font-size: 24px;
+  }
+
+  .lcard input,
+  .lcard select,
+  .lcard textarea {
+    font-size: 16px;
+  }
+
+  .modal .row-a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modal .row-a > .btn {
+    width: 100%;
+  }
+
+  .gal {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 :root{
  --navy:#000080;--navy-h:#1A1AA3;--navy-d:#00005C;--soft:#EEF0FF;--soft2:#F6F7FF;
  --bg:#F4F5FA;--card:#fff;--line:#E7E9F1;--line2:#F0F2F7;

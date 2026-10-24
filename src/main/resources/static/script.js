@@ -211,7 +211,8 @@ async function hydrate(){if(!(await IDB.open()))return;
  IDB.ready=true;
  try{if(!fail){const ks=await IDB.keys();if(ks.ok)(ks.v||[]).forEach(k=>{if(!(k in IDB.sig))IDB.del(k)})}
   if(IDB.dirty||items.some(heavy)){IDB.dirty=false;save('items',items)}}catch{}}
-DEMO.forEach(d=>{if(!items.some(x=>x.id===d.id))items.push(d)});
+items = items.filter(p => p.owner !== 'demo');
+save('items', items);
 items.forEach(p=>{if(p.attrs){if(p.attrs.etype=='ჰეფები')p.attrs.etype='ჰუფები';}});
 items.forEach(p=>{if(p.owner=='demo'){p.photos=DEMO_IMG[p.id]?[DEMO_IMG[p.id]]:[];if(!p.attrs){p.attrs={metal:METALS.includes(p.cat)?p.cat:p.cat=='ბრილიანტი'?'თეთრი ოქრო':'',pur:(p.title.match(/\d{3}/)||[''])[0]};p.loc='თბილისი'}}});
 /* Photos are attached before the first paint. Waiting on a short image probe used to give up
