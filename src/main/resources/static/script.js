@@ -234,10 +234,10 @@ const gelTxt=g=>{const [i,f]=(Math.abs(+g)||0).toFixed(2).split('.');return i.re
 const fmt=(g,c='GEL')=>c=='GEL'?gelTxt(g):'$'+usdOf(g);
 function rateText(){const d=new Date(RATE_DATE+'T12:00:00'),ds=isNaN(d)?RATE_DATE:d.toLocaleDateString('ka-GE',{day:'numeric',month:'long',year:'numeric'});return `საქართველოს ეროვნული ბანკის ოფიციალური კურსი: 1 $ = ${RATE.toFixed(4)} ₾ (${ds})`}
 const curSw=(id,c)=>`<button type="button" class="cur sm${c=='USD'?' on':''}" data-cs="${id}" role="switch" aria-checked="${c=='USD'}" aria-label="ფასი დოლარში" title="${c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'}"><span class="cl">₾</span><span class="trk"><i></i></span><span class="cl">$</span></button>`;
-function toggleCur(id){const c=(pc[id]||'GEL')=='GEL'?'USD':'GEL';pc[id]=c;
+function toggleCur(id){const c=curOf(id)=='GEL'?'USD':'GEL';pc[id]=c;
  $$(`[data-cs="${id}"]`).forEach(b=>{b.classList.toggle('on',c=='USD');b.setAttribute('aria-checked',c=='USD');b.title=c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'});
  $$(`.price[data-id="${id}"]`).forEach(p=>{p.classList.remove('flip');void p.offsetWidth;p.classList.add('flip');setTimeout(()=>p.textContent=fmt(+p.dataset.g,c),250)})}
-function applyRate(){const n=$('#rateNote');if(n)n.textContent=rateText();$$('.price[data-g]').forEach(p=>{p.textContent=fmt(+p.dataset.g,p.dataset.id?pc[+p.dataset.id]||'GEL':'GEL')});if(window.calcRefresh&&$('#cMetal'))window.calcRefresh()}
+function applyRate(){const n=$('#rateNote');if(n)n.textContent=rateText();$$('.price[data-g]').forEach(p=>{p.textContent=fmt(+p.dataset.g,p.dataset.id?curOf(p.dataset.id):'GEL')});if(window.calcRefresh&&$('#cMetal'))window.calcRefresh()}
 async function loadRate(){const today=new Date().toISOString().slice(0,10),c=load('nbgRate',null);if(c&&c.fetched===today)return;
  try{const r=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies=USD',{cache:'no-store'});if(!r.ok)throw 0;
   const j=await r.json(),blk=Array.isArray(j)?j[0]:j,u=((blk&&blk.currencies)||[]).find(x=>x.code=='USD');if(!u)throw 0;
@@ -545,7 +545,7 @@ function rowCard(p){
    <div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${curSw(p.id,c)}`}</div>
    ${own?`<div class="cbl">${ownerOf(p)?`<button type="button" class="cdel cedit" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება">${ui('image')}</button>`:''}<button type="button" class="cdel" data-del="${p.id}" aria-label="წაშლა">${ui('trash')}<span>წაშლა</span></button></div>`:''}
   </div></div>`}
-function card(p,plain){const f=favs.includes(p.id),c=pc[p.id]||'GEL',tn=typeName(p),hex=plain?'':cardHex(p);
+function card(p,plain){const f=favs.includes(p.id),c=p.id==='preview'?(p.cur||'GEL'):(pc[p.id]||p.cur||'GEL'),tn=typeName(p),hex=plain?'':cardHex(p);
  const tags=[[CATE[p.cat],p.cat],[TYPEE[p.type],tn],['⚖',p.weight?p.weight+' გრ':''],['🔖',p.attrs&&p.attrs.pur?p.attrs.pur+' სინჯი':''],[GENE[p.gender],p.gender]].filter(x=>x[1]).slice(0,3).map(([e,t])=>`<span class="tg">${e?`<i class="te" aria-hidden="true">${e}\uFE0E</i>`:''}${esc(t)}</span>`).join('');
  return `<div class="card${p.vip?(p.vip=='VIP'?' is-vip':' is-svip'):''}${cardCls(hex)}"${hex?` style="--bc:${hex}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}<div class="img"><div class="imgi" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div></div><div class="in"><div class="cmeta"><small class="loc">${esc(p.loc||'')}</small>${vwHTML(p.id)}</div><div class="trow"><h4>${esc(p.title)}</h4><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>${ownChip(p)}<div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${curSw(p.id,c)}`}</div>${(()=>{const own=canDel(p)&&location.hash.startsWith('#profile'),sk=plain?'':stkHTML(p);return tags||sk||own?`<div class="cfoot">${tags?`<div class="tags">${tags}</div>`:''}${sk}${own?`<div class="cbot"><span class="cbl">${ownerOf(p)?`<button type="button" class="cdel cedit" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}</button>`:''}<button type="button" class="cdel" data-del="${p.id}" aria-label="განცხადების წაშლა" title="წაშლა">${ui('trash')}<span>წაშლა</span></button></span></div>`:''}</div>`:''})()}</div></div>`}
 const grid=l=>`<div class="grid">${l.map(p=>card(p)).join('')}</div>`;
@@ -755,7 +755,7 @@ add(){if(!me){openAuth('login');return '<div class="page"><div class="panel empt
 product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
  if(!p)return `<div class="page"><div class="panel empty">ეს განცხადება ვერ მოიძებნა <div style="margin-top:16px"><a class="btn" href="#home">მთავარზე დაბრუნება</a></div></div></div>`;
  countView(p);
- const c=pc[p.id]||'GEL',f=favs.includes(p.id),s=sellerOf(p),tn=typeName(p),imgs=p.photos||[],sim=similar(p),n=pv[p.id]||0;
+ const c=pc[p.id]||p.cur||'GEL',f=favs.includes(p.id),s=sellerOf(p),tn=typeName(p),imgs=p.photos||[],sim=similar(p),n=pv[p.id]||0;
  const rows=[['კატეგორია',p.cat],['ნივთის ტიპი',tn,p.type],['სქესი',p.gender],['წონა',p.weight?p.weight+' გრ':''],['მდებარეობა',p.loc],...attrRows(p)].filter(r=>r[1]);
  const tel=String(s.phone||'').replace(/[^\d+]/g,'');
  const hex=cardHex(p);
@@ -1075,8 +1075,10 @@ const gLib=()=>gLibP||(gLibP=new Promise((ok,no)=>{const s=document.createElemen
 function gShow(msg,muted){const n=$('#gNote');if(!n){if(msg)toast(msg);return}n.textContent=msg||'';n.hidden=!msg;n.classList.toggle('mu',!!muted)}
 function gMount(B){
  const wrap=document.createElement('div');wrap.className='gblock';
- wrap.innerHTML='<div class="gwrap" id="gBtn"></div><p class="gnote" id="gNote" hidden></p><div class="gsep"><span>ან</span></div>';
- const h=B.querySelector('h3');if(h)h.after(wrap);else B.prepend(wrap);
+ wrap.innerHTML='<div class="gsep"><span>ან</span></div><div class="gwrap" id="gBtn"></div><p class="gnote" id="gNote" hidden></p>';
+const form=B.querySelector('#authForm');
+if(form) form.after(wrap);
+else B.append(wrap);
  const host=wrap.querySelector('#gBtn'),alive=()=>document.body.contains(host);
  if(!gApi()){gShow(GERR.google_not_configured,true);return}
  Promise.all([gCfg(),gLib()]).then(([c])=>{
@@ -1245,7 +1247,9 @@ document.addEventListener('click',e=>{
  if(cshr){e.stopPropagation();shareP(cshr.dataset.cshare)}
  const dl=e.target.closest('[data-del]');if(dl){e.stopPropagation();confirmDelete(dl.dataset.del)}
   const eph=e.target.closest('[data-eph]');if(eph){e.stopPropagation();location.hash='edit:'+eph.dataset.eph}
- const cs=e.target.closest('[data-cs]');if(cs){e.stopPropagation();toggleCur(+cs.dataset.cs)}});
+ }
+);
+
 
 /* ---------- admin blog editor: clicks, form, cover photo ---------- */
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-bnew],[data-bedit],[data-bdel],[data-bexp],[data-bcancel]');if(!t||!isAdmin())return;
@@ -1522,6 +1526,21 @@ document.addEventListener('input',e=>{const t=e.target;if(!t||t.id!='aT')return;
  const v=t.value.replace(/^\s+/,'').replace(/\s+/g,' '),w=v.split(' ');
  const out=w.length>3?w.slice(0,3).join(' '):v;
  if(out!==t.value)t.value=out});
-document.addEventListener('change',e=>{const id=e.target.id;
- if(id=='sPer'){PER=+e.target.dataset.val||0;rerender()}
- else if(id=='sSort'){SORT=e.target.dataset.val||'new';rerender()}},true);
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#themeToggle')) return;
+  const root = document.documentElement;
+  const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  root.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch (err) {}
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = next === 'dark' ? '#121418' : '#ffffff';
+});
+document.addEventListener('click', e => {
+  const button = e.target.closest('[data-cs]');
+  if (!button) return;
+
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  toggleCur(button.dataset.cs);
+}, true);

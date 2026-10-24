@@ -45,7 +45,7 @@
    [I.cond,a.cond]
   ].filter(x=>x[1]).slice(0,4)};
  const listCard=p=>{
-  const c=pc[p.id]||'GEL',f=favs.includes(p.id),hex=cardHex(p),cond=(p.attrs&&p.attrs.cond)||'',
+  const c=curOf(p.id),f=favs.includes(p.id),hex=cardHex(p),cond=(p.attrs&&p.attrs.cond)||'',
    sp=specsOf(p).map(([ic,t])=>`<div class="lsp">${si(ic)}<span>${esc(t)}</span></div>`).join(''),
    price=p.nego?'<span class="price nego">ფასი შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</span>${curSw(p.id,c)}`,
    badge=p.vip?`<span class="lvip ${p.vip=='VIP'?'v':'s'}">${esc(p.vip)}</span>`:'';

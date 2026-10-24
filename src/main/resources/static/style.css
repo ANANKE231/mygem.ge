@@ -3153,3 +3153,316 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
     flex-direction: column !important;
     gap: 16px;
 }
+.card .pline {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 16px !important;
+  width: 100%;
+}
+
+.card .pline .cur {
+  margin-left: auto !important;
+  flex-shrink: 0;
+}
+.pdp .pinfo,
+.pdp .pinfo.tint {
+  background: transparent !important;
+  border: none !important;
+}
+
+.pdp .pinfo .pattrs,
+.pdp .pinfo .pseller {
+  background: #fff !important;
+}
+/* ===================== DARK MODE ===================== */
+:root { color-scheme: light; }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --w: #1b1e24;
+  --bg: #121418;
+  --cream: #1b1e24;
+  --cream2: #2d323b;
+  --hov: #262b33;
+  --line: #2d323b;
+  --tx: #e8eaed;
+  --mu: #9aa1ab;
+  --gold: #7d8fb3;
+  --gold-d: #6b8cff;
+  --gold-h: #4f73f0;
+  --gold-l: #232a3d;
+  --err: #ff7a73;
+  --btn: #4f5bd5;
+  --btn-h: #6470e6;
+  --btn-a: #3d48b8;
+  --card-bg: #1b1e24;
+  --card-bd: #2d323b;
+  --card-sh: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dark"] html,
+:root[data-theme="dark"] body { background: var(--bg); color: var(--tx); }
+
+/* პირდაპირ ჩაწერილი თეთრი / ღია ფონები */
+[data-theme="dark"] .top { background: rgba(18, 20, 24, 0.94); }
+[data-theme="dark"] .hero { background: var(--bg); }
+[data-theme="dark"] .card,
+[data-theme="dark"] .sbox,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .box,
+[data-theme="dark"] .calc,
+[data-theme="dark"] .lcard,
+[data-theme="dark"] .sbar,
+[data-theme="dark"] .rbar,
+[data-theme="dark"] .pmenu,
+[data-theme="dark"] .notes,
+[data-theme="dark"] .sres,
+[data-theme="dark"] .cookie,
+[data-theme="dark"] .bcard,
+[data-theme="dark"] .hbc,
+[data-theme="dark"] .rg-pop,
+[data-theme="dark"] .adstrip { background: var(--card-bg); }
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .dd-btn,
+[data-theme="dark"] .dd-list,
+[data-theme="dark"] .rg-btn,
+[data-theme="dark"] .pgb,
+[data-theme="dark"] .btn.alt,
+[data-theme="dark"] .cur,
+[data-theme="dark"] .cact,
+[data-theme="dark"] .copybtn,
+[data-theme="dark"] .sq,
+[data-theme="dark"] .csq,
+[data-theme="dark"] .pback,
+[data-theme="dark"] .sall { background: var(--card-bg); color: var(--tx); }
+
+[data-theme="dark"] .card .tg { background: #262b33; color: var(--tx); }
+[data-theme="dark"] .card .stk,
+[data-theme="dark"] .pgal .stk,
+[data-theme="dark"] .lside .stk { background: #262b33; border-color: var(--cream2); color: var(--tx); }
+[data-theme="dark"] .card .img,
+[data-theme="dark"] .pmain,
+[data-theme="dark"] .limg { background: #20242b; }
+[data-theme="dark"] .pth img { background: #20242b; }
+[data-theme="dark"] .card .loc,
+[data-theme="dark"] .card .vw { color: var(--mu); }
+[data-theme="dark"] .card .pline,
+[data-theme="dark"] .card .price { border-bottom-color: var(--line); }
+[data-theme="dark"] .dd-opt.sel,
+[data-theme="dark"] .drop:hover,
+[data-theme="dark"] .sctl .dd-opt.sel { background: #232a3d; }
+[data-theme="dark"] .note.new { background: #232a3d; }
+[data-theme="dark"] .pm-list #pmOut:hover { background: #3a1f1e; }
+[data-theme="dark"] .fsum,
+[data-theme="dark"] .try-lp.err { background: #3a1f1e; border-color: #5a2d2b; }
+[data-theme="dark"] .modal { background: rgba(0, 0, 0, 0.6); }
+[data-theme="dark"] .input::placeholder,
+[data-theme="dark"] input::placeholder { color: #6b7280; }
+
+/* VIP / ფერადი ბარათები */
+[data-theme="dark"] .card.is-vip:not(.is-color) { background: linear-gradient(180deg, #1d2335 0%, var(--card-bg) 55%); border-color: #34406a; }
+[data-theme="dark"] .card.is-svip:not(.is-color) { background: linear-gradient(180deg, #2b2517 0%, var(--card-bg) 55%); border-color: #5d4c24; }
+/* მომხმარებლის არჩეული ფერის ბარათებს ტექსტი მუქი რჩება */
+[data-theme="dark"] .card.is-color:not(.is-dark),
+[data-theme="dark"] .card.is-color:not(.is-dark) h4,
+[data-theme="dark"] .card.is-color:not(.is-dark) .price,
+[data-theme="dark"] .card.is-color:not(.is-dark) .cact { color: #1A1C1F; }
+
+/* გადამრთველი ღილაკი */
+#themeToggle svg { width: 22px; height: 22px; }
+#themeToggle .moon { display: none; }
+[data-theme="dark"] #themeToggle .sun { display: none; }
+[data-theme="dark"] #themeToggle .moon { display: block; }
+/* ფუტერი, ქუქი, ლოგო */
+[data-theme="dark"] footer { background: var(--bg); }
+[data-theme="dark"] .soc a { background: var(--card-bg); }
+[data-theme="dark"] .soc svg { fill: var(--tx); }
+[data-theme="dark"] .ckrow b,
+[data-theme="dark"] .fname,
+[data-theme="dark"] .fh { color: var(--tx); }
+[data-theme="dark"] .cksw { background: #3a404a; }
+[data-theme="dark"] .cksw:checked { background: var(--btn); }
+
+/* ლოგო: მუქი ფონზე თეთრ მართკუთხედად არ გამოჩნდეს */
+[data-theme="dark"] .top .logo img { filter: invert(1) hue-rotate(180deg); }
+[data-theme="dark"] .stot { color: #8fa3ff !important; }
+[data-theme="dark"] .rbar h2 { color: var(--tx); }
+[data-theme="dark"] .rtools .dd-btn { background: var(--card-bg); }
+[data-theme="dark"] .vt button.on { background: #232a3d; color: #8fa3ff; }
+[data-theme="dark"] .pdp .pinfo .pattrs,
+[data-theme="dark"] .pdp .pinfo .pseller {
+  background: var(--card-bg) !important;
+}
+[data-theme="dark"] .pr2 { border-bottom-color: var(--line); }
+[data-theme="dark"] .pattrs,
+[data-theme="dark"] .pseller { border-color: var(--line); }
+[data-theme="dark"] .pr2 b { color: var(--tx); }
+[data-theme="dark"] .pr2 span { color: var(--mu); }
+/* Dark mode — surfaces and controls */
+[data-theme="dark"] .card:not(.is-color):not(.is-white),
+[data-theme="dark"] .sbox .frow #clrF,
+[data-theme="dark"] .harr .ib,
+[data-theme="dark"] .spick .sq,
+[data-theme="dark"] .spick .sq:hover,
+[data-theme="dark"] .spick .sq.on,
+[data-theme="dark"] .pa,
+[data-theme="dark"] .pzoom,
+[data-theme="dark"] .pnav {
+  background: var(--card-bg);
+  color: var(--tx);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .dd-opt:hover,
+[data-theme="dark"] .rg-p:hover,
+[data-theme="dark"] .pa:hover,
+[data-theme="dark"] .pback:hover,
+[data-theme="dark"] .harr .ib:hover {
+  background: var(--hov);
+  color: var(--tx);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  color: var(--tx);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--mu);
+  opacity: 1;
+}
+
+[data-theme="dark"] input:focus-visible,
+[data-theme="dark"] textarea:focus-visible,
+[data-theme="dark"] button:focus-visible,
+[data-theme="dark"] a:focus-visible {
+  outline: 2px solid #9aafff;
+  outline-offset: 3px;
+}
+
+/* Keep the original logo colors */
+[data-theme="dark"] .top .logo img {
+  filter: none;
+}
+
+/* Open listing */
+[data-theme="dark"] .pdp .pinfo .pattrs,
+[data-theme="dark"] .pdp .pinfo .pseller {
+  background: var(--card-bg) !important;
+  color: var(--tx);
+  border-color: var(--line);
+}
+
+/* Muted text on light promotional cards */
+[data-theme="dark"] .card.is-color:not(.is-dark) .loc,
+[data-theme="dark"] .card.is-color:not(.is-dark) .vw,
+[data-theme="dark"] .card.is-white .loc,
+[data-theme="dark"] .card.is-white .vw {
+  color: #505660;
+}
+
+[data-theme="dark"] .card.is-white,
+[data-theme="dark"] .card.is-white h4,
+[data-theme="dark"] .card.is-white .price {
+  color: #1a1c1f;
+}
+
+/* Muted text on dark promotional cards */
+[data-theme="dark"] .card.is-dark .loc,
+[data-theme="dark"] .card.is-dark .vw {
+  color: rgba(255, 255, 255, .8);
+}
+
+[data-theme="dark"] .cdel {
+  background: #351f23;
+  color: #ffaaa4;
+  border-color: #744047;
+}
+
+[data-theme="dark"] .link,
+[data-theme="dark"] .linkbtn {
+  color: #a9baff;
+}
+[data-theme="dark"] .top .hs {
+  background: var(--card-bg);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .top .hs #hsIn {
+  background: transparent;
+  color: var(--tx);
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .top .hs:focus-within {
+  border-color: #9aafff;
+  box-shadow: 0 0 0 2px rgba(154, 175, 255, .2);
+}
+[data-theme="dark"] .aud-acts .btn.alt.sm {
+  background: #262b33;
+  color: #e8eaed;
+  border-color: #505866;
+}
+
+[data-theme="dark"] .aud-acts .btn.alt.sm:hover {
+  background: #323a49;
+  color: #fff;
+  border-color: #9aafff;
+}
+/* შეძენილი ფერი dark mode-შიც რჩება */
+[data-theme="dark"] .card.is-color,
+[data-theme="dark"] .card.is-white {
+  background: var(--bc, #fff) !important;
+  border-color: var(--bc, #fff) !important;
+  color: #1a1c1f;
+}
+
+[data-theme="dark"] .card:is(.is-color, .is-white) h4,
+[data-theme="dark"] .card:is(.is-color, .is-white) .price {
+  color: #1a1c1f;
+}
+
+[data-theme="dark"] .card:is(.is-color, .is-white) .loc,
+[data-theme="dark"] .card:is(.is-color, .is-white) .vw {
+  color: #505660;
+}
+
+[data-theme="dark"] .card:is(.is-color, .is-white) .cur {
+  background: #fff;
+  color: #1a1c1f;
+  border-color: #69717d;
+}
+[data-theme="dark"] .toast {
+  background: #262b33 !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #505866;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .4);
+}
+.hero .sbox {
+  margin-top: 40px;
+}
+
+.hero .sbox .fgrid {
+  padding-top: 12px;
+}
+
+.hero .sbox .frow {
+  margin-top: 18px;
+}
+.hero .sbox .frow {
+  margin-top: 32px !important;
+}
+#svipSec {
+  margin-top: -20px !important;
+}
