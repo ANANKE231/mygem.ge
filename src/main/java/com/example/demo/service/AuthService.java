@@ -30,13 +30,15 @@ public class AuthService {
 	private final TokenService tokens;
 	private final AppProperties props;
 	private final CatalogService catalog;
+	private final GoogleIdTokenVerifier googleTokens;
 
-	public AuthService(AccountRepository accounts, PasswordEncoder encoder, TokenService tokens, AppProperties props, CatalogService catalog) {
+	public AuthService(AccountRepository accounts, PasswordEncoder encoder, TokenService tokens, AppProperties props, CatalogService catalog, GoogleIdTokenVerifier googleTokens) {
 		this.accounts = accounts;
 		this.encoder = encoder;
 		this.tokens = tokens;
 		this.props = props;
 		this.catalog = catalog;
+		this.googleTokens = googleTokens;
 	}
 
 	@Transactional
@@ -245,6 +247,77 @@ public class AuthService {
 		out.put("token", tokens.issue(account.getEmail()));
 		out.put("user", toPublic(account));
 		return out;
+	}
+
+	@Transactional
+	public Map<String, Object> google(JsonNode body) {
+		requireObject(body);
+		String action = text(body, "action");
+		if ("auth_config".equals(action)) {
+			String clientId = empty(props.getGoogleClientId()).trim();
+			Map<String, Object> out = new LinkedHashMap<>();
+			out.put("ok", true);
+			out.put("ready", !clientId.isBlank());
+			out.put("clientId", clientId);
+			return out;
+		}
+		if (!"google_auth".equals(action)) {
+			throw bad("bad_request", "მოთხოვნა არასწორია");
+		}
+		String clientId = empty(props.getGoogleClientId()).trim();
+		if (clientId.isBlank()) {
+			throw new ApiException(503, "google_not_configured", "Google-ით შესვლა ამჟამად მიუწვდომელია");
+		}
+		GoogleIdTokenVerifier.GoogleProfile profile = googleTokens.verify(raw(body, "credential"), clientId);
+		Account account = accounts.findByGoogleSub(profile.sub()).orElse(null);
+		if (account == null) {
+			account = accounts.findByEmailIgnoreCase(profile.email()).orElse(null);
+			if (account == null) {
+				account = newGoogleAccount(profile);
+			} else if (account.getGoogleSub() != null && !account.getGoogleSub().isBlank() && !account.getGoogleSub().equals(profile.sub())) {
+				throw new ApiException(409, "email_linked", "ეს ელ-ფოსტა სხვა Google ანგარიშთანაა დაკავშირებული");
+			} else {
+				account.setGoogleSub(profile.sub());
+				if ((account.getAvatar() == null || account.getAvatar().isBlank()) && !account.isAvatarOff() && !profile.picture().isBlank()) {
+					account.setAvatar(profile.picture());
+				}
+			}
+		}
+		Map<String, Object> out = session(accounts.save(account));
+		Map<String, Object> publicProfile = new LinkedHashMap<>();
+		publicProfile.put("sub", profile.sub());
+		publicProfile.put("email", profile.email());
+		publicProfile.put("name", profile.name());
+		publicProfile.put("given", profile.given());
+		publicProfile.put("family", profile.family());
+		publicProfile.put("picture", profile.picture());
+		out.put("profile", publicProfile);
+		return out;
+	}
+
+	private Account newGoogleAccount(GoogleIdTokenVerifier.GoogleProfile profile) {
+		String given = !profile.given().isBlank() ? profile.given() : profile.name();
+		if (given.length() < 2) {
+			String local = profile.email().split("@", 2)[0];
+			given = local.length() >= 2 ? local : "Google";
+		}
+		if (given.length() > 120) {
+			given = given.substring(0, 120);
+		}
+		String family = profile.family().length() > 120 ? profile.family().substring(0, 120) : profile.family();
+		Account account = new Account();
+		account.setEmail(profile.email());
+		account.setName(given);
+		account.setLastName(family);
+		account.setRegType("individual");
+		account.setRegOther("");
+		account.setShop(false);
+		account.setAvatarOff(false);
+		account.setPhone("");
+		account.setGoogleSub(profile.sub());
+		account.setAvatar(profile.picture());
+		account.setCreated(System.currentTimeMillis());
+		return account;
 	}
 
 	@Transactional(readOnly = true)

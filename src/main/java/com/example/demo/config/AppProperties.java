@@ -12,6 +12,7 @@ public class AppProperties {
 	private String tokenSecret;
 	private int tokenDays = 14;
 	private String adminEmails = "";
+	private String googleClientId = "";
 
 	@PostConstruct
 	void check() {
@@ -57,6 +58,14 @@ public class AppProperties {
 
 	public void setAdminEmails(String adminEmails) {
 		this.adminEmails = adminEmails;
+	}
+
+	public String getGoogleClientId() {
+		return googleClientId;
+	}
+
+	public void setGoogleClientId(String googleClientId) {
+		this.googleClientId = googleClientId;
 	}
 
 }

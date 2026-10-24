@@ -38,6 +38,11 @@ public class AuthController {
 		return auth.forgot(body);
 	}
 
+	@PostMapping("/api/auth/google")
+	public Map<String, Object> google(@RequestBody JsonNode body) {
+		return auth.google(body);
+	}
+
 	@PostMapping("/api/auth/check-password")
 	public Map<String, Object> checkPassword(Authentication authentication, @RequestBody JsonNode body) {
 		return auth.checkPassword(email(authentication), body);

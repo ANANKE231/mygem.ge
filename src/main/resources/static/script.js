@@ -1067,7 +1067,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
 
 /* ---------- Google sign-in (ID token is verified on the backend: tryon-worker.js -> google_auth) ---------- */
 const GONLY='ეს ანგარიში Google-ით არის შექმნილი — გამოიყენეთ „Continue with Google“.';
-const GERR={google_not_configured:'Google-ით შესვლა ამჟამად მიუწვდომელია',email_not_verified:'თქვენი Google ელ-ფოსტა დადასტურებული არ არის',rate_limited:'ძალიან ბევრი მცდელობა, სცადეთ მოგვიანებით',network:'სერვერთან დაკავშირება ვერ მოხერხდა',server:'Google-ით შესვლა ვერ მოხერხდა. სცადეთ თავიდან.'};
+const GERR={google_not_configured:'Google-ით შესვლა ამჟამად მიუწვდომელია',email_not_verified:'თქვენი Google ელ-ფოსტა დადასტურებული არ არის',email_linked:'ეს ელ-ფოსტა სხვა Google ანგარიშთანაა დაკავშირებული',bad_token:'Google-ით შესვლა ვერ მოხერხდა. სცადეთ თავიდან.',rate_limited:'ძალიან ბევრი მცდელობა, სცადეთ მოგვიანებით',network:'სერვერთან დაკავშირება ვერ მოხერხდა',server:'Google-ით შესვლა ვერ მოხერხდა. სცადეთ თავიდან.'};
 const gApi=()=>String(window.AUTH_API||window.TRYON_API||'').trim();
 const gPost=async b=>{const r=await fetch(gApi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw d.error||'server';return d};
 let gCfgP=null,gLibP=null,gInit=null,gBusy=false;

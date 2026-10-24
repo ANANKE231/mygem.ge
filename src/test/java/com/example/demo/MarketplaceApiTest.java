@@ -108,6 +108,18 @@ class MarketplaceApiTest {
 		mvc.perform(get("/api/listings")).andExpect(jsonPath("$.listings.length()").value(0));
 	}
 
+	@Test
+	void googleSignInNeedsAClientId() throws Exception {
+		mvc.perform(post("/api/auth/google").contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"auth_config\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.ok").value(true))
+				.andExpect(jsonPath("$.ready").value(false))
+				.andExpect(jsonPath("$.clientId").value(""));
+		mvc.perform(post("/api/auth/google").contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"google_auth\",\"credential\":\"a.b.c\"}"))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(jsonPath("$.error").value("google_not_configured"));
+	}
+
 	private MvcResult register(String json) throws Exception {
 		return mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isOk())
