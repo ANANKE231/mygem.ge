@@ -1071,7 +1071,7 @@ const gApi=()=>String(window.AUTH_API||window.TRYON_API||'').trim();
 const gPost=async b=>{const r=await fetch(gApi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw d.error||'server';return d};
 let gCfgP=null,gLibP=null,gInit=null,gBusy=false;
 const gCfg=()=>gCfgP||(gCfgP=gPost({action:'auth_config'}).catch(e=>{gCfgP=null;throw e}));
-const gLib=()=>gLibP||(gLibP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=ok;s.onerror=()=>{gLibP=null;s.remove();no('network')};document.head.append(s)}));
+const gLib=()=>gLibP||(gLibP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client?hl=ka';s.async=true;s.onload=ok;s.onerror=()=>{gLibP=null;s.remove();no('network')};document.head.append(s)}));
 function gShow(msg,muted){const n=$('#gNote');if(!n){if(msg)toast(msg);return}n.textContent=msg||'';n.hidden=!msg;n.classList.toggle('mu',!!muted)}
 function gMount(B){
  const wrap=document.createElement('div');wrap.className='gblock';
@@ -1544,3 +1544,4 @@ document.addEventListener('click', e => {
   e.stopImmediatePropagation();
   toggleCur(button.dataset.cs);
 }, true);
+Promise.all([gCfg(), gLib()]).catch(() => {});
