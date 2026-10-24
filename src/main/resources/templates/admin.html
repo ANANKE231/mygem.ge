@@ -312,11 +312,9 @@ const cfg=()=>L('adminCfg',{});
 const adminList=()=>{const c=cfg().ADMIN_EMAILS;return[...new Set(['mygemge@gmail.com',...(Array.isArray(c)?c:String(c||'').split(',')).map(s=>s.trim()).filter(Boolean)])]};
 
 /* ---------- site links ----------
-   ლოკალურად (localhost) მთავარი გვერდი templates/index.html-შია, ამიტომ პირდაპირ root-ზე გადასვლა
-   აჩვენებდა Directory listing-ს. თუ თქვენი ფაილი სხვაგან არის, შეცვალეთ SITE_PAGE. */
-const SITE_PAGE='templates/index.html';
+   The public site is served at /. Set SITE_URL in admin settings if it lives on another address. */
 const siteRoot=()=>{let u=String(cfg().SITE_URL||'').trim();if(!u)u=location.protocol=='file:'?'https://mygem.ge/':location.origin+'/';return u.replace(/\/*$/,'/')};
-const siteBase=()=>(cfg().SITE_URL||location.protocol=='file:')?siteRoot():siteRoot()+SITE_PAGE;
+const siteBase=()=>siteRoot();
 const link=h=>siteBase()+'#'+h;
 
 /* ---------- IndexedDB ---------- */
