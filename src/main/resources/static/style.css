@@ -1505,15 +1505,12 @@ body::before {
 
 /* =====================================================================
    SUCCESS WINDOW (shown after a listing is added / published)
-   Full-screen jewelry backdrop = images/bg-jewelry.svg (art on both edges,
-   clear middle) with a centered card. Ring + gem badge draws itself once;
+   Full-screen light backdrop with a centered card. Ring + gem badge draws itself once;
    a thin gold bar shows the auto-close countdown (6s, keep in sync with JS).
    ===================================================================== */
 .pubpop {
   position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 16px;
-  background:
-    url("../images/bg-jewelry.svg") center / cover no-repeat,
-    linear-gradient(180deg, #FFFEFC 0%, #F7F8FC 100%);
+  background: linear-gradient(180deg, #FFFEFC 0%, #F7F8FC 100%);
   animation: pubFade .35s ease both;
 }
 .pubpop .pubbox {
@@ -1548,21 +1545,7 @@ body::before {
 @keyframes pubPop  { from { opacity: 0; transform: scale(0); } }
 @keyframes pubBar  { to { transform: scaleX(0); } }
 
-/* phones / tablets: a single wide crop would only show the empty middle, so show the art halves as two faded corner crops */
 @media (max-width: 900px) {
-  .pubpop { background: linear-gradient(180deg, #FFFEFC 0%, #F7F8FC 100%); }
-  .pubpop::before, .pubpop::after {
-    content: ""; position: absolute; width: 62%; height: 58%; z-index: 0; pointer-events: none;
-    background: url("../images/bg-jewelry.svg") no-repeat; background-size: auto 100%;
-  }
-  .pubpop::before { top: 0; left: 0; background-position: left top;
-    -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent), linear-gradient(to right, #000 45%, transparent);
-    mask-image: linear-gradient(to bottom, #000 50%, transparent), linear-gradient(to right, #000 45%, transparent);
-    -webkit-mask-composite: source-in; mask-composite: intersect; }
-  .pubpop::after { bottom: 0; right: 0; background-position: right bottom;
-    -webkit-mask-image: linear-gradient(to top, #000 50%, transparent), linear-gradient(to left, #000 45%, transparent);
-    mask-image: linear-gradient(to top, #000 50%, transparent), linear-gradient(to left, #000 45%, transparent);
-    -webkit-mask-composite: source-in; mask-composite: intersect; }
   .pubpop .pubbox { z-index: 1; max-width: 360px; padding: 24px 20px 32px; }
   .pubpop .pubbox h3 { font-size: 21px; }
 }

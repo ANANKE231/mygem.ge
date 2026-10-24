@@ -213,11 +213,10 @@ async function hydrate(){if(!(await IDB.open()))return;
   if(IDB.dirty||items.some(heavy)){IDB.dirty=false;save('items',items)}}catch{}}
 DEMO.forEach(d=>{if(!items.some(x=>x.id===d.id))items.push(d)});
 items.forEach(p=>{if(p.attrs){if(p.attrs.etype=='ჰეფები')p.attrs.etype='ჰუფები';}});
-items.forEach(p=>{if(p.owner=='demo'){p.photos=[];if(!p.attrs){p.attrs={metal:METALS.includes(p.cat)?p.cat:p.cat=='ბრილიანტი'?'თეთრი ოქრო':'',pur:(p.title.match(/\d{3}/)||[''])[0]};p.loc='თბილისი'}}});
-/* resolve demo photos that really exist, so the page never shows a broken image */
-const probeImg=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(src);i.onerror=()=>r(null);i.src=src});
-async function loadDemoPhotos(){const done=Promise.all(items.filter(p=>p.owner=='demo'&&DEMO_IMG[p.id]).map(async p=>{const ok=await probeImg(DEMO_IMG[p.id]);if(ok)p.photos=[ok]}));
- await Promise.race([done,new Promise(r=>setTimeout(r,1500))])}
+items.forEach(p=>{if(p.owner=='demo'){p.photos=DEMO_IMG[p.id]?[DEMO_IMG[p.id]]:[];if(!p.attrs){p.attrs={metal:METALS.includes(p.cat)?p.cat:p.cat=='ბრილიანტი'?'თეთრი ოქრო':'',pur:(p.title.match(/\d{3}/)||[''])[0]};p.loc='თბილისი'}}});
+/* Photos are attached before the first paint. Waiting on a short image probe used to give up
+   on a slow connection and leave the cards blank even though the files exist. */
+function loadDemoPhotos(){return Promise.resolve()}
 
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2800)}
 /* exchange rate: official NBG USD rate, cached; rounding happens only when displaying */
