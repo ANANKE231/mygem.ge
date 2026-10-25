@@ -5,4 +5,4 @@ services:
       - "8080:8080"
     environment:
       SUPABASE_DB_PASSWORD: ${SUPABASE_DB_PASSWORD}
-      APP_TOKEN_SECRET: change-this-secret-before-a-public-deploy
+      APP_TOKEN_SECRET: ${APP_TOKEN_SECRET}

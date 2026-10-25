@@ -36,7 +36,7 @@ class SiteSmokeTest {
 	@Test
 	void publicReadsAreNotBlocked() throws Exception {
 		mvc.perform(get("/api/listings")).andExpect(status().isOk());
-		mvc.perform(get("/api/users")).andExpect(status().isOk());
+		mvc.perform(get("/api/users")).andExpect(status().isUnauthorized());
 		mvc.perform(get("/api/health")).andExpect(status().isOk());
 		mvc.perform(post("/api/auth/login").contentType("application/json").content("{}")).andExpect(status().isBadRequest());
 	}

@@ -19,55 +19,53 @@ public class TokenService {
 		this.props = props;
 	}
 
-	public String issue(String email) {
-		long exp = Instant.now().plusSeconds(props.getTokenDays() * 24L * 60L * 60L).getEpochSecond();
-		String body = Base64.getUrlEncoder().withoutPadding()
-				.encodeToString((email + "|" + exp).getBytes(StandardCharsets.UTF_8));
-		return body + "." + sign(body);
+	public String issue(String sessionId, long expiresAtEpochSeconds) {
+		String body = sessionId + "|" + expiresAtEpochSeconds;
+		String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(body.getBytes(StandardCharsets.UTF_8));
+		return payload + "." + sign(payload);
 	}
 
-	public String parse(String token) {
+	public String sessionId(String token) {
 		if (token == null || token.isBlank()) {
 			return null;
 		}
-		String[] parts = token.split("\\.");
-		if (parts.length != 2) {
+		int dot = token.indexOf('.');
+		if (dot <= 0 || dot == token.length() - 1) {
 			return null;
 		}
-		byte[] expected = sign(parts[0]).getBytes(StandardCharsets.UTF_8);
-		byte[] actual = parts[1].getBytes(StandardCharsets.UTF_8);
-		if (!MessageDigest.isEqual(expected, actual)) {
+		String payload = token.substring(0, dot);
+		String mac = token.substring(dot + 1);
+		if (!MessageDigest.isEqual(sign(payload).getBytes(StandardCharsets.UTF_8), mac.getBytes(StandardCharsets.UTF_8))) {
 			return null;
 		}
-		String payload;
+		String body;
 		try {
-			payload = new String(Base64.getUrlDecoder().decode(parts[0]), StandardCharsets.UTF_8);
+			body = new String(Base64.getUrlDecoder().decode(payload), StandardCharsets.UTF_8);
 		} catch (IllegalArgumentException ex) {
 			return null;
 		}
-		int bar = payload.lastIndexOf('|');
-		if (bar <= 0) {
+		int split = body.lastIndexOf('|');
+		if (split <= 0) {
 			return null;
 		}
-		long exp;
 		try {
-			exp = Long.parseLong(payload.substring(bar + 1));
+			long exp = Long.parseLong(body.substring(split + 1));
+			if (exp < Instant.now().getEpochSecond()) {
+				return null;
+			}
 		} catch (NumberFormatException ex) {
 			return null;
 		}
-		if (exp < Instant.now().getEpochSecond()) {
-			return null;
-		}
-		return payload.substring(0, bar);
+		return body.substring(0, split);
 	}
 
-	private String sign(String body) {
+	private String sign(String payload) {
 		try {
 			Mac mac = Mac.getInstance("HmacSHA256");
 			mac.init(new SecretKeySpec(props.getTokenSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-			return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(body.getBytes(StandardCharsets.UTF_8)));
+			return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
 		} catch (Exception ex) {
-			throw new IllegalStateException("Could not sign token", ex);
+			throw new IllegalStateException("Token signing failed", ex);
 		}
 	}
 

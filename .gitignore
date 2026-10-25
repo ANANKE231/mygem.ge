@@ -34,3 +34,7 @@ build/
 
 # Local H2 database
 data/
+
+.env
+.env.*
+!.env.example

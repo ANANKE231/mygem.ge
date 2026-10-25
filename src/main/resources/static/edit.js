@@ -104,7 +104,7 @@ if (!p || !ownerOf(p)) return;
   drawPrev();
   /* ვიდეო */
   const rdu=f=>new Promise(r=>{const x=new FileReader();x.onerror=x.onabort=()=>r(null);x.onload=()=>r(x.result);x.readAsDataURL(f)});
-  const VP=$('#vPrev'),drawVid=()=>{const v=window.vid;VP.innerHTML=v?`<div class="vp"><video src="${v.data}" controls preload="metadata" muted playsinline></video><div class="vpi"><b>${esc(v.name)}</b><small>${(v.size/1048576).toFixed(1)} MB</small></div><button type="button" class="rm" data-vrm aria-label="ვიდეოს წაშლა">×</button></div>`:''};
+  const VP=$('#vPrev'),drawVid=()=>{const v=window.vid,src=v&&typeof v.data==='string'&&v.data.startsWith('data:video/')&&!/["'<>]/.test(v.data)?v.data:'';VP.innerHTML=src?`<div class="vp"><video src="${src}" controls preload="metadata" muted playsinline></video><div class="vpi"><b>${esc(v.name)}</b><small>${(v.size/1048576).toFixed(1)} MB</small></div><button type="button" class="rm" data-vrm aria-label="ვიდეოს წაშლა">×</button></div>`:''};
   $('#aV').onchange=async()=>{const inp=$('#aV'),f=inp.files[0];inp.value='';if(!f)return;
    if(modRequired())return toast('ვიდეოს ატვირთვა დროებით გამორთულია უსაფრთხოების მიზნით');
    if(!/^video\/(mp4|webm|quicktime)$/.test(f.type))return toast('დაშვებულია MP4, WEBM ან MOV ვიდეო');

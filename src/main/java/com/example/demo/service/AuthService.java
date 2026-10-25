@@ -3,8 +3,10 @@ package com.example.demo.service;
 import com.example.demo.config.AppProperties;
 import com.example.demo.model.Account;
 import com.example.demo.repo.AccountRepository;
-import com.example.demo.security.TokenService;
+import com.example.demo.security.SessionService;
 import com.example.demo.web.ApiException;
+import com.example.demo.web.MediaUrls;
+import jakarta.annotation.PostConstruct;
 import tools.jackson.databind.JsonNode;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,15 +29,15 @@ public class AuthService {
 
 	private final AccountRepository accounts;
 	private final PasswordEncoder encoder;
-	private final TokenService tokens;
+	private final SessionService sessions;
 	private final AppProperties props;
 	private final CatalogService catalog;
 	private final GoogleIdTokenVerifier googleTokens;
 
-	public AuthService(AccountRepository accounts, PasswordEncoder encoder, TokenService tokens, AppProperties props, CatalogService catalog, GoogleIdTokenVerifier googleTokens) {
+	public AuthService(AccountRepository accounts, PasswordEncoder encoder, SessionService sessions, AppProperties props, CatalogService catalog, GoogleIdTokenVerifier googleTokens) {
 		this.accounts = accounts;
 		this.encoder = encoder;
-		this.tokens = tokens;
+		this.sessions = sessions;
 		this.props = props;
 		this.catalog = catalog;
 		this.googleTokens = googleTokens;
@@ -94,7 +96,7 @@ public class AuthService {
 		account.setEmail(email);
 		account.setUsername(username);
 		account.setPasswordHash(encoder.encode(password));
-		account.setPhone(phone);
+		stampPhone(account, phone);
 		account.setName(name);
 		account.setLastName(individual ? last : "");
 		account.setRegType(regType);
@@ -104,7 +106,7 @@ public class AuthService {
 		return session(accounts.save(account));
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public Map<String, Object> login(JsonNode body) {
 		requireObject(body);
 		String login = text(body, "login");
@@ -127,25 +129,10 @@ public class AuthService {
 		return session(account);
 	}
 
-	@Transactional
 	public Map<String, Object> forgot(JsonNode body) {
 		requireObject(body);
-		String email = text(body, "email").toLowerCase(Locale.ROOT);
-		String password = raw(body, "password");
-		if (!EMAIL.matcher(email).matches()) {
-			throw bad("bad_request", "არასწორი ელ-ფოსტა (მაგ: name@mail.com)");
-		}
-		Account account = accounts.findByEmailIgnoreCase(email)
-				.orElseThrow(() -> bad("not_found", "ასეთი ელ-ფოსტა ვერ მოიძებნა"));
-		if (account.getPasswordHash() == null && account.getGoogleSub() != null) {
-			throw bad("google_only", "ეს ანგარიში Google-ით არის შექმნილი — გამოიყენეთ „Continue with Google“.");
-		}
-		String passwordProblem = passwordProblem(password);
-		if (passwordProblem != null) {
-			throw bad("bad_request", passwordProblem);
-		}
-		account.setPasswordHash(encoder.encode(password));
-		return Map.of("ok", true);
+		/* No email sender is configured. This endpoint must not change a password. */
+		return Map.of("ok", true, "message", "პაროლის აღდგენა ელფოსტით ჯერ არ არის ჩართული. მოგვწერეთ mygemge@gmail.com-ზე.");
 	}
 
 	@Transactional(readOnly = true)
@@ -218,10 +205,13 @@ public class AuthService {
 		}
 		if (body.has("avatar")) {
 			String avatar = raw(body, "avatar");
+			if (!avatar.isBlank() && !MediaUrls.avatar(avatar)) {
+				throw bad("bad_request", "ფოტოს ფორმატი არასწორია");
+			}
 			if (avatar.length() > MAX_AVATAR) {
 				throw bad("too_large", "ფოტო ძალიან დიდია");
 			}
-			account.setAvatar(avatar);
+			account.setAvatar(avatar.isBlank() ? "" : avatar);
 		}
 		if (body.has("avatarOff")) {
 			account.setAvatarOff(body.path("avatarOff").asBoolean(false));
@@ -233,7 +223,7 @@ public class AuthService {
 		account.setShop(body.has("shop") ? body.path("shop").asBoolean(!individual) : !individual);
 		account.setName(name);
 		account.setLastName(individual ? last : "");
-		account.setPhone(phone);
+		stampPhone(account, phone);
 		account.setUsername(username.isBlank() ? null : username);
 		if (passwordChange) {
 			account.setPasswordHash(encoder.encode(newPassword));
@@ -241,10 +231,12 @@ public class AuthService {
 		if (emailChange) {
 			account.setEmail(nextEmail);
 			catalog.moveOwner(previousEmail, nextEmail);
+			sessions.revokeEmail(previousEmail);
 		}
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("ok", true);
-		out.put("token", tokens.issue(account.getEmail()));
+		out.put("token", sessions.open(account.getEmail()));
+		out.put("admin", props.isAdmin(account.getEmail()));
 		out.put("user", toPublic(account));
 		return out;
 	}
@@ -285,7 +277,6 @@ public class AuthService {
 		}
 		Map<String, Object> out = session(accounts.save(account));
 		Map<String, Object> publicProfile = new LinkedHashMap<>();
-		publicProfile.put("sub", profile.sub());
 		publicProfile.put("email", profile.email());
 		publicProfile.put("name", profile.name());
 		publicProfile.put("given", profile.given());
@@ -313,7 +304,7 @@ public class AuthService {
 		account.setRegOther("");
 		account.setShop(false);
 		account.setAvatarOff(false);
-		account.setPhone("");
+		stampPhone(account, "");
 		account.setGoogleSub(profile.sub());
 		account.setAvatar(profile.picture());
 		account.setCreated(System.currentTimeMillis());
@@ -333,7 +324,10 @@ public class AuthService {
 	}
 
 	@Transactional(readOnly = true)
-	public Map<String, Object> publicUsers() {
+	public Map<String, Object> adminUsers(String email) {
+		if (!props.isAdmin(email)) {
+			throw new ApiException(403, "forbidden", "ამ სიის ნახვა არ შეგიძლიათ");
+		}
 		List<Map<String, Object>> users = accounts.findAll().stream().map(this::toPublic).toList();
 		return Map.of("ok", true, "users", users);
 	}
@@ -352,9 +346,7 @@ public class AuthService {
 		user.put("avatarOff", account.isAvatarOff());
 		user.put("created", account.getCreated() == null ? 0 : account.getCreated());
 		user.put("hasPass", account.getPasswordHash() != null);
-		if (account.getGoogleSub() != null && !account.getGoogleSub().isBlank()) {
-			user.put("google", Map.of("sub", account.getGoogleSub()));
-		}
+		user.put("hasGoogle", account.getGoogleSub() != null && !account.getGoogleSub().isBlank());
 		return user;
 	}
 
@@ -369,15 +361,39 @@ public class AuthService {
 	private Map<String, Object> session(Account account) {
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("ok", true);
-		out.put("token", tokens.issue(account.getEmail()));
+		out.put("token", sessions.open(account.getEmail()));
+		out.put("admin", props.isAdmin(account.getEmail()));
 		out.put("user", toPublic(account));
 		return out;
 	}
 
+	@PostConstruct
+	void backfillPhoneKeys() {
+		for (Account account : accounts.findAll()) {
+			String key = tail(account.getPhone());
+			String stored = account.getPhoneKey() == null ? "" : account.getPhoneKey();
+			if (!key.equals(stored)) {
+				account.setPhoneKey(key.isBlank() ? null : key);
+				accounts.save(account);
+			}
+		}
+	}
+
+	private void stampPhone(Account account, String phone) {
+		account.setPhone(phone);
+		String key = tail(phone);
+		account.setPhoneKey(key.isBlank() ? null : key);
+	}
+
 	private boolean phoneTaken(String phone, Long exceptId) {
-		String tail = tail(phone);
-		return accounts.findAll().stream().anyMatch(account ->
-				(exceptId == null || !exceptId.equals(account.getId())) && tail(account.getPhone()).equals(tail));
+		String key = tail(phone);
+		if (key.isBlank()) {
+			return false;
+		}
+		if (exceptId == null) {
+			return accounts.existsByPhoneKey(key);
+		}
+		return accounts.phoneKeyTaken(key, exceptId);
 	}
 
 	private static String tail(String phone) {

@@ -59,15 +59,51 @@ async function commitItems(p){
   if(!saveItems(items))return false;
   while(IDB.busy())await Promise.all(Object.values(IDB.jobs));
   if(!saveItems(items))return false;
-  if(await verifyItem(p))return true;
+  if(await verifyItem(p))return await pushListing(p);
   const k='i'+p.id;if(IDB.ok){IDB.bad[k]=recSig(recOf(p));delete IDB.sig[k]}   /* IndexedDB did not keep it -> second round stores it inline */
  }
  return false}
-const save=(k,v)=>k=='items'?saveItems(v):lsSet(k,v);
+async function pushListing(p){
+ if(!p||p.owner==='demo')return true;
+ const res=await apiSend('PUT','/api/listings',p);
+ if(!res.ok){toast(res.data.message||'სერვერზე შენახვა ვერ მოხერხდა');return false}
+ return true}
+async function restoreSession(){
+ try{localStorage.removeItem('mygemTok')}catch{}
+ const res=await apiSend('GET','/api/me');
+ if(!res.ok){if(res.status===401){me=null;save('me',null)}return}
+ adopt({user:res.data.user,admin:!!res.data.admin});
+ if(me&&Array.isArray(res.data.notes)){notes[me.email]=res.data.notes;save('notes',notes)}
+ if(Array.isArray(res.data.favs)){favs=res.data.favs;save('favs',favs)}}
+async function pullListings(){
+ const res=await apiSend('GET','/api/listings');
+ if(!res.ok||!Array.isArray(res.data.listings))return;
+ const remote=res.data.listings.filter(p=>p&&p.id&&p.owner!=='demo');
+ const ids=new Set(remote.map(p=>String(p.id)));
+ const mine=me?items.filter(p=>p&&p.owner!=='demo'&&same(p.owner,me.email)&&!ids.has(String(p.id))):[];
+ items=remote.concat(mine);
+ saveItems(items);
+ for(const p of mine)await pushListing(p)}
+const stripPass=v=>{if(Array.isArray(v))v.forEach(u=>{if(u&&typeof u==='object')delete u.pass});else if(v&&typeof v==='object')delete v.pass;return v};
+const save=(k,v)=>k=='items'?saveItems(v):lsSet(k,(k=='users'||k=='me')?stripPass(v):v);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl=s=>{s=String(s||'');
+ if(s.startsWith('data:image/jpeg;')||s.startsWith('data:image/png;')||s.startsWith('data:image/webp;')||s.startsWith('data:image/gif;')||s.startsWith('data:video/')||s.startsWith('data:audio/')||s.startsWith('data:application/pdf;'))return esc(s);
+ if((s.startsWith('/images/')||s.startsWith('/static/'))&&!s.includes('..')&&!s.includes('\\')&&!s.includes('//'))return esc(s);
+ try{const u=new URL(s,location.origin);if(u.protocol==='https:'||(u.protocol==='http:'&&u.origin===location.origin))return esc(u.href)}catch{}
+ return ''};
 /* background-image for a photo: quotes / brackets / spaces in a path can no longer break the style attribute (data: URLs are unaffected) */
 const bgi=s=>s?`background-image:url('${esc(String(s).replace(/[\\'"()\s]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase().padStart(2,'0')))}')`:'';
 let users=load('users',[]),me=load('me',null),favs=load('favs',[]),notes=load('notes',{}),F={},pc={};
+if(me)delete me.admin;
+if(users.some(u=>u&&Object.prototype.hasOwnProperty.call(u,'pass'))||(me&&Object.prototype.hasOwnProperty.call(me,'pass'))){save('users',users);if(me)save('me',me)}
+try{localStorage.removeItem('mygemTok')}catch{}
+async function apiSend(method,url,body){const headers={'Content-Type':'application/json','X-MyGem':'1'};
+ let r;try{r=await fetch(url,{method,headers,credentials:'include',body:body==null?undefined:JSON.stringify(body)})}catch{return {ok:false,status:0,data:{error:'network',message:'სერვერთან დაკავშირება ვერ მოხერხდა'}}}
+ const data=await r.json().catch(()=>({}));return {ok:r.ok&&data.ok!==false,status:r.status,data}}
+function adopt(d){if(!d||!d.user)return;try{localStorage.removeItem('mygemTok')}catch{}const u={...d.user};delete u.pass;if(typeof d.admin==='boolean')u.admin=d.admin;
+ let idx=users.findIndex(x=>same(x.email,u.email));if(idx<0&&me)idx=users.findIndex(x=>same(x.email,me.email));
+ if(idx>=0)users[idx]={...users[idx],...u};else users.push(u);me=users.find(x=>same(x.email,u.email))||u;save('users',users);save('me',me)}
 const curOf=id=>pc[id]||((items.find(x=>String(x.id)===String(id))||{}).cur)||'GEL';
 if(me&&!me.created){me.created=Date.now();users=users.map(u=>u.email==me.email?me:u);save('users',users);save('me',me)}
 
@@ -327,7 +363,7 @@ const PAY_HOLDER='გ.მ.',BANKS=[{id:'bog',name:'საქართველ�
 const planName=k=>k=='SVIP'?'Super VIP':PLANS[k].name;
 const planLabel=k=>k=='REG'?'Regular — უფასო':`${planName(k)} — ${PLANS[k].price} ₾ · ${PLANS[k].days} დღე`;
 const planOf=n=>Object.values(PLANS).find(x=>x.name==n);
-const isAdmin=()=>!!me&&(window.ADMIN_EMAILS||[]).some(e=>same(e,me.email));
+const isAdmin=()=>!!me&&!!me.admin;
 const pendingPay=()=>items.filter(p=>p.pay&&p.pay.status=='pending');
 const notifyOwner=(p,t)=>{if(p.owner&&p.owner!='demo')pushNote(p.owner,t)};
 const fdt=ts=>new Date(ts).toLocaleString(uiLoc());
@@ -413,19 +449,19 @@ function payPanel(){const pend=pendingPay().sort((a,b)=>a.pay.created-b.pay.crea
 <h3 class="psub">აქტიური სტატუსები (${act.length})</h3>${act.length?act.map(p=>`<div class="payrow">${th(p)}<div class="pinf"><a href="#product:${p.id}"><b>${esc(p.title)}</b></a><small>${esc(p.owner)}</small><small>${esc(p.vip||'Regular')} · მოქმედებს ${fdt(p.vipUntil||p.colorUntil||p.stickerUntil)}-მდე${p.color?' · ფერადი':''}${p.sticker?' · სტიკერები':''}</small></div></div>`).join(''):'<div class="empty">აქტიური სტატუსები არ არის</div>'}</div>`}
 function openReceipt(id){if(!isAdmin())return;const p=items.find(x=>String(x.id)===String(id)),y=p&&p.pay;if(!y||!y.receipt)return;
  if(y.receiptType=='pdf'){try{const b=atob(y.receipt.split(',')[1]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);window.open(URL.createObjectURL(new Blob([u],{type:'application/pdf'})),'_blank')}catch{toast('ფაილის გახსნა ვერ მოხერხდა')}return}
- const d=document.createElement('div');d.className='try-lb';d.innerHTML=`<img src="${y.receipt}" alt="">`;d.onclick=()=>d.remove();document.body.append(d)}
+ const src=safeUrl(y.receipt);if(!src)return;const d=document.createElement('div');d.className='try-lb';const img=document.createElement('img');img.alt='';img.src=y.receipt;d.append(img);d.onclick=()=>d.remove();document.body.append(d)}
 function payDecide(id,ok){if(!isAdmin())return;const p=items.find(x=>String(x.id)===String(id));if(!p||!p.pay||p.pay.status!='pending')return;
  if(!ok)return payReject(p);
  const now=Date.now(),y=p.pay;if(y.days>0){p.vip=y.plan;p.vipUntil=now+y.days*DAY}if(y.color){p.color=true;p.colorUntil=now+COLOR.days*DAY;p.colorHex=okHex(y.colorHex)?y.colorHex:BC_DEF}
  if(y.sticker){p.sticker=true;p.stickerUntil=now+STICKER.days*DAY;p.stickers=cleanStk(y.stickers)}
  delete p.hold;y.status='active';y.verifiedBy=me.email;y.verifiedAt=now;save('items',items);
- notifyOwner(p,y.days>0?`«${p.title}» – ${y.plan} გადახდა დადასტურდა. სტატუსი აქტიურია ${fdt(p.vipUntil)}-მდე`:`«${p.title}» – დამატებითი სერვისების გადახდა დადასტურდა. აქტიურია ${fdt(y.color?p.colorUntil:p.stickerUntil)}-მდე`);toast('გადახდა დადასტურდა ✓');showProfile('pay')}
+ pushListing(p).then(ok=>{if(!ok)return;notifyOwner(p,y.days>0?`«${p.title}» – ${y.plan} გადახდა დადასტურდა. სტატუსი აქტიურია ${fdt(p.vipUntil)}-მდე`:`«${p.title}» – დამატებითი სერვისების გადახდა დადასტურდა. აქტიურია ${fdt(y.color?p.colorUntil:p.stickerUntil)}-მდე`);toast('გადახდა დადასტურდა ✓');showProfile('pay')})}
 function payReject(p){curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<h3>გადახდის უარყოფა</h3><p>${esc(p.title)}</p><form class="form" id="rjForm" novalidate><label>მიზეზი (არასავალდებულო)<textarea id="rjT" rows="3" maxlength="300"></textarea></label><div class="row2"><button class="btn" type="submit">უარყოფა</button><button type="button" class="btn alt" id="rjNo">გაუქმება</button></div></form>`;
  $('#rjNo').onclick=closeModal;
  $('#rjForm').onsubmit=e=>{e.preventDefault();if(!isAdmin()||!p.pay||p.pay.status!='pending')return closeModal();const r=$('#rjT').value.trim();
   delete p.hold;p.pay.status='rejected';p.pay.verifiedBy=me.email;p.pay.verifiedAt=Date.now();p.pay.reason=r;save('items',items);
-  notifyOwner(p,`«${p.title}» – ${p.pay.plan} გადახდა ვერ დადასტურდა${r?': '+r:''}. განცხადება გამოქვეყნებულია Regular სტატუსით`);closeModal();toast('გადახდა უარყოფილია');showProfile('pay')}}
+  pushListing(p).then(ok=>{if(!ok)return;notifyOwner(p,`«${p.title}» – ${p.pay.plan} გადახდა ვერ დადასტურდა${r?': '+r:''}. განცხადება გამოქვეყნებულია Regular სტატუსით`);closeModal();toast('გადახდა უარყოფილია');showProfile('pay')})}}
 
 function showLink(url){curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<h3>განცხადების ბმული</h3><p>დააკოპირეთ და გაგზავნეთ:</p><form class="form" novalidate><label><input id="lnk" readonly value="${esc(url)}"></label><button type="button" class="btn" id="lnkOk">დახურვა</button></form>`;
@@ -443,7 +479,8 @@ function openMsg(id){if(!me)return openAuth('login');const p=items.find(x=>Strin
  $('#mNo').onclick=closeModal;
  $('#msgForm').onsubmit=e=>{e.preventDefault();const T=$('#mT'),v=T.value.trim();if(check(e.target,[[T,!v?'დაწერეთ შეტყობინება':v.length<3?'მინიმუმ 3 სიმბოლო':'']]))return;
   const s=sellerOf(p),nm=(regOf(me)=='individual'?me.name+' '+(me.last||''):me.name).trim();
-  if(s.u)pushNote(s.u.email,`ახალი შეტყობინება განცხადებაზე «${p.title}» – ${nm} (${me.phone||'—'}): ${v}`);
+  if(s.u){pushNote(s.u.email,`ახალი შეტყობინება განცხადებაზე «${p.title}» – ${nm} (${me.phone||'—'}): ${v}`);
+   apiSend('PUT','/api/me/notes',{notes:{[s.u.email]:[{t:`ახალი შეტყობინება განცხადებაზე «${p.title}» – ${nm} (${me.phone||'—'}): ${v}`,d:Date.now(),r:0,listingId:p.id}]}})}
   addNote(`შეტყობინება გაიგზავნა განცხადებაზე: ${p.title}`);closeModal();toast('შეტყობინება გაგზავნილია ✓')};
  setTimeout(()=>{const T=$('#mT');if(T){T.focus();T.select()}},60)}
 const ownerOf=p=>!!me&&!!p&&same(me.email,p.owner);
@@ -451,14 +488,16 @@ const canDel=p=>!!me&&!!p&&(same(me.email,p.owner)||isAdmin());
 function confirmDelete(id){const p=items.find(x=>String(x.id)===String(id));if(!canDel(p))return;curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('trash')}</div><h3>დარწმუნებული ხართ, რომ გსურთ განცხადების წაშლა?</h3><p>«${esc(p.title)}»<br>წაშლის შემდეგ განცხადების აღდგენა შეუძლებელია.</p><div class="row2"><button type="button" class="btn danger" id="dlYes">დიახ, წაშლა</button><button type="button" class="btn alt" id="dlNo">გაუქმება</button></div></div>`;
  $('#dlNo').focus();$('#dlNo').onclick=closeModal;
- $('#dlYes').onclick=()=>{if(!canDel(p))return closeModal();const ownerMail=p.owner;
+ $('#dlYes').onclick=async()=>{if(!canDel(p))return closeModal();const ownerMail=p.owner;
+  const res=await apiSend('DELETE','/api/listings/'+p.id);
+  if(!res.ok){toast(res.data.message||'წაშლა ვერ მოხერხდა');return}
   items=items.filter(x=>x.id!==p.id);favs=favs.filter(x=>x!==p.id);delete pv[p.id];delete pc[p.id];
   save('items',items);save('favs',favs);save('pv',pv);setFavCnt();closeModal();toast('განცხადება წაიშალა ✓');
   if(parseHash()[0] === 'profile')route();else location.hash='profile:mine'}}
 /* ---------- photo editor: the owner can delete (and add) photos of an existing listing ---------- */
 const AUD_MB=5,AUD_SEC=60,AUP='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>',AMIC='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
 const fmtT=t=>{t=Math.max(0,Math.floor(t||0));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
-const audPlayer=src=>`<div class="aplay"><audio src="${esc(src)}" preload="metadata"></audio><button type="button" class="ap-b" aria-label="დაკვრა / პაუზა"><svg class="pl" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 001.5.86l10.5-6.5a1 1 0 000-1.72L9.5 4.64A1 1 0 008 5.5z"/></svg><svg class="ps" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg></button><div class="ap-t"><div class="ap-bar" role="slider" aria-label="პოზიცია"><i></i></div><div class="ap-n"><span class="ap-c">0:00</span><span class="ap-d">0:00</span></div></div></div>`;
+const audPlayer=src=>`<div class="aplay"><audio src="${safeUrl(src)}" preload="metadata"></audio><button type="button" class="ap-b" aria-label="დაკვრა / პაუზა"><svg class="pl" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 001.5.86l10.5-6.5a1 1 0 000-1.72L9.5 4.64A1 1 0 008 5.5z"/></svg><svg class="ps" viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg></button><div class="ap-t"><div class="ap-bar" role="slider" aria-label="პოზიცია"><i></i></div><div class="ap-n"><span class="ap-c">0:00</span><span class="ap-d">0:00</span></div></div></div>`;
 function apUpd(a){const r=a.closest('.aplay');if(!r)return;const d=isFinite(a.duration)?a.duration:0;r.querySelector('.ap-bar i').style.width=(d?Math.min(100,a.currentTime/d*100):0)+'%';r.querySelector('.ap-c').textContent=fmtT(a.currentTime);r.querySelector('.ap-d').textContent=fmtT(d)}
 ['loadedmetadata','durationchange','timeupdate','ended'].forEach(ev=>document.addEventListener(ev,e=>{const a=e.target;if(!a||a.tagName!='AUDIO')return;
  if(ev=='loadedmetadata'&&a.duration===Infinity){a.addEventListener('timeupdate',()=>{a.currentTime=0},{once:true});a.currentTime=1e101}
@@ -481,7 +520,7 @@ function openPhotos(id){const p=items.find(x=>String(x.id)===String(id));if(!own
    <p class="lpv-n">${list.length?'':'ფოტოს დამატების შემდეგ აქ გამოჩნდება მთავარი ფოტო. '}ფოტოს წაშლისას ან დამატებისას ბარათი ავტომატურად განახლდება.</p></details></div>`;
   B.innerHTML=`<h3>ფოტოების რედაქტირება</h3><p>«${esc(p.title)}»<br>წაშალეთ არასასურველი ფოტო ან დაამატეთ ახალი. პირველი ფოტო მთავარია.</p>
 <div class="pe-wrap"><aside class="pe-side">${pvBlock}</aside><div class="pe-main">
-<div class="photos pedit">${list.map((x,i)=>`<div class="ph"><img src="${esc(x)}" alt="">${i==0?'<span class="cover">მთავარი</span>':''}<button type="button" class="rm" data-pe="${i}" aria-label="ფოტოს წაშლა" title="ფოტოს წაშლა">×</button></div>`).join('')}${list.length<PH_MAX?'<label class="ph padd" for="peF">+<small>დამატება</small></label>':''}</div>
+<div class="photos pedit">${list.map((x,i)=>`<div class="ph"><img src="${safeUrl(x)}" alt="">${i==0?'<span class="cover">მთავარი</span>':''}<button type="button" class="rm" data-pe="${i}" aria-label="ფოტოს წაშლა" title="ფოტოს წაშლა">×</button></div>`).join('')}${list.length<PH_MAX?'<label class="ph padd" for="peF">+<small>დამატება</small></label>':''}</div>
 <input type="file" id="peF" accept="image/*" multiple hidden>
 <div class="pcount${list.length>=PH_MIN_EDIT?' ok':''}"><span>${list.length} / ${PH_MAX} ფოტო</span></div>${msg?`<em class="fe">${esc(msg)}</em>`:''}
 <div class="row2"><button type="button" class="btn" id="peSave">შენახვა</button><button type="button" class="btn alt" id="peNo">გაუქმება</button></div>
@@ -502,7 +541,7 @@ function openPhotos(id){const p=items.find(x=>String(x.id)===String(id));if(!own
 function confirmLogout(){curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('logout')}</div><h3>დარწმუნებული ხართ, რომ გსურთ გასვლა?</h3><div class="row2"><button type="button" class="btn danger" id="lgYes">დიახ, გასვლა</button><button type="button" class="btn alt" id="lgNo">არა</button></div></div>`;
  $('#lgNo').focus();$('#lgNo').onclick=closeModal;
- $('#lgYes').onclick=()=>{closeModal();me=null;save('me',null);try{sessionStorage.removeItem('gtok')}catch{}setLogin();if(location.hash=='#home'||!location.hash)route();else location.hash='მთავარი'}}
+ $('#lgYes').onclick=async()=>{closeModal();await apiSend('DELETE','/api/auth/session');me=null;save('me',null);try{localStorage.removeItem('mygemTok');sessionStorage.removeItem('gtok')}catch{}setLogin();if(location.hash=='#home'||!location.hash)route();else location.hash='მთავარი'}}
 
 /* ---------- universal dropdown ---------- */
 const fld=(l,h,cls='')=>`<div class="fld ${cls}"><span>${l}</span>${h}</div>`;
@@ -693,7 +732,7 @@ const ARW=d=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke
 const homeSec=(id,t,l,em,more)=>{const row=id=='svipSec'||id=='vipSec';return `<section class="sec${row?' hsec':''}" id="${id}"><div class="shead"><h2>${t}</h2>${row&&l.length?`<div class="harr"><button type="button" class="ib" data-hs="-1" aria-label="უკან">${ARW('M19 12H5M11 6l-6 6 6 6')}</button><button type="button" class="ib" data-hs="1" aria-label="წინ">${ARW('M5 12h14M13 6l6 6-6 6')}</button></div>`:''}</div>${l.length?(row?rowGrid(l):grid(l)):`<div class="empty">${em}</div>`}${more?'<div class="more"><a class="btn alt" href="#search" data-reset>ყველა განცხადება</a></div>':''}</section>`};
 /* blogs: 1st = left half, 2nd + 3rd = stacked on the right half */
 const homeBlog=()=>{const b=blogList().slice(0,3);if(!b.length)return '';
- const c=(x,big)=>`<a class="hbc${big?' big':''}" href="#post:${x.id}"><span class="hbi"><img src="${x.img}" alt="${esc(x.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="hbb"><small>${x.min} წთ კითხვა</small><b>${esc(x.t)}</b>${big?`<span class="hbe">${esc(x.ex)}</span>`:''}</span></a>`;
+ const c=(x,big)=>`<a class="hbc${big?' big':''}" href="#post:${x.id}"><span class="hbi"><img src="${safeUrl(x.img)}" alt="${esc(x.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="hbb"><small>${x.min} წთ კითხვა</small><b>${esc(x.t)}</b>${big?`<span class="hbe">${esc(x.ex)}</span>`:''}</span></a>`;
  return `<section class="sec hblog" id="blogHome"><h2>ბლოგი</h2><div class="hbg">${c(b[0],1)}<div class="hbs">${b.slice(1).map(x=>c(x,0)).join('')}</div></div><div class="more"><a class="btn" href="#blog">გაიგეთ მეტი</a></div></section>`};
 
 /* ---------- views ---------- */
@@ -715,7 +754,7 @@ const body=!r.length
   
 <div class="rtools">${dd('sPer',{list:PERS,val:String(PER)})}${dd('sSort',{list:SORTS,val:SORT})}</div>
 </div>${body}</div></div>`},
-blog(){return `<div class="page blog"><h2 class="bh">ბლოგი</h2><p class="bsub">რჩევები, გზამკვლევები და ინსპირაცია სამკაულების სამყაროდან</p>${isAdmin()?`<div class="badm"><button type="button" class="btn sm" data-bnew>${ui('plus')}სტატიის დამატება</button></div>`:''}<div class="bgrid">${blogList().map((b,i)=>`<a class="bcard" href="#post:${b.id}"><span class="bimg"><img src="${b.img}" alt="${esc(b.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="bbody"><small class="bm">${b.min} წთ კითხვა</small><b>${esc(b.t)}</b><span class="bex">${esc(b.ex)}</span></span></a>`).join('')}</div></div>`},
+blog(){return `<div class="page blog"><h2 class="bh">ბლოგი</h2><p class="bsub">რჩევები, გზამკვლევები და ინსპირაცია სამკაულების სამყაროდან</p>${isAdmin()?`<div class="badm"><button type="button" class="btn sm" data-bnew>${ui('plus')}სტატიის დამატება</button></div>`:''}<div class="bgrid">${blogList().map((b,i)=>`<a class="bcard" href="#post:${b.id}"><span class="bimg"><img src="${safeUrl(b.img)}" alt="${esc(b.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="bbody"><small class="bm">${b.min} წთ კითხვა</small><b>${esc(b.t)}</b><span class="bex">${esc(b.ex)}</span></span></a>`).join('')}</div></div>`},
 post(t){const L=blogList(),i=L.findIndex(b=>String(b.id)===String(t)),b=L[i];if(!b)return `<div class="page"><div class="panel empty">სტატია ვერ მოიძებნა<div style="margin-top:16px"><a class="btn" href="#blog">ბლოგზე დაბრუნება</a></div></div></div>`;
  const n=L[i+1];return `<article class="page art"><a class="aback" href="#blog">${ui('back')}ბლოგი</a><small class="ameta">${b.min} წუთი კითხვა</small><h1>${esc(b.t)}</h1><img class="ahero" src="${b.img}" alt="${esc(b.t)}" width="1400" height="934" decoding="async"><div class="abody">${(()=>{let h='',l=false;const f=x=>esc(x).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');for(const x of b.body){const li=x.startsWith('- ');if(l&&!li){h+='</ul>';l=false}if(li&&!l){h+='<ul>';l=true}h+=li?`<li>${f(x.slice(2))}</li>`:x[0]=='#'?`<h3>${esc(x.slice(1).trim())}</h3>`:`<p>${f(x)}</p>`}return h+(l?'</ul>':'')})()}</div>${n?`<a class="anext" href="#post:${n.id}"><small>შემდეგი სტატია</small><b>${esc(n.t)}</b></a>`:''}<div class="acta"><a class="btn" href="#search" data-reset>იხილეთ კოლექცია</a></div></article>`},
 seller(t){const own=[...new Set(items.map(x=>x.owner))].find(o=>sid(o)==t);
@@ -723,7 +762,7 @@ seller(t){const own=[...new Set(items.map(x=>x.owner))].find(o=>sid(o)==t);
  <div style="margin-top:16px"><a class="btn" href="#მთავარი">მთავარზე დაბრუნება</a></div></div></div>`;
  const l=pub().filter(p=>same(p.owner,own)).sort(byPkg),s=sellerOf({owner:own}),tel=String(s.phone||'').replace(/[^\d+]/g,'');
  return `<div class="page sellpg" style="max-width:1100px"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button>
- <div class="sellhead"><div class="sav">${s.avatar?`<img src="${esc(s.avatar)}" alt="">`:ui('user')}</div><div class="sn"><small>გამყიდველი</small><b>${esc(s.name)}</b><span class="stot" style="display:block;color:#000080;font-weight:600;font-size:13px;margin:2px 0">${l.length} განცხადება</span><em>${esc(s.type)}</em></div>${tel?`<a class="btn sb call" href="tel:${tel}">${ui('phone')}<span>${esc(s.phone)}</span></a>`:''}</div>
+ <div class="sellhead"><div class="sav">${s.avatar?`<img src="${safeUrl(s.avatar)}" alt="">`:ui('user')}</div><div class="sn"><small>გამყიდველი</small><b>${esc(s.name)}</b><span class="stot" style="display:block;color:#000080;font-weight:600;font-size:13px;margin:2px 0">${l.length} განცხადება</span><em>${esc(s.type)}</em></div>${tel?`<a class="btn sb call" href="tel:${tel}">${ui('phone')}<span>${esc(s.phone)}</span></a>`:''}</div>
  <h2 class="sellh">ყველა განცხადება <span>(${l.length})</span></h2>${l.length?grid(l):'<div class="empty">განცხადებები არ არის</div>'}</div>`},
 calculator(){return `<div class="page" style="max-width:960px">${calcBox()}</div>`},
 favs(){if(!me){openAuth('login');return '<div class="page"><div class="panel empty">გთხოვთ შეხვიდეთ სისტემაში</div></div>'}
@@ -766,7 +805,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
  <div class="pd-grid">
   <div class="pgal" id="pgal" data-id="${p.id}">
    <div class="pmain">${main}${imgs.length?`<button type="button" class="pzoom" data-zoom aria-label="ფოტოს გადიდება" title="გადიდება"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5M11 8v6M8 11h6"/></svg></button>`:''}${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}${nm>1?`<button type="button" class="pnav l" data-pg="-1" aria-label="წინა">${ui('prev')}</button><button type="button" class="pnav r" data-pg="1" aria-label="შემდეგი">${ui('next')}</button><span class="pcnt" id="pgCnt">1 / ${nm}</span>`:''}</div>
-   ${nm>1?`<div class="pthumbs">${imgs.map((s,i)=>`<button type="button" class="pth ${i?'':'on'}" data-i="${i}" aria-label="ფოტო ${i+1}"><img src="${esc(s)}" alt=""></button>`).join('')}${p.video?`<button type="button" class="pth vth ${imgs.length?'':'on'}" data-i="${imgs.length}" aria-label="ვიდეო"><video src="${esc(p.video)}#t=0.1" preload="metadata" muted playsinline></video><span class="vplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 001.5.86l10.5-6.5a1 1 0 000-1.72L9.5 4.64A1 1 0 008 5.5z"/></svg></span></button>`:''}</div>`:''}
+   ${nm>1?`<div class="pthumbs">${imgs.map((s,i)=>`<button type="button" class="pth ${i?'':'on'}" data-i="${i}" aria-label="ფოტო ${i+1}"><img src="${safeUrl(s)}" alt=""></button>`).join('')}${p.video?`<button type="button" class="pth vth ${imgs.length?'':'on'}" data-i="${imgs.length}" aria-label="ვიდეო"><video src="${safeUrl(p.video)}#t=0.1" preload="metadata" muted playsinline></video><span class="vplay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 001.5.86l10.5-6.5a1 1 0 000-1.72L9.5 4.64A1 1 0 008 5.5z"/></svg></span></button>`:''}</div>`:''}
    ${stkHTML(p)}
   </div>
   <div class="pinfo${hex?' tint':''}"${hex?` style="--bc:${hex}"`:''}>
@@ -777,7 +816,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
    <div class="pattrs">${rows.map(r=>`<div class="pr2"><span>${r[0]}</span><b>${r[2]?ico(r[2]):''}${esc(r[1])}</b></div>`).join('')}</div>
    <div class="pdesc"><h3>აღწერა</h3><p>${esc(p.desc||'')}</p>${p.audio?`<div class="pvoice"><h3>ხმოვანი აღწერა</h3>${audPlayer(p.audio)}</div>`:''}</div>
    <div class="pseller">
-    <a class="sh" href="#seller:${sid(p.owner)}" title="იხილე გამყიდველის ყველა განცხადება"><div class="sav">${s.avatar?`<img src="${s.avatar}" alt="">`:ui('user')}</div><div class="sn"><small>გამყიდველი</small><b>${esc(s.name)}</b><span class="stot" style="display:block;color:#000080;font-weight:600;font-size:13px;margin:2px 0">${pub().filter(x=>same(x.owner,p.owner)).length} განცხადება</span><em>${esc(s.type)}</em></div></a>
+    <a class="sh" href="#seller:${sid(p.owner)}" title="იხილე გამყიდველის ყველა განცხადება"><div class="sav">${s.avatar?`<img src="${safeUrl(s.avatar)}" alt="">`:ui('user')}</div><div class="sn"><small>გამყიდველი</small><b>${esc(s.name)}</b><span class="stot" style="display:block;color:#000080;font-weight:600;font-size:13px;margin:2px 0">${pub().filter(x=>same(x.owner,p.owner)).length} განცხადება</span><em>${esc(s.type)}</em></div></a>
     <a class="sph" href="tel:${tel}">${esc(s.phone||'')}</a>
     <div class="sbtns"><a class="btn sb call" href="tel:${tel}">${ui('phone')}<span>დარეკვა</span></a><button type="button" class="btn sb" data-msg="${p.id}">${ui('chat')}<span>მიწერა</span></button></div>
    </div>
@@ -788,7 +827,7 @@ profile(tab='mine'){if(!me){openAuth('login');return ''}
   if((tab=='pay'||tab=='blog')&&!isAdmin())tab='mine';
  const mine=items.filter(p=>p.owner==me.email).sort((a,b)=>(b.created||0)-(a.created||0)||(+b.id||0)-(+a.id||0)),ind=regOf(me)=='individual',nm=ind?me.name+' '+(me.last||''):me.name;
  const since=me.created?new Date(me.created).toLocaleDateString(uiLoc(),{year:'numeric',month:'long',day:'numeric'}):'—';
- return `<div class="page"><div class="panel"><div class="prof-head"><div class="ava">${me.avatar?`<img src="${me.avatar}">`:ui('user')}</div><div class="ph-info"><h2>${esc(nm)}</h2><small class="pmail">${ui('mail')}${esc(me.email)}</small><div class="stats"><span class="stat"><i>${ui('tag')}</i><span><b>${esc(regLabel(me))}</b></span></span><span class="stat"><i>${ui('calendar')}</i><span>ანგარიში შექმნილია: <b>${since}</b></span></span><span class="stat"><i>${ui('gem')}</i><span>განცხადებები: <b>${mine.length}</b></span></span></div><label class="btn alt sm">${ui('camera')}ფოტოს შეცვლა<input type="file" id="avIn" accept="image/*" hidden></label>${me.avatar?`<button type="button" class="btn alt sm" id="avDel" style="margin-left:8px">${ui('trash')}ფოტოს წაშლა</button>`:''}</div><a href="#add" class="btn" style="margin-left:auto">${ui('plus')}დამატება</a></div>
+ return `<div class="page"><div class="panel"><div class="prof-head"><div class="ava">${me.avatar?`<img src="${safeUrl(me.avatar)}">`:ui('user')}</div><div class="ph-info"><h2>${esc(nm)}</h2><small class="pmail">${ui('mail')}${esc(me.email)}</small><div class="stats"><span class="stat"><i>${ui('tag')}</i><span><b>${esc(regLabel(me))}</b></span></span><span class="stat"><i>${ui('calendar')}</i><span>ანგარიში შექმნილია: <b>${since}</b></span></span><span class="stat"><i>${ui('gem')}</i><span>განცხადებები: <b>${mine.length}</b></span></span></div><label class="btn alt sm">${ui('camera')}ფოტოს შეცვლა<input type="file" id="avIn" accept="image/*" hidden></label>${me.avatar?`<button type="button" class="btn alt sm" id="avDel" style="margin-left:8px">${ui('trash')}ფოტოს წაშლა</button>`:''}</div><a href="#add" class="btn" style="margin-left:auto">${ui('plus')}დამატება</a></div>
  <div class="tabs"><button data-tab="mine" class="${tab=='mine'?'on':''}">${ui('user')}ჩემი პროფილი</button>${isAdmin()?`<button data-tab="pay" class="${tab=='pay'?'on':''}">${ui('tag')}გადახდები${pendingPay().length?` (${pendingPay().length})`:''}</button>`:''}${isAdmin()?`<button data-tab="blog" class="${tab=='blog'?'on':''}">${ui('image')}ბლოგი</button>`:''}<button class="btn alt" id="logout">${ui('logout')}გასვლა</button></div>
  ${tab=='pay'?payPanel():tab=='blog'?blogPanel():tab=='edit'?`<h3 class="psub" style="margin:0 0 14px">პარამეტრები</h3><form class="form" id="eForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('eT',{list:DD.reg,val:regOf(me),other:1,otherPh:'მიუთითეთ რეგისტრაციის ტიპი'}),'full')}<label id="eNL" class="full">${ind?'სახელი და გვარი':'დასახელება'}<input id="eN" value="${esc(ind?(me.name+' '+(me.last||'')).trim():me.name)}" autocomplete="name"></label><label id="eLL" hidden><input id="eL" type="hidden" value="${esc(me.last||'')}"></label><label class="full">ელ-ფოსტა<input id="eE" type="email" value="${esc(me.email)}" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="name@mail.com"></label><div class="duo full"><label>მომხმარებლის სახელი<input id="eU" value="${esc(me.username||'')}" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="eP" value="${esc(me.phone)}" autocomplete="tel" inputmode="tel" maxlength="17" placeholder="5__ ___ ___"></label></div>${pw('ePw','ახალი პაროლი','new-password')}${pw('ePw2','გაიმეორეთ პაროლი','new-password')}<button class="btn full" type="submit">შენახვა</button></form>`:mine.length?grid(mine):'<div class="empty">ჩანაწერი არ არის</div>'}</div></div>`}};
 
@@ -868,7 +907,7 @@ const rd=f=>new Promise(r=>{const x=new FileReader();x.onerror=x.onabort=()=>r(n
  x.readAsDataURL(f)});
 const RD_FAIL='ზოგი ფოტოს წაკითხვა ვერ მოხერხდა — გამოიყენეთ JPG, PNG ან WEBP';
 function drawPrev(){const p=$('#prev');if(!p)return;
- p.innerHTML=ph.map((s,i)=>`<div class="ph"><img src="${esc(s)}" alt="">${i==0?'<span class="cover">მთავარი</span>':''}<button type="button" class="rm" data-rm="${i}" aria-label="წაშლა">×</button></div>`).join('');
+ p.innerHTML=ph.map((s,i)=>`<div class="ph"><img src="${safeUrl(s)}" alt="">${i==0?'<span class="cover">მთავარი</span>':''}<button type="button" class="rm" data-rm="${i}" aria-label="წაშლა">×</button></div>`).join('');
  const n=ph.length;$('#pbar').style.width=Math.min(100,n/3*100)+'%';$('#pcnt').textContent=n>=3?`✓ ${n} ფოტო`:`${n}/3 მინიმუმ`;$('#pcount').classList.toggle('ok',n>=3);if(n>=3)clearOne($('#photoFld'))}
 async function addFiles(files){files=[...files];const imgs=files.filter(f=>f.type.startsWith('image/')&&f.size<=15*1024*1024);
  if(imgs.length<files.length)toast('დაშვებულია მხოლოდ სურათები (მაქს. 15MB)');
@@ -884,7 +923,7 @@ async function readReceipt(f){if(!f)return;const pdf=f.type=='application/pdf';
  const data=pdf?await new Promise(r=>{const x=new FileReader();x.onload=()=>r(x.result);x.onerror=()=>r(null);x.readAsDataURL(f)}):await rdR(f);
  if(!data)return toast('ფაილის წაკითხვა ვერ მოხერხდა');window.rc={name:f.name,type:pdf?'pdf':'img',data};drawRc()}
 function drawRc(){const r=window.rc,P=$('#rcPrev');if(!P)return;
- P.innerHTML=r?`${r.type=='img'?`<img src="${r.data}" alt="">`:'<span class="pdfi">PDF</span>'}<span class="rcn">${esc(r.name)}</span><button type="button" class="rm2" id="rcRm" aria-label="წაშლა">×</button>`:'';
+ P.innerHTML=r?`${r.type=='img'?`<img src="${safeUrl(r.data)}" alt="">`:'<span class="pdfi">PDF</span>'}<span class="rcn">${esc(r.name)}</span><button type="button" class="rm2" id="rcRm" aria-label="წაშლა">×</button>`:'';
  const b=$('#rcRm');if(b)b.onclick=()=>{window.rc=null;drawRc()};if(r)clearOne($('#rcptFld'))}
 
 /* ---------- bindings ---------- */
@@ -985,7 +1024,7 @@ const cf=$('#clrF');if(cf)cf.onclick=e=>{e.preventDefault();F={};FCUR='GEL';
    [$('#prev'),$('#rcPrev')].forEach(el=>{if(el)new MutationObserver(refresh).observe(el,{childList:true})});
    /* ---- video (optional, 1 file) ---- */
    const VP=$('#vPrev'),vrd=f=>new Promise(r=>{const x=new FileReader();x.onerror=x.onabort=()=>r(null);x.onload=()=>r(x.result);x.readAsDataURL(f)});
-   const drawVid=()=>{const v=window.vid;VP.innerHTML=v?`<div class="vp"><video src="${v.data}" controls preload="metadata" muted playsinline></video><div class="vpi"><b>${esc(v.name)}</b><small>${(v.size/1048576).toFixed(1)} MB</small></div><button type="button" class="rm" data-vrm aria-label="ვიდეოს წაშლა">×</button></div>`:''};
+   const drawVid=()=>{const v=window.vid;VP.innerHTML=v?`<div class="vp"><video src="${safeUrl(v.data)}" controls preload="metadata" muted playsinline></video><div class="vpi"><b>${esc(v.name)}</b><small>${(v.size/1048576).toFixed(1)} MB</small></div><button type="button" class="rm" data-vrm aria-label="ვიდეოს წაშლა">×</button></div>`:''};
    $('#aV').onchange=async()=>{const inp=$('#aV'),f=inp.files[0];inp.value='';if(!f)return;
     if(modRequired())return toast('ვიდეოს ატვირთვა დროებით გამორთულია უსაფრთხოების მიზნით');
     if(!/^video\/(mp4|webm|quicktime)$/.test(f.type))return toast('დაშვებულია MP4, WEBM ან MOV ვიდეო');
@@ -1062,15 +1101,20 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
    if(check(ef,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,ind?(!full?'შეიყვანეთ სახელი და გვარი':!l?'შეიყვანეთ სახელიც და გვარიც':''):nameMsg(n,'დასახელება')], 
     [E,emailMsg(em)||(!same(em,old)&&users.some(u=>same(u.email,em))?'ეს ელ-ფოსტა დაკავებულია':'')],[P,!tel?'შეიყვანეთ ტელეფონი':!isPhone(tel)?'არასწორი ტელეფონის ნომერი':''],
     [U,!un&&!me.username?'':unameMsg(un,old)],[W,W.value?pwMsg(W.value):''],[W2,W.value&&W2.value!=W.value?'პაროლები არ ემთხვევა':'']]))return;
-   (me.pass?askPass:f=>f())(()=>{Object.assign(me,{regType:ty,regOther:ty=='other'?O.value.trim():'',shop:!ind,name:n,last:ind?l:'',email:em,phone:tel,username:un});if(W.value)me.pass=W.value;
-   if(em!=old){items.forEach(p=>{if(p.owner==old)p.owner=em});save('items',items);if(notes[old]){notes[em]=notes[old];delete notes[old];save('notes',notes)}}
-   users=users.map(u=>u.email==old?me:u);save('users',users);save('me',me);setLogin();if(W.value)addNote('პაროლი შეიცვალა');toast('შენახულია ✓');showProfile('edit')})}}}
+   const send=async current=>{if(!tokGet()){openAuth('login');toast('გთხოვთ თავიდან შეხვიდეთ');return}
+    const body={regType:ty,regOther:ty=='other'?O.value.trim():'',shop:!ind,name:n,last:ind?l:'',email:em,phone:tel,username:un};
+    if(W.value)body.password=W.value;if(current)body.currentPassword=current;
+    const res=await apiSend('PUT','/api/auth/profile',body,true);
+    if(!res.ok){if(res.data.error=='bad_password'){askPass(send);return}toast(res.data.message||'შენახვა ვერ მოხერხდა');return}
+    if(em!=old){items.forEach(p=>{if(p.owner==old)p.owner=em});save('items',items);if(notes[old]){notes[em]=notes[old];delete notes[old];save('notes',notes)}}
+    adopt(res.data);setLogin();if(W.value)addNote('პაროლი შეიცვალა');toast('შენახულია ✓');showProfile('edit')};
+   if((W.value||!same(em,old))&&me.hasPass)askPass(send);else send('')}}}
 
 /* ---------- Google sign-in (ID token is verified on the backend: tryon-worker.js -> google_auth) ---------- */
 const GONLY='ეს ანგარიში Google-ით არის შექმნილი — გამოიყენეთ „Continue with Google“.';
 const GERR={google_not_configured:'Google-ით შესვლა ამჟამად მიუწვდომელია',email_not_verified:'თქვენი Google ელ-ფოსტა დადასტურებული არ არის',email_linked:'ეს ელ-ფოსტა სხვა Google ანგარიშთანაა დაკავშირებული',bad_token:'Google-ით შესვლა ვერ მოხერხდა. სცადეთ თავიდან.',rate_limited:'ძალიან ბევრი მცდელობა, სცადეთ მოგვიანებით',network:'სერვერთან დაკავშირება ვერ მოხერხდა',server:'Google-ით შესვლა ვერ მოხერხდა. სცადეთ თავიდან.'};
 const gApi=()=>String(window.AUTH_API||window.TRYON_API||'').trim();
-const gPost=async b=>{const r=await fetch(gApi(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw d.error||'server';return d};
+const gPost=async b=>{const r=await fetch(gApi(),{method:'POST',credentials:'include',headers:{'Content-Type':'application/json','X-MyGem':'1'},body:JSON.stringify(b)});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw d.error||'server';return d};
 let gCfgP=null,gLibP=null,gInit=null,gBusy=false;
 const gCfg=()=>gCfgP||(gCfgP=gPost({action:'auth_config'}).catch(e=>{gCfgP=null;throw e}));
 const gLib=()=>gLibP||(gLibP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client?hl='+(window.MYGEM_LANG==='en'?'en':'ka');s.async=true;s.onload=ok;s.onerror=()=>{gLibP=null;s.remove();no('network')};document.head.append(s)}));
@@ -1096,7 +1140,7 @@ async function gCred(r){
  if(r&&r.credential)gTokSet(r.credential);
  if(window.__gWait){const w=window.__gWait;window.__gWait=null;w((r&&r.credential)||null);return}   /* admin re-check for blog publishing */
  if(gBusy||!r||!r.credential)return;gBusy=true;gShow('');
- try{const d=await gPost({action:'google_auth',credential:r.credential});gSign(d.profile)}
+ try{const d=await gPost({action:'google_auth',credential:r.credential});gSign(d)}
  catch(e){gShow(GERR[e]||GERR.server)}
  finally{gBusy=false}}
 /* ---------- blog server (BLOG_API): the server verifies the Google token and the admin e-mail; this code only fetches / hands over the token ---------- */
@@ -1119,16 +1163,12 @@ async function blogCall(body,tok){let r;
  if(!r.ok||!d.ok){if(r.status==401||r.status==403)try{sessionStorage.removeItem('gtok')}catch{}throw d.error||'server'}
  return d}
 /* one Google identity (sub) = one account; an existing account with the same verified email is linked, never duplicated */
-function gSign(p){
- let u=users.find(x=>x.google&&x.google.sub===p.sub),how='in';
- if(!u){u=users.find(x=>same(x.email,p.email));
-  if(u){if(u.google&&u.google.sub!==p.sub)return gShow('ეს ელ-ფოსტა სხვა Google ანგარიშთანაა დაკავშირებული');u.google={sub:p.sub};how='link'}
-  else{u={regType:'individual',regOther:'',shop:false,name:p.given||p.name||p.email.split('@')[0],last:p.family||'',email:p.email,phone:'',username:'',google:{sub:p.sub},created:Date.now()};users.push(u);how='new'}}
- if(p.picture&&!u.avatar&&!u.avatarOff)u.avatar=p.picture;
- if(!u.created)u.created=Date.now();
- me=u;save('users',users);save('me',me);
- if(how=='new')addNote('მოგესალმებით mygem.ge-ზე! ანგარიში წარმატებით შეიქმნა. განცხადების დასამატებლად პროფილში მიუთითეთ ტელეფონის ნომერი.');
- toast(how=='new'?'რეგისტრაცია წარმატებულია ✓':how=='link'?'Google დაკავშირებულია თქვენს ანგარიშთან ✓':'მოგესალმებით!');
+function gSign(d){
+ if(!d||!d.user){gShow(GERR.server);return}
+ const existed=users.some(x=>same(x.email,d.user.email));
+ adopt(d);
+ if(!existed)addNote('მოგესალმებით mygem.ge-ზე! ანგარიში წარმატებით შეიქმნა. განცხადების დასამატებლად პროფილში მიუთითეთ ტელეფონის ნომერი.');
+ toast(existed?'მოგესალმებით!':'რეგისტრაცია წარმატებულია ✓');
  afterAuth()}
 
 /* ---------- phone (SMS) verification at registration ----------
@@ -1142,7 +1182,9 @@ async function sPost(b){const u=smsApi();if(!u)throw 'sms_not_configured';let r;
 /* E.164: 5XX XXX XXX / 995... -> +995..., anything else must start with + (or 00) */
 const normPhone=p=>{const raw=String(p||'').trim(),d=raw.replace(/\D/g,'');if(raw.startsWith('+'))return d.length>=8&&d.length<=15?'+'+d:'';if(d.startsWith('00'))return d.length>=10&&d.length<=17?'+'+d.slice(2):'';if(d.length==9&&d[0]=='5')return '+995'+d;if(d.startsWith('995')&&d.length==12)return '+'+d;return ''};
 const phoneTaken=t=>{const d=String(t).replace(/\D/g,'').slice(-9);return users.some(x=>x.phone&&String(x.phone).replace(/\D/g,'').slice(-9)==d)};
-function finishReg(u){users.push(u);save('users',users);me=u;save('me',me);addNote('მოგესალმებით mygem.ge-ზე! ანგარიში წარმატებით შეიქმნა.');toast('რეგისტრაცია წარმატებულია ✓');afterAuth()}
+async function finishReg(u){const res=await apiSend('POST','/api/auth/register',{regType:u.regType,regOther:u.regOther||'',name:u.name,last:u.last||'',email:u.email,username:u.username,phone:u.phone,pass:u.pass,created:u.created});
+ if(!res.ok){toast(res.data.message||'რეგისტრაცია ვერ მოხერხდა');return}
+ adopt(res.data);addNote('მოგესალმებით mygem.ge-ზე! ანგარიში წარმატებით შეიქმნა.');toast('რეგისტრაცია წარმატებულია ✓');afterAuth()}
 async function smsStart(u,fm){const btn=fm.querySelector('button[type=submit]'),t=btn.textContent;btn.disabled=true;btn.textContent='იგზავნება…';
  try{await sPost({action:'sms_send',phone:normPhone(u.phone)});smsVerify(u)}
  catch(e){btn.disabled=false;btn.textContent=t;err($('#rP'),SERR[e]||SERR.server)}}
@@ -1268,12 +1310,12 @@ window.addEventListener('hashchange',()=>{if(!/^#profile:blog/.test(location.has
 
 /* ---------- auth ---------- */
 function setFavCnt(){const n=me?favs.length:0,b=$('#favDot');b.textContent=n>99?'99+':n;b.style.display=n?'grid':'none'}
-function setLogin(){setFavCnt();$('#loginBtn').innerHTML=me&&me.avatar?`<img src="${me.avatar}">`:me?esc((me.name[0]||'U').toUpperCase()):ui('user');setBadge()}
+function setLogin(){setFavCnt();$('#loginBtn').innerHTML=me&&me.avatar?`<img src="${safeUrl(me.avatar)}">`:me?esc((me.name[0]||'U').toUpperCase()):ui('user');setBadge()}
 /* profile dropdown: opens under the profile icon (logged out: the login window opens as before) */
 const pMenu=document.createElement('div');pMenu.className='pmenu';pMenu.id='pMenu';document.body.append(pMenu);
 function pmClose(){pMenu.classList.remove('show')}
 function pmOpen(){const b=$('#loginBtn'),r=b.getBoundingClientRect(),nm=(regOf(me)=='individual'?me.name+' '+(me.last||''):me.name).trim(),np=isAdmin()?pendingPay().length:0;
- pMenu.innerHTML=`<div class="pm-head"><div class="pm-ava">${me.avatar?`<img src="${esc(me.avatar)}" alt="">`:esc((me.name[0]||'U').toUpperCase())}</div><div class="pm-id"><b>${esc(nm)}</b><small>${esc(me.email)}</small></div></div><div class="pm-sep"></div><div class="pm-list"><a href="#profile:mine">ჩემი პროფილი</a><a href="#add">დამატება</a><a href="#favs">ფავორიტები</a><a href="#profile:edit">პარამეტრები</a>${isAdmin()?`<a href="#profile:pay">გადახდები${np?`<span class="pm-bdg">${np}</span>`:''}</a>`:''}</div><div class="pm-sep"></div><div class="pm-list"><button type="button" id="pmOut"><span class="pm-ic">${ui('logout')}<span>გასვლა</span></span></button></div>`;
+ pMenu.innerHTML=`<div class="pm-head"><div class="pm-ava">${me.avatar?`<img src="${safeUrl(me.avatar)}" alt="">`:esc((me.name[0]||'U').toUpperCase())}</div><div class="pm-id"><b>${esc(nm)}</b><small>${esc(me.email)}</small></div></div><div class="pm-sep"></div><div class="pm-list"><a href="#profile:mine">ჩემი პროფილი</a><a href="#add">დამატება</a><a href="#favs">ფავორიტები</a><a href="#profile:edit">პარამეტრები</a>${isAdmin()?`<a href="#profile:pay">გადახდები${np?`<span class="pm-bdg">${np}</span>`:''}</a>`:''}</div><div class="pm-sep"></div><div class="pm-list"><button type="button" id="pmOut"><span class="pm-ic">${ui('logout')}<span>გასვლა</span></span></button></div>`;
  pMenu.style.top=(r.bottom+8)+'px';pMenu.style.right=Math.max(8,innerWidth-r.right)+'px';pMenu.classList.add('show')}
 pMenu.addEventListener('click',e=>{const a=e.target.closest('a');if(a){pmClose();if(location.hash==a.getAttribute('href'))route();return}
  if(e.target.closest('#pmOut')){pmClose();confirmLogout()}});
@@ -1284,13 +1326,13 @@ const modal=$('#modal'),AO={login:0,forgot:1,reg:2};let curAuth=null,busy=false;
 modal.onclick=e=>{if(e.target==modal)closeModal()};
 function closeModal(){modal.classList.remove('show');$('#modalBox').classList.remove('wide');curAuth=null;window.__goAdd=false}
 function afterAuth(){const g=window.__goAdd;closeModal();setLogin();if(g){location.hash='add';return}if(/^#(add|favs|profile)/.test(location.hash))route()}
-function openTerms(){curAuth=null;modal.classList.add('show');$('#modalBody').innerHTML=`<h3>წესები და პირობები</h3><p>1. განცხადებაში მითითებული ინფორმაცია და ფოტოები უნდა შეესაბამებოდეს რეალობას.</p><p>2. აკრძალულია ყალბი ან უკანონოდ მოპოვებული ნივთების გამოქვეყნება.</p><p>3. mygem.ge არ არის გარიგების მხარე და არ აგებს პასუხს მყიდველსა და გამყიდველს შორის შეთანხმებაზე.</p><p>4. ადმინისტრაციას უფლება აქვს წესების დარღვევისას წაშალოს განცხადება.</p><button class="btn" onclick="closeModal()">დახურვა</button>`}
+function openTerms(){curAuth=null;modal.classList.add('show');$('#modalBody').innerHTML=`<h3>წესები და პირობები</h3><p>1. განცხადებაში მითითებული ინფორმაცია და ფოტოები უნდა შეესაბამებოდეს რეალობას.</p><p>2. აკრძალულია ყალბი ან უკანონოდ მოპოვებული ნივთების გამოქვეყნება.</p><p>3. mygem.ge არ არის გარიგების მხარე და არ აგებს პასუხს მყიდველსა და გამყიდველს შორის შეთანხმებაზე.</p><p>4. ადმინისტრაციას უფლება აქვს წესების დარღვევისას წაშალოს განცხადება.</p><button class="btn" id="tmOk" type="button">დახურვა</button>`;$('#tmOk').onclick=closeModal}
 function askPass(cb){curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<h3>დაადასტურეთ პაროლი</h3><p>ცვლილებების შესანახად შეიყვანეთ თქვენი მიმდინარე პაროლი.</p><form class="form" id="pwForm" novalidate>${pw('cpw','მიმდინარე პაროლი')}<button class="btn" type="submit">დადასტურება</button><button type="button" class="link" id="cpwNo">გაუქმება</button></form>`;
  $('#cpw').focus();$('#cpwNo').onclick=closeModal;
  $('#pwForm').onsubmit=e=>{e.preventDefault();const P=$('#cpw');
-  if(check(e.target,[[P,!P.value?'შეიყვანეთ პაროლი':P.value!==me.pass?'პაროლი არასწორია':'']]))return;
-  closeModal();cb()}}
+  if(check(e.target,[[P,P.value?'':'შეიყვანეთ პაროლი']]))return;
+  const v=P.value;closeModal();cb(v)}}
 /* success window after a listing is published: jewelry backdrop (images/bg-jewelry.svg) + ring badge */
 function showPub(){$$('.pubpop').forEach(x=>x.remove());
  const o=document.createElement('div');o.className='pubpop';
@@ -1358,62 +1400,19 @@ function swapAuth(m,dir){busy=true;const box=$('#modalBox'),body=$('#modalBody')
 function renderAuth(m){const B=$('#modalBody');curAuth=m;
  if(m=='login'){B.innerHTML=`<h3>შესვლა</h3><form class="form" id="authForm" novalidate><label>ელ-ფოსტა ან მომხმარებლის სახელი<input id="lE" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></label>${pw('lP','პაროლი')}<div class="rowr"><button type="button" class="linkbtn" id="toFg">დაგავიწყდათ პაროლი?</button></div><button class="btn" type="submit">შესვლა</button></form><button type="button" class="link" id="toReg">არ გაქვთ ანგარიში? დარეგისტრირდით</button>`;
   $('#toReg').onclick=()=>openAuth('reg');$('#toFg').onclick=()=>openAuth('forgot');
-  $('#authForm').onsubmit=e=>{e.preventDefault();const fm=e.target,E=$('#lE'),P=$('#lP'),em=E.value.trim();
+  $('#authForm').onsubmit=async e=>{e.preventDefault();const fm=e.target,E=$('#lE'),P=$('#lP'),em=E.value.trim();
    if(check(fm,[[E,loginMsg(em)],[P,P.value?'':'შეიყვანეთ პაროლი']]))return;
-   const u=users.find(u=>(same(u.email,em)||(u.username&&same(u.username,em)))&&u.pass&&u.pass==P.value);if(!u){const g=users.find(x=>(same(x.email,em)||(x.username&&same(x.username,em)))&&x.google&&!x.pass);err(P,g?GONLY:'ელ-ფოსტა/მომხმარებლის სახელი ან პაროლი არასწორია');return}
-   me=u;if(!me.created)me.created=Date.now();save('users',users);save('me',me);toast('მოგესალმებით!');afterAuth()}}
+   const btn=fm.querySelector('button[type=submit]');btn.disabled=true;
+   const res=await apiSend('POST','/api/auth/login',{login:em,password:P.value});
+   btn.disabled=false;
+   if(!res.ok){err(P,res.data.error=='google_only'?GONLY:(res.data.message||'ელ-ფოსტა/მომხმარებლის სახელი ან პაროლი არასწორია'));return}
+   adopt(res.data);toast('მოგესალმებით!');afterAuth()}}
 
 else if(m=='forgot'){
   B.innerHTML=`<h3>პაროლის აღდგენა</h3>
-    <p>შეიყვანეთ რეგისტრაციის ელფოსტა და გამოგიგზავნით პაროლის აღდგენის ბმულს.</p>
-    <form class="form" id="authForm" novalidate>
-      <label>ელ-ფოსტა
-        <input id="fE" type="email" autocomplete="email"
-          inputmode="email" placeholder="name@mail.com" required>
-      </label>
-      <button class="btn" type="submit" id="fgSubmit">
-        აღდგენის ბმულის გაგზავნა
-      </button>
-      <p id="fgStatus" role="status" aria-live="polite"></p>
-    </form>
-    <button type="button" class="link" id="toLog">
-      უკან, შესვლაზე
-    </button>`;
-
+    <p>პაროლის აღდგენა ელფოსტით ჯერ არ არის ჩართული. მოგვწერეთ <a href="mailto:mygemge@gmail.com">mygemge@gmail.com</a>-ზე იმ ელფოსტიდან, რომლითაც დარეგისტრირდით.</p>
+    <button type="button" class="link" id="toLog">უკან, შესვლაზე</button>`;
   $('#toLog').onclick=()=>openAuth('login');
-
-  $('#authForm').onsubmit=async e=>{
-    e.preventDefault();
-
-    const fm=e.target;
-    const E=$('#fE');
-    const em=E.value.trim().toLowerCase();
-    const btn=$('#fgSubmit');
-    const status=$('#fgStatus');
-
-    if(check(fm,[[E,emailMsg(em)]]))return;
-
-    btn.disabled=true;
-    status.textContent='მოთხოვნა იგზავნება...';
-
-    try{
-      const res=await fetch('/api/auth/forgot-password',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({email:em})
-      });
-
-      if(!res.ok)throw new Error('request failed');
-
-      status.textContent='თუ ეს ელფოსტა რეგისტრირებულია, პაროლის აღდგენის ბმულს მიიღებთ ელფოსტაზე.';
-      fm.reset();
-
-    }catch{
-      status.textContent='მოთხოვნა ვერ გაიგზავნა. სცადეთ მოგვიანებით.';
-    }finally{
-      btn.disabled=false;
-    }
-  };
 }
 
  else{B.innerHTML=`<h3>რეგისტრაცია</h3><form class="form" id="authForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('rT',{list:DD.reg,val:'individual',other:1,otherPh:'მიუთითეთ როგორ გსურთ რეგისტრაცია'}))}<label id="rNL">სახელი და გვარი<input id="rN" autocomplete="name" placeholder="მაგ: გიორგი მაისურაძე"></label><label id="rLL" hidden><input id="rL" type="hidden"></label><label>ელ-ფოსტა<input id="rE" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="name@mail.com"></label><label>მომხმარებლის სახელი<input id="rU" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="rP" type="tel" autocomplete="tel" inputmode="tel" maxlength="17" placeholder="5__ ___ ___"></label>${pw('rW','პაროლი','new-password')}${pw('rW2','გაიმეორეთ პაროლი','new-password')}<button class="btn" type="submit">რეგისტრაცია</button></form><button type="button" class="link" id="toLog">უკვე გაქვთ ანგარიში? შესვლა</button>`;
@@ -1451,7 +1450,7 @@ if(check(fm,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგ
  window.mygemConsent={get:state,has:c=>c=='essential'||!!state()[c],run:(cat,fn)=>{subs.push({cat,fn,done:false});flush()},open:openP};
  bar.classList.toggle('show',!read());flush();
 })();
-setLogin();window.addEventListener('hashchange',route);HYD=hydrate();Promise.all([HYD,loadDemoPhotos()]).then(route);
+setLogin();window.addEventListener('hashchange',route);HYD=hydrate();Promise.all([HYD,loadDemoPhotos(),restoreSession()]).then(async()=>{await pullListings();setLogin();route()});
 loadBlog().then(()=>{const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post'){const y=window.scrollY;route();if(y>0)setTimeout(()=>window.scrollTo({top:y,behavior:'instant'}),500)}});
 loadRate();
 /* the header height depends on the (large, responsive) logo: publish it as --hh so dropdowns, sticky panels and anchor scrolling always sit just below it */

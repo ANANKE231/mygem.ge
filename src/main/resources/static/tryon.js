@@ -88,7 +88,8 @@ async function tryCheck(){TRY.svc='check';tryPaintGo();
 function tryPaint(){tryPaintJewel();tryPaintPhoto();tryPaintGo();tryPaintStage()}
 function tryPaintJewel(){const el=$('#tryJewel');if(!el)return;const p=TRY.item,ph=(p.photos||[]);
  const sub=[p.cat,typeName(p),p.weight?p.weight+' გრ':''].filter(Boolean).map(esc).join(' · ');
- el.innerHTML=`<div class="try-item"><span class="th" style="${ph[0]?`background-image:url('${ph[TRY.pi]||ph[0]}')`:''}">${ph[0]?'':esc(p.emoji||'💍')}</span><div><b>${esc(p.title)}</b><small>${sub}</small></div></div>`
+ const pic=ph[TRY.pi]||ph[0]||'';const picOk=!!pic&&!/["'<>\\\s]/.test(pic)&&(/^(data:image\/(png|jpeg|webp|gif);|\/images\/)/.test(pic)||pic.startsWith('https://'));
+ el.innerHTML=`<div class="try-item"><span class="th" style="${picOk?`background-image:url('${pic}')`:''}">${ph[0]?'':esc(p.emoji||'💍')}</span><div><b>${esc(p.title)}</b><small>${sub}</small></div></div>`
   +(ph.length>1?`<div class="try-picks">${ph.map((s,i)=>`<button type="button" class="try-pick${i==TRY.pi?' on':''}" data-pi="${i}" aria-label="ფოტო ${i+1}"><span class="pt" style="background-image:url('${s}')"></span></button>`).join('')}</div>`:'')
   +(ph[0]?'':`<div class="try-lp err">${TI.warn}<span>ამ განცხადებას ფოტო არ აქვს, ამიტომ მოზომვა შეუძლებელია.</span></div>`)}
 function tryPaintPhoto(){const el=$('#tryPhoto');if(!el)return;
@@ -126,7 +127,7 @@ async function tryRun(){const j=tryJewel();if(!TRY.photo||!j||TRY.busy||TRY.svc!
  try{const d=await tryApi({action:'tryon',person:TRY.photo,jewelry:j.img,kind:j.kind},TRY.ctrl.signal);TRY.res=d.image}
  catch(e){TRY.err=e.name=='AbortError'?(TRY.cancelled?'':'დრო ამოიწურა. სცადეთ თავიდან.'):tryMsg(e)}
  clearTimeout(t);TRY.busy=false;tryTicker(false);tryPaintGo();tryPaintStage()}
-function tryFull(){if(!TRY.res)return;const d=document.createElement('div');d.className='try-lb';d.innerHTML=`<img src="${TRY.view=='orig'?TRY.photo:TRY.res}" alt="">`;
+function tryFull(){if(!TRY.res)return;const src=TRY.view=='orig'?TRY.photo:TRY.res;if(!src||!/^(data:image\/|blob:|https:\/\/)/.test(src))return;const d=document.createElement('div');d.className='try-lb';const img=document.createElement('img');img.alt='';img.src=src;d.append(img);
  const close=()=>{d.remove();document.removeEventListener('keydown',k)},k=e=>{if(e.key=='Escape')close()};d.onclick=close;document.addEventListener('keydown',k);document.body.append(d)}
 
 /* product page action button */

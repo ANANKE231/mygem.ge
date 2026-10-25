@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -8,10 +9,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static org.hamcrest.Matchers.containsString;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -63,6 +67,15 @@ class MarketplaceApiTest {
 		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + buyer).contentType(MediaType.APPLICATION_JSON).content(listing))
 				.andExpect(status().isForbidden());
 
+		String spoof = """
+				{"id":42,"title":"ოქროს ბეჭედი","owner":"ana@test.com","price":100,"vip":"VIP","pay":{"status":"active","amount":2,"receipt":"data:image/png;base64,SECRET"}}
+				""";
+		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON).content(spoof))
+				.andExpect(status().isOk());
+		mvc.perform(get("/api/listings"))
+				.andExpect(jsonPath("$.listings[0].vip").doesNotExist())
+				.andExpect(jsonPath("$.listings[0].pay.status").value("pending"));
+
 		String approved = """
 				{"id":42,"title":"ოქროს ბეჭედი","owner":"ana@test.com","price":100,"vip":"VIP","pay":{"status":"active","amount":2,"receipt":"data:image/png;base64,SECRET"}}
 				""";
@@ -81,7 +94,7 @@ class MarketplaceApiTest {
 				.andExpect(jsonPath("$.favs[0]").value(42));
 
 		mvc.perform(put("/api/me/notes").header("Authorization", "Bearer " + buyer).contentType(MediaType.APPLICATION_JSON)
-						.content("{\"notes\":{\"ana@test.com\":[{\"t\":\"გამარჯობა\",\"d\":10,\"r\":0}]}}"))
+						.content("{\"notes\":{\"ana@test.com\":[{\"t\":\"გამარჯობა\",\"d\":10,\"r\":0,\"listingId\":42}]}}"))
 				.andExpect(status().isOk());
 		mvc.perform(get("/api/me").header("Authorization", "Bearer " + seller))
 				.andExpect(jsonPath("$.notes[0].t").value("გამარჯობა"));
@@ -90,16 +103,45 @@ class MarketplaceApiTest {
 				.andExpect(status().isOk());
 		mvc.perform(get("/api/me").header("Authorization", "Bearer " + seller))
 				.andExpect(jsonPath("$.notes[0].t").value("გამარჯობა"));
+		mvc.perform(put("/api/me/notes").header("Authorization", "Bearer " + buyer).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"notes\":{\"mygemge@gmail.com\":[{\"t\":\"spam\",\"d\":11,\"r\":0}]}}"))
+				.andExpect(status().isOk());
+		mvc.perform(get("/api/me").header("Authorization", "Bearer " + admin))
+				.andExpect(jsonPath("$.notes.length()").value(0));
+
+		mvc.perform(post("/api/auth/check-password").cookie(new Cookie("mygem_session", seller))
+						.contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"secret12\"}"))
+				.andExpect(status().isForbidden());
+		mvc.perform(post("/api/auth/check-password").cookie(new Cookie("mygem_session", seller))
+						.header("X-MyGem", "1").contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"secret12\"}"))
+				.andExpect(status().isOk());
 
 		mvc.perform(post("/api/auth/forgot").contentType(MediaType.APPLICATION_JSON)
 						.content("{\"email\":\"ana@test.com\",\"password\":\"newpass12\"}"))
 				.andExpect(status().isOk());
-		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+		MvcResult again = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
 						.content("{\"login\":\"ana\",\"password\":\"secret12\"}"))
-				.andExpect(status().isUnauthorized());
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.user.pass").doesNotExist())
+				.andExpect(jsonPath("$.user.google").doesNotExist())
+				.andReturn();
+		seller = token(again);
 		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
 						.content("{\"login\":\"ana@test.com\",\"password\":\"newpass12\"}"))
-				.andExpect(status().isOk());
+				.andExpect(status().isUnauthorized());
+
+		mvc.perform(get("/api/users"))
+				.andExpect(status().isUnauthorized());
+		mvc.perform(get("/api/users").header("Authorization", "Bearer " + buyer))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/api/users").header("Authorization", "Bearer " + admin))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.users[0].pass").doesNotExist())
+				.andExpect(jsonPath("$.users[0].google").doesNotExist());
+		mvc.perform(get("/api/health"))
+				.andExpect(status().isOk())
+				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
+				.andExpect(header().exists("Content-Security-Policy"));
 
 		mvc.perform(delete("/api/listings/42").header("Authorization", "Bearer " + buyer))
 				.andExpect(status().isForbidden());
@@ -123,16 +165,21 @@ class MarketplaceApiTest {
 	private MvcResult register(String json) throws Exception {
 		return mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.token").isNotEmpty())
+				.andExpect(jsonPath("$.token").doesNotExist())
+				.andExpect(header().string("Set-Cookie", containsString("mygem_session=")))
+				.andExpect(header().string("Set-Cookie", containsString("HttpOnly")))
 				.andExpect(jsonPath("$.user.hasPass").value(true))
 				.andReturn();
 	}
 
-	private String token(MvcResult result) throws Exception {
-		String body = result.getResponse().getContentAsString();
-		int at = body.indexOf("\"token\":\"");
-		int from = at + "\"token\":\"".length();
-		return body.substring(from, body.indexOf('"', from));
+	private String token(MvcResult result) {
+		String header = result.getResponse().getHeader("Set-Cookie");
+		if (header == null || !header.startsWith("mygem_session=")) {
+			throw new AssertionError("missing session cookie");
+		}
+		int from = "mygem_session=".length();
+		int semi = header.indexOf(';', from);
+		return java.net.URLDecoder.decode(header.substring(from, semi < 0 ? header.length() : semi), java.nio.charset.StandardCharsets.UTF_8);
 	}
 
 }

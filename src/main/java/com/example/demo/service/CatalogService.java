@@ -8,8 +8,10 @@ import com.example.demo.repo.FavoriteRepository;
 import com.example.demo.repo.ListingRepository;
 import com.example.demo.repo.UserNoteRepository;
 import com.example.demo.web.ApiException;
+import com.example.demo.web.MediaUrls;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +29,7 @@ import java.util.Map;
 public class CatalogService {
 
 	private static final Logger log = LoggerFactory.getLogger(CatalogService.class);
-	private static final int MAX_PAYLOAD = 30_000_000;
+	private static final int MAX_PAYLOAD = 8_000_000;
 	private static final int MAX_NOTES = 200;
 	private static final int MAX_FAVS = 500;
 
@@ -101,6 +103,17 @@ public class CatalogService {
 		if ("demo".equalsIgnoreCase(owner)) {
 			throw new ApiException(400, "bad_request", "სადემონსტრაციო განცხადება სერვერზე არ ინახება");
 		}
+		String title = listing.path("title").asText("").trim();
+		if (title.length() < 2 || title.length() > 200) {
+			throw new ApiException(400, "bad_request", "სათაური უნდა იყოს 2-დან 200 სიმბოლომდე");
+		}
+		listing.put("title", title);
+		String desc = listing.path("desc").asText("");
+		if (desc.length() > 4000) {
+			listing.put("desc", desc.substring(0, 4000));
+		}
+		sanitizeMedia(listing);
+		lockPrivileged(listing, record, exists, admin);
 		String payload;
 		try {
 			payload = json.writeValueAsString(listing);
@@ -222,14 +235,110 @@ public class CatalogService {
 			seen.add(note.getCreatedAt() + "\n" + note.getText());
 		}
 		List<UserNote> extra = new ArrayList<>();
-		for (UserNote note : readNotes(email, list)) {
-			String key = note.getCreatedAt() + "\n" + note.getText();
-			if (seen.add(key)) {
-				extra.add(note);
+		list.forEach(node -> {
+			if (extra.size() >= 5) {
+				return;
 			}
-		}
+			long listingId = node.path("listingId").asLong(0);
+			if (listingId <= 0 || !owns(email, listingId)) {
+				return;
+			}
+			String text = node.path("t").asText("").trim();
+			if (text.isBlank()) {
+				return;
+			}
+			if (text.length() > 500) {
+				text = text.substring(0, 500);
+			}
+			String key = node.path("d").asLong(System.currentTimeMillis()) + "\n" + text;
+			if (!seen.add(key)) {
+				return;
+			}
+			UserNote note = new UserNote();
+			note.setEmail(email);
+			note.setText(text);
+			note.setCreatedAt(node.path("d").asLong(System.currentTimeMillis()));
+			note.setReadFlag(0);
+			extra.add(note);
+		});
 		if (!extra.isEmpty()) {
 			notes.saveAll(extra);
+		}
+	}
+
+	private boolean owns(String email, long id) {
+		return listings.findById(id).map(record -> email.equalsIgnoreCase(record.getOwnerEmail())).orElse(false);
+	}
+
+	private void sanitizeMedia(ObjectNode listing) {
+		if (listing.get("photos") instanceof ArrayNode photos) {
+			ArrayNode clean = json.createArrayNode();
+			for (JsonNode node : photos) {
+				if (clean.size() >= 8) {
+					break;
+				}
+				if (node.isTextual() && MediaUrls.image(node.asText())) {
+					clean.add(node.asText());
+				}
+			}
+			listing.set("photos", clean);
+		}
+		if (listing.get("video") != null && listing.get("video").isTextual() && !MediaUrls.image(listing.get("video").asText()) && !listing.get("video").asText().startsWith("data:video/")) {
+			listing.remove("video");
+		}
+		if (listing.get("pay") instanceof ObjectNode pay) {
+			String receipt = pay.path("receipt").asText("");
+			if (!receipt.isBlank() && !MediaUrls.receipt(receipt)) {
+				pay.remove("receipt");
+				pay.remove("receiptName");
+				pay.remove("receiptType");
+			}
+		}
+	}
+
+	private void lockPrivileged(ObjectNode listing, ListingRecord record, boolean exists, boolean admin) {
+		if (admin) {
+			return;
+		}
+		ObjectNode old = null;
+		if (exists && record.getPayload() != null) {
+			try {
+				JsonNode tree = json.readTree(record.getPayload());
+				if (tree instanceof ObjectNode node) {
+					old = node;
+				}
+			} catch (Exception ignored) {
+				old = null;
+			}
+		}
+		for (String key : new String[] {"vip", "vipUntil", "state", "blockReason", "hold", "color", "colorUntil", "colorHex", "sticker", "stickerUntil", "stickers", "renewedAt", "expNote"}) {
+			if (old != null && old.has(key)) {
+				listing.set(key, old.get(key));
+			} else {
+				listing.remove(key);
+			}
+		}
+		if (listing.get("pay") instanceof ObjectNode pay) {
+			if (old != null && old.get("pay") instanceof ObjectNode oldPay) {
+				for (String key : new String[] {"status", "verifiedBy", "verifiedAt", "reason"}) {
+					if (oldPay.has(key)) {
+						pay.set(key, oldPay.get(key));
+					} else {
+						pay.remove(key);
+					}
+				}
+			} else {
+				pay.put("status", "pending");
+				pay.remove("verifiedBy");
+				pay.remove("verifiedAt");
+				pay.remove("reason");
+			}
+			if (!pay.has("status") || pay.path("status").asText("").isBlank()) {
+				pay.put("status", "pending");
+			}
+			if ("pending".equals(pay.path("status").asText(""))) {
+				listing.put("hold", true);
+			}
 		}
 	}
 

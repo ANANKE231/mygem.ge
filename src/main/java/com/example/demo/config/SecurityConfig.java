@@ -1,7 +1,9 @@
 package com.example.demo.config;
 
+import com.example.demo.security.AuthRateLimitFilter;
+import com.example.demo.security.SecurityHeadersFilter;
+import com.example.demo.security.SessionService;
 import com.example.demo.security.TokenAuthFilter;
-import com.example.demo.security.TokenService;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -33,8 +35,18 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public TokenAuthFilter tokenAuthFilter(TokenService tokens) {
-		return new TokenAuthFilter(tokens);
+	public TokenAuthFilter tokenAuthFilter(SessionService sessions) {
+		return new TokenAuthFilter(sessions);
+	}
+
+	@Bean
+	public SecurityHeadersFilter securityHeadersFilter() {
+		return new SecurityHeadersFilter();
+	}
+
+	@Bean
+	public AuthRateLimitFilter authRateLimitFilter() {
+		return new AuthRateLimitFilter();
 	}
 
 	@Bean
@@ -45,7 +57,21 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenAuthFilter tokenAuthFilter) throws Exception {
+	public FilterRegistrationBean<SecurityHeadersFilter> securityHeadersFilterRegistration(SecurityHeadersFilter filter) {
+		FilterRegistrationBean<SecurityHeadersFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	public FilterRegistrationBean<AuthRateLimitFilter> authRateLimitFilterRegistration(AuthRateLimitFilter filter) {
+		FilterRegistrationBean<AuthRateLimitFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenAuthFilter tokenAuthFilter, SecurityHeadersFilter securityHeadersFilter, AuthRateLimitFilter authRateLimitFilter) throws Exception {
 		http
 				.csrf(AbstractHttpConfigurer::disable)
 				.httpBasic(AbstractHttpConfigurer::disable)
@@ -59,10 +85,12 @@ public class SecurityConfig {
 				}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/forgot", "/api/auth/google").permitAll()
-						.requestMatchers(HttpMethod.GET, "/api/listings", "/api/users", "/api/health").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/listings", "/api/health").permitAll()
 						.requestMatchers("/api/**").authenticated()
 						.anyRequest().permitAll())
-				.addFilterBefore(tokenAuthFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(tokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(authRateLimitFilter, TokenAuthFilter.class)
+				.addFilterBefore(securityHeadersFilter, AuthRateLimitFilter.class);
 		return http.build();
 	}
 

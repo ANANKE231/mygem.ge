@@ -222,6 +222,8 @@
     ["დაგავიწყდათ პაროლი?", "Forgot your password?"],
     ["არ გაქვთ ანგარიში? დარეგისტრირდით", "No account? Register"],
     ["უკვე გაქვთ ანგარიში? შესვლა", "Already have an account? Sign in"],
+    ["პაროლის აღდგენა ელფოსტით ჯერ არ არის ჩართული. მოგვწერეთ", "Password reset by email is not available yet. Write to"],
+    ["-ზე იმ ელფოსტიდან, რომლითაც დარეგისტრირდით.", " from the email address you registered with."],
     ["პაროლის აღდგენა", "Reset password"],
     ["შეიყვანეთ რეგისტრაციის ელფოსტა და გამოგიგზავნით პაროლის აღდგენის ბმულს.", "Enter the email you registered with and we will send a reset link."],
     ["აღდგენის ბმულის გაგზავნა", "Send reset link"],

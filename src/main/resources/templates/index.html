@@ -8,17 +8,7 @@
 <link rel="icon" type="image/png" href="/images/diamond-ring.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<script>
-(function () {
-  try {
-    var t = localStorage.getItem('theme');
-    if (t !== 'dark' && t !== 'light') t = 'light';
-    document.documentElement.dataset.theme = t;
-    var m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.content = t === 'dark' ? '#121418' : '#ffffff';
-  } catch (e) {}
-})();
-</script>
+<script src="/static/boot.js?v=1"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600&family=Noto+Serif+Georgian:wght@400;500&display=swap">
 <link rel="stylesheet" href="/static/collection.css?v=4">
 <link rel="stylesheet" href="/static/style.css?v=6">
@@ -102,17 +92,11 @@
   </div>
   <button type="button" class="link" id="ckX">დახურვა</button>
 </div></div>
-<script>/* e-mails that may use the admin tools (payments, blog). If tryon.js already defines window.ADMIN_EMAILS its list is kept. */window.ADMIN_EMAILS=window.ADMIN_EMAILS||["mygemge@gmail.com"];
-/* URL of the deployed metals-worker.js (official LBMA gold / silver / platinum prices), e.g. "https://mygem-metals.YOURNAME.workers.dev". Empty = public live spot feed. */window.METALS_API="";</script>
-<script>/* URL of the deployed tryon-worker.js (see SETUP-TRYON.md), e.g. "https://mygem-tryon.YOURNAME.workers.dev" */window.TRYON_API="";</script>
-<script>/* Same-origin Google sign-in. Set GOOGLE_CLIENT_ID for the OAuth web client. */window.AUTH_API="/api/auth/google";</script>
-<script>/* URL of the deployed blog-worker.js (see SETUP-BLOG.md), e.g. "https://mygem-blog.YOURNAME.workers.dev". Empty = blog posts stay in the admin's browser only. */window.BLOG_API="";</script>
-<script>/* SMS-ით ტელეფონის დადასტურება გამორთულია. ჩასართავად წაშალეთ ეს ხაზი და გამართეთ window.SMS_API */window.SMS_VERIFY=false;</script>
-<script src="/static/i18n.js?v=2"></script>
+<script src="/static/i18n.js?v=3"></script>
 <script src="/static/tryon.js?v=4"></script>
 <script src="/static/blog.js?v=4"></script>
 <script src="/static/blog-extra.js?v=4"></script>
-<script src="/static/script.js?v=7"></script>
+<script src="/static/script.js?v=9"></script>
 <script src="/static/collection.js?v=4"></script>
 <script src="/static/widget.js?v=4"></script>
 <script src="/static/ad.js?v=4"></script>

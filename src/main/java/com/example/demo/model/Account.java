@@ -27,6 +27,9 @@ public class Account {
 	@Column(length = 40)
 	private String phone;
 
+	@Column(name = "phone_key", length = 15)
+	private String phoneKey;
+
 	@Column(nullable = false, length = 120)
 	private String name;
 
@@ -87,6 +90,14 @@ public class Account {
 
 	public void setPhone(String phone) {
 		this.phone = phone;
+	}
+
+	public String getPhoneKey() {
+		return phoneKey;
+	}
+
+	public void setPhoneKey(String phoneKey) {
+		this.phoneKey = phoneKey;
 	}
 
 	public String getName() {
