@@ -172,7 +172,16 @@ if (!p || !ownerOf(p)) return;
    const K=$('#aK'),L=$('#aL'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),k=K.dataset.val,t=T.value.trim(),d=D.value.trim(),w=+W.value,pr=G(),nego=$('#aNego').checked,A={},
     col=CK.checked,sv=$('#aSP .sval'),sel=cleanStk(sv?sv.value.split(','):[]),pk=PLs.dataset.val,pl=PLANS[pk],paid=pk!='REG',
     need=paid||col||sel.length>0,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price,rcOk=!!window.rc||!!(old&&old.receipt&&amt<=old.amount),
-    dyn=fkeys(k).map(x=>{const el=$('#a_'+x),v=FD[x].t=='text'?el.value.trim():el.dataset.val;if(v)A[x]=v;return[el,v?'':(FD[x].t=='text'?'შეიყვანეთ ':'აირჩიეთ ')+FD[x].l]});
+    dyn=fkeys(k).map(x=>{
+  const el=$('#a_'+x);
+  const v=FD[x].t=='text'?el.value.trim():el.dataset.val;
+  if(v) A[x]=v;
+
+  return [el,
+    x=='metal'&&!v?'აირჩიეთ ლითონის ტიპი':
+    x=='pur'&&!v?'აირჩიეთ სინჯი':''
+  ];
+});
    const KOe=$('#aKO'),n=check(af,[[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KOe,k=='other'&&!KOe.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
     [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
     [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,nego?'':(!(pr>0)?'მიუთითეთ ფასი (0-ზე მეტი)':pr>100000000?'ფასი ძალიან მაღალია':'')],
