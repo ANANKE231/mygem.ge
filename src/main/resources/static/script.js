@@ -1135,7 +1135,42 @@ else B.append(wrap);
   if(!alive())return;
   if(!c.ready||!c.clientId){gShow(GERR.google_not_configured,true);return}
   if(gInit!==c.clientId){google.accounts.id.initialize({client_id:c.clientId,callback:gCred,ux_mode:'popup',auto_select:false,itp_support:true});gInit=c.clientId}
-  google.accounts.id.renderButton(host,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',logo_alignment:'left',locale:window.MYGEM_LANG==='en'?'en':'ka',width:Math.max(200,Math.min(400,host.clientWidth||320))})
+  let lastWidth = 0;
+
+const renderGoogleButton = () => {
+  if (!alive()) return;
+
+  const width = Math.floor(Math.min(400, host.clientWidth));
+
+  // დაელოდოს, სანამ ფანჯარა რეალურ სიგანეს მიიღებს
+  if (width < 200 || width === lastWidth) return;
+
+  lastWidth = width;
+  host.replaceChildren();
+
+  google.accounts.id.renderButton(host, {
+    type: 'standard',
+    theme: 'outline',
+    size: 'large',
+    text: 'continue_with',
+    shape: 'rectangular',
+    logo_alignment: 'left',
+    locale: window.MYGEM_LANG === 'en' ? 'en' : 'ka',
+    width
+  });
+};
+
+const observer = new ResizeObserver(() => {
+  if (!alive()) {
+    observer.disconnect();
+    return;
+  }
+
+  renderGoogleButton();
+});
+
+observer.observe(host);
+requestAnimationFrame(renderGoogleButton);
  }).catch(e=>{if(alive())gShow(GERR[e]||GERR.network,true)})}
 const gTokSet=t=>{try{sessionStorage.setItem('gtok',t)}catch{}};
 const jwtExp=t=>{try{return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp*1000}catch{return 0}};

@@ -2,7 +2,7 @@
    Data is emailed via FormSubmit (https://formsubmit.co). FIRST USE: submit one test message,
    then open the activation email FormSubmit sends to MAIL and click "Activate". */
 (()=>{
-const MAIL=window.CONTACT_EMAIL||'mygem@gmail.com';   // <- change here if needed
+const MAIL = 'mygemge@gmail.com';   // <- change here if needed
 const $=(s,r=document)=>r.querySelector(s);
 const css=`
 .fw{position:fixed;right:18px;bottom:18px;z-index:140;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
@@ -53,7 +53,15 @@ function panel(html,onSubmit){
  const m=$('#modal'),B=$('#modalBody');if(!m||!B)return;
  m.classList.add('show');B.innerHTML=html;
  const f=B.querySelector('form'),close=()=>{if(typeof closeModal=='function')closeModal();else m.classList.remove('show')};
- const no=B.querySelector('[data-no]');if(no)no.onclick=close;
+ const no = B.querySelector('[data-no]');
+if (no) {
+  no.onclick = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    m.classList.remove('show');
+    document.querySelector('#modalBox')?.classList.remove('wide');
+  };
+}
  f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector('button[type=submit]'),t=b.textContent;
   const ok=onSubmit(f);if(!ok)return;
   b.disabled=true;b.textContent='იგზავნება…';

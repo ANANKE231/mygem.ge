@@ -4612,3 +4612,34 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
   background: #121418;
   border-bottom-color: #2c3039;
 }
+/* Google-ის ღილაკი რეალურ სიგანეზე */
+.gblock {
+  width: 100%;
+  min-width: 0;
+}
+
+.gwrap {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  min-width: 0;
+  min-height: 44px;
+  margin-inline: auto;
+  padding: 0;
+  color-scheme: light;
+}
+/* Google-ის ღილაკის სრული დასაჭერი არე */
+#gBtn.gwrap {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+#gBtn iframe {
+  max-width: none !important;
+  pointer-events: auto;
+}
+#modal.modal.show {
+  z-index: 10000;
+}
