@@ -62,7 +62,7 @@ async function pushListing(p){
  if(!p||p.owner==='demo')return true;
  const res=await apiSend('PUT','/api/listings',p);
  if(!res.ok){toast(res.data.message||'სერვერზე შენახვა ვერ მოხერხდა');return false}
- if(Array.isArray(res.data.photos)&&res.data.photos.length===(p.photos||[]).length&&res.data.photos.some(u=>typeof u==='string'&&(u.startsWith('https://')||u.startsWith('/')))){p.photos=res.data.photos;saveItems(items)}
+ if(Array.isArray(res.data.photos)&&res.data.photos.length===(p.photos||[]).length&&res.data.photos.some(u=>typeof u==='string'&&(u.startsWith('https://')||u.startsWith('/')||u.startsWith('listings/')))){p.photos=res.data.photos;saveItems(items)}
  return true}
 async function restoreSession(){
  try{localStorage.removeItem('mygemTok')}catch{}
@@ -83,24 +83,44 @@ async function pullListings(){
  const heal=[];
  for(const p of remote){if(!me||!same(p.owner,me.email)||(p.photos&&p.photos.length))continue;const ph=kept.get(String(p.id));if(ph){p.photos=ph;heal.push(p)}}
  saveItems(items);
- for(const p of mine)await pushListing(p);
- for(const p of heal)await pushListing(p)}
+ Promise.allSettled([...mine,...heal].map(pushListing))}
 const stripPass=v=>{if(Array.isArray(v))v.forEach(u=>{if(u&&typeof u==='object')delete u.pass});else if(v&&typeof v==='object')delete v.pass;return v};
 const save=(k,v)=>k=='items'?saveItems(v):lsSet(k,(k=='users'||k=='me')?stripPass(v):v);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const safeUrl=s=>{s=String(s||'');
+const PHOTO_BASE = ['localhost', '127.0.0.1'].includes(location.hostname)
+  ? 'https://mygem.ge/uploads/'
+  : '/uploads/';
+
+const fixPh = s => {
+  if (typeof s !== 'string') return s;
+  if (s.startsWith('listings/')) return PHOTO_BASE + s;
+  if (s.startsWith('/uploads/')) {
+    return PHOTO_BASE + s.slice('/uploads/'.length);
+  }
+  return s;
+};
+const safeUrl=s=>{s=fixPh(String(s||''));
  if(s.startsWith('data:image/jpeg;')||s.startsWith('data:image/png;')||s.startsWith('data:image/webp;')||s.startsWith('data:image/gif;')||s.startsWith('data:video/')||s.startsWith('data:audio/')||s.startsWith('data:application/pdf;'))return esc(s);
- if((s.startsWith('/images/')||s.startsWith('/static/'))&&!s.includes('..')&&!s.includes('\\')&&!s.includes('//'))return esc(s);
+ if((s.startsWith('/images/')||s.startsWith('/static/')||s.startsWith('/uploads/'))&&!s.includes('..')&&!s.includes('\\')&&!s.includes('//'))return esc(s);
  try{const u=new URL(s,location.origin);if(u.protocol==='https:'||(u.protocol==='http:'&&u.origin===location.origin))return esc(u.href)}catch{}
  return ''};
 /* background-image for a photo: quotes / brackets / spaces in a path can no longer break the style attribute (data: URLs are unaffected) */
-const bgi=s=>s?`background-image:url('${esc(String(s).replace(/[\\'"()\s]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase().padStart(2,'0')))}')`:'';
+const bgi = s => {
+  s = fixPh(String(s || ''));
+  return s
+    ? `background-image:url('${esc(s.replace(/[\\'"()\s]/g,
+        c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')
+      ))}')`
+    : '';
+};
 let users=load('users',[]),me=load('me',null),favs=load('favs',[]),notes=load('notes',{}),F={},pc={};
 if(me)delete me.admin;
 if(users.some(u=>u&&Object.prototype.hasOwnProperty.call(u,'pass'))||(me&&Object.prototype.hasOwnProperty.call(me,'pass'))){save('users',users);if(me)save('me',me)}
 try{localStorage.removeItem('mygemTok')}catch{}
-async function apiSend(method,url,body){const headers={'Content-Type':'application/json','X-MyGem':'1'};
- let r;try{r=await fetch(url,{method,headers,credentials:'include',body:body==null?undefined:JSON.stringify(body)})}catch{return {ok:false,status:0,data:{error:'network',message:'სერვერთან დაკავშირება ვერ მოხერხდა'}}}
+async function apiSend(method,url,body,ms){const headers={'Content-Type':'application/json','X-MyGem':'1'};
+ const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),typeof ms=='number'?ms:8000);
+ let r;try{r=await fetch(url,{method,headers,credentials:'include',signal:ac.signal,body:body==null?undefined:JSON.stringify(body)})}catch{clearTimeout(tm);return {ok:false,status:0,data:{error:'network',message:'სერვერთან დაკავშირება ვერ მოხერხდა'}}}
+ clearTimeout(tm);
  const data=await r.json().catch(()=>({}));return {ok:r.ok&&data.ok!==false,status:r.status,data}}
 function adopt(d){if(!d||!d.user)return;try{localStorage.removeItem('mygemTok')}catch{}const u={...d.user};delete u.pass;if(typeof d.admin==='boolean')u.admin=d.admin;
  let idx=users.findIndex(x=>same(x.email,u.email));if(idx<0&&me)idx=users.findIndex(x=>same(x.email,me.email));
@@ -414,8 +434,7 @@ function paySummary(){const box=$('#paySum'),PL=$('#aPlan');if(!box||!PL)return;
  if(n)rows.push([`სტიკერები × ${n} (${STICKER.price} ₾ თითოეული) · ${STICKER.days} დღე`,n*STICKER.price]);
  if(!rows.length){box.innerHTML='';return}
  box.innerHTML=rows.map(r=>`<div class="psr"><span>${esc(r[0])}</span><b>${r[1]} ₾</b></div>`).join('')+`<div class="psr tot"><span>სულ გადასახდელი</span><b>${rows.reduce((a,r)=>a+r[1],0)} ₾</b></div>`}
-document.addEventListener('click',e=>{const ns=e.target.closest('a[href="#search"]');
-if(ns){e.preventDefault();window.open(location.href.split('#')[0]+'#search','_blank','noopener');return}const b=e.target.closest('[data-sk]');if(!b)return;const box=b.closest('.spick');if(!box)return;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-sk]');if(!b)return;const box=b.closest('.spick');if(!box)return;
  const v=box.querySelector('.sval'),cur=cleanStk(v.value.split(',')),id=b.dataset.sk,has=cur.includes(id);
  if(!has&&cur.length>=STICKER.max)return toast(`მაქსიმუმ ${STICKER.max} სტიკერის არჩევა შეიძლება`);
  const nx=has?cur.filter(x=>x!=id):[...cur,id];
@@ -804,7 +823,7 @@ product(t){const p=items.find(x=>String(x.id)===String(t)&&!held(x));
  const rows=[['კატეგორია',p.cat],['ნივთის ტიპი',tn,p.type],['სქესი',p.gender],['წონა',p.weight?p.weight+' გრ':''],['მდებარეობა',p.loc],...attrRows(p)].filter(r=>r[1]);
  const tel=String(s.phone||'').replace(/[^\d+]/g,'');
  const hex=cardHex(p);
- const nm=imgs.length+(p.video?1:0),main=(imgs.length?`<img id="pgImg" src="${esc(imgs[0])}" alt="${esc(p.title)}">`:p.video?'':`<div class="pph">${ill(p)}</div>`)+(p.video?`<video id="pgVid" class="pmv" src="${esc(p.video)}" controls playsinline preload="metadata"${imgs.length?' hidden':''}></video>`:'');
+ const nm=imgs.length+(p.video?1:0),main=(imgs.length?`<img id="pgImg" src="${safeUrl(imgs[0])}" alt="${esc(p.title)}">`:p.video?'':`<div class="pph">${ill(p)}</div>`)+(p.video?`<video id="pgVid" class="pmv" src="${esc(p.video)}" controls playsinline preload="metadata"${imgs.length?' hidden':''}></video>`:'');
  return `<div class="page pdp"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button>
  <div class="pd-grid">
   <div class="pgal" id="pgal" data-id="${p.id}">
@@ -837,7 +856,7 @@ profile(tab='mine'){if(!me){openAuth('login');return ''}
 
 const ORDER={home:0,search:1,product:1.5,seller:1.6,calculator:2,blog:3,post:3.1,favs:4,add:5,edit:5,profile:6};
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let navN=0,lastIdx=0,rTok=0,pendingScroll=null;
+let navN=0,lastIdx=0,rTok=0,pendingScroll=null,lastV='';
 /* მისამართები: #catalog, #item/9, #blog/9, #seller/abc, #profile/listings, #edit/9 (ძველი #product:9 ფორმატიც მუშაობს) */
 /* მისამართები: #ძებნა, #განცხადება/9, #ბლოგი/9, #გამყიდველი/abc, #პროფილი/განცხადებები ... (ძველი #product:9, #search ფორმატიც მუშაობს) */
 const SL={home:'მთავარი',search:'ძებნა',product:'განცხადება',blog:'ბლოგი',seller:'გამყიდველი',calculator:'კალკულატორი',favs:'ფავორიტები',add:'დამატება',edit:'რედაქტირება',profile:'პროფილი'};
@@ -855,8 +874,12 @@ const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 /* page transition: same slide + fade language as the Login <-> Registration swap */
 function route(){sweep();let[h,t]=parseHash();if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
  const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
- navN++;lastIdx=idx;
- if(REDUCE){render();return}
+ const _prev=lastV;lastV=v;navN++;lastIdx=idx;
+ if(REDUCE || v === 'product' || v === 'search' || _prev === 'search'){
+  app.getAnimations().forEach(a => a.cancel());
+  render();
+  return;
+}
  if(navN==1){render();app.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'none'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});return}
  app.getAnimations().forEach(a=>a.cancel());
  const out=app.animate([{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${-40*dir}px)`}],{duration:170,easing:'ease',fill:'forwards'});
@@ -881,24 +904,24 @@ function bindV2(){
   d.innerHTML=`<button type="button" class="lbx-x" aria-label="დახურვა">×</button>${imgs.length>1?'<button type="button" class="lbx-n l" data-d="-1" aria-label="წინა">‹</button><button type="button" class="lbx-n r" data-d="1" aria-label="შემდეგი">›</button>':''}<div class="lbx-s"><img alt=""></div><span class="lbx-c"></span><span class="lbx-h">დააჭირეთ ფოტოს გასადიდებლად</span>`;
   const im=d.querySelector('img'),st=d.querySelector('.lbx-s'),ct=d.querySelector('.lbx-c');
   const zoom=on=>{z=on;d.classList.toggle('z',on);if(!on){st.scrollLeft=0;st.scrollTop=0}else{requestAnimationFrame(()=>{st.scrollLeft=(st.scrollWidth-st.clientWidth)/2;st.scrollTop=(st.scrollHeight-st.clientHeight)/2})}};
-  const show=n=>{k=(n+imgs.length)%imgs.length;im.src=imgs[k];ct.textContent=`${k+1} / ${imgs.length}`;zoom(false)};
+  const show=n=>{k=(n+imgs.length)%imgs.length;im.src=safeUrl(imgs[k]);ct.textContent=`${k+1} / ${imgs.length}`;zoom(false)};
   const close=()=>{document.removeEventListener('keydown',key);d.remove();document.body.style.overflow=''};
   const key=e=>{if(e.key=='Escape')close();else if(e.key=='ArrowRight')show(k+1);else if(e.key=='ArrowLeft')show(k-1)};
   d.onclick=e=>{if(e.target.closest('.lbx-x')||e.target===d||e.target===st)return close();const n=e.target.closest('[data-d]');if(n)return show(k+(+n.dataset.d));if(e.target===im)zoom(!z)};
   document.body.append(d);document.body.style.overflow='hidden';document.addEventListener('keydown',key);show(k)};
- const curK=()=>Math.max(0,imgs.findIndex(s=>s===img.getAttribute('src')));
+ const curK=()=>Math.max(0,imgs.findIndex(s=>safeUrl(s)===img.getAttribute('src')));
  if(img)img.addEventListener('click',()=>openLB(curK()));
  const zb=$('[data-zoom]',pg);if(zb)zb.addEventListener('click',()=>openLB(curK()));
  if(N<2)return;
  let i=0,x0=null;
  const go=n=>{i=(n+N)%N;const isV=vd&&i==imgs.length;if(vid&&!isV)vid.pause();
-  if(isV){if(img)img.hidden=true;vid.hidden=false}else{if(vid)vid.hidden=true;if(img){img.hidden=false;img.classList.add('sw');setTimeout(()=>{img.src=imgs[i];img.classList.remove('sw')},170)}}
+  if(isV){if(img)img.hidden=true;vid.hidden=false}else{if(vid)vid.hidden=true;if(img){img.hidden=false;img.classList.add('sw');setTimeout(()=>{img.src=safeUrl(imgs[i]);img.classList.remove('sw')},170)}}
   $$('.pth',pg).forEach((b,k)=>b.classList.toggle('on',k==i));cnt.textContent=`${i+1} / ${N}`;
   const on=$('.pth.on',pg);if(on)on.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})};
  pg.addEventListener('click',e=>{const t=e.target.closest('.pth');if(t)return go(+t.dataset.i);const a=e.target.closest('[data-pg]');if(a)go(i+(+a.dataset.pg))});
  const pm=$('.pmain',pg);pm.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
  pm.addEventListener('touchend',e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40)go(i+(dx<0?1:-1))})}
-document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.matches&&e.target.matches('.card[data-id]')&&!e.target.closest('.cact'))window.open(location.href.split('#')[0]+'#product:'+e.target.dataset.id,'_blank','noopener')});
+document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.matches&&e.target.matches('.card[data-id]')&&!e.target.closest('.cact'))location.hash = 'product:' + e.target.dataset.id;});
 
 /* ---------- photos ---------- */
 const rd=f=>new Promise(r=>{const x=new FileReader();x.onerror=x.onabort=()=>r(null);
@@ -1307,7 +1330,7 @@ document.addEventListener('click',e=>{
  const cc=e.target.closest('a[href="#collection"]');if(cc){e.preventDefault();F={};if(location.hash=='#search')route();else location.hash='search'}
  const cl=e.target.closest('a[href="#calculator"]'),ch=$('#calcHome');if(cl&&ch&&(!location.hash||location.hash=='#home')){e.preventDefault();ch.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'})}
   const cd=e.target.closest('.card[data-id]');if(cd&&!e.target.closest('[data-fav],[data-cshare],[data-cs],[data-del],[data-eph]')){
- window.open(location.href.split('#')[0]+'#product:'+cd.dataset.id,'_blank','noopener')}
+ location.hash = 'product:' + cd.dataset.id;}
  const so=e.target.closest('.sr[data-id]');if(so){location.hash='product:'+so.dataset.id}
  const pf=e.target.closest('[data-pfav]');if(pf){if(!me)openAuth('login');else{const id=+pf.dataset.pfav;favs=favs.includes(id)?favs.filter(x=>x!=id):[...favs,id];save('favs',favs);setFavCnt();const on=favs.includes(id);pf.classList.toggle('on',on);pf.setAttribute('aria-pressed',on);const lb=on?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება';pf.setAttribute('aria-label',lb);pf.title=lb}}
  const rcb=e.target.closest('[data-rcpt]');if(rcb)openReceipt(rcb.dataset.rcpt);
@@ -1489,8 +1512,12 @@ if(check(fm,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგ
  window.mygemConsent={get:state,has:c=>c=='essential'||!!state()[c],run:(cat,fn)=>{subs.push({cat,fn,done:false});flush()},open:openP};
  bar.classList.toggle('show',!read());flush();
 })();
-setLogin();window.addEventListener('hashchange',route);HYD=hydrate();Promise.all([HYD,loadDemoPhotos(),restoreSession()]).then(async()=>{await pullListings();setLogin();route()});
-loadBlog().then(()=>{const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post'){const y=window.scrollY;route();if(y>0)setTimeout(()=>window.scrollTo({top:y,behavior:'instant'}),500)}});
+const quiet=()=>{const[h,t]=parseHash();if(!/^(home|search)$/.test(h))return;
+ const y=window.scrollY;$('#app').innerHTML=views[h](t);bind();if(window.applyLang)window.applyLang(document.body);window.scrollTo({top:y,behavior:'instant'})};
+setLogin();window.addEventListener('hashchange',route);HYD=hydrate();
+HYD.finally(()=>route());
+restoreSession().then(()=>pullListings()).then(()=>{setLogin();quiet()}).catch(()=>{});
+loadBlog().then(()=>{const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post')quiet()});
 loadRate();
 /* the header height depends on the (large, responsive) logo: publish it as --hh so dropdowns, sticky panels and anchor scrolling always sit just below it */
 (()=>{const t=$('.top');if(!t)return;const set=()=>document.documentElement.style.setProperty('--hh',t.offsetHeight+'px');set();
