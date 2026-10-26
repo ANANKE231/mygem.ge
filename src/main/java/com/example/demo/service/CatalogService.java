@@ -1,9 +1,11 @@
 package com.example.demo.service;
 
 import com.example.demo.config.AppProperties;
+import com.example.demo.model.Account;
 import com.example.demo.model.Favorite;
 import com.example.demo.model.ListingRecord;
 import com.example.demo.model.UserNote;
+import com.example.demo.repo.AccountRepository;
 import com.example.demo.repo.FavoriteRepository;
 import com.example.demo.repo.ListingRepository;
 import com.example.demo.repo.UserNoteRepository;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,22 +39,32 @@ public class CatalogService {
 	private final ListingRepository listings;
 	private final FavoriteRepository favorites;
 	private final UserNoteRepository notes;
+	private final AccountRepository accounts;
 	private final AppProperties props;
 	private final ObjectMapper json;
+	private final ObjectImages images;
 
-	public CatalogService(ListingRepository listings, FavoriteRepository favorites, UserNoteRepository notes, AppProperties props, ObjectMapper json) {
+	public CatalogService(ListingRepository listings, FavoriteRepository favorites, UserNoteRepository notes, AccountRepository accounts, AppProperties props, ObjectMapper json, ObjectImages images) {
 		this.listings = listings;
 		this.favorites = favorites;
 		this.notes = notes;
+		this.accounts = accounts;
 		this.props = props;
 		this.json = json;
+		this.images = images;
 	}
 
 	@Transactional(readOnly = true)
 	public Map<String, Object> listings(String viewer) {
+		Map<String, Account> owners = new HashMap<>();
+		for (Account account : accounts.findAll()) {
+			if (account.getEmail() != null) {
+				owners.put(account.getEmail().toLowerCase(Locale.ROOT), account);
+			}
+		}
 		List<Object> out = new ArrayList<>();
 		for (ListingRecord record : listings.findAll()) {
-			Object listing = toPublicListing(record, viewer);
+			Object listing = toPublicListing(record, viewer, owners);
 			if (listing != null) {
 				out.add(listing);
 			}
@@ -112,21 +125,33 @@ public class CatalogService {
 		if (desc.length() > 4000) {
 			listing.put("desc", desc.substring(0, 4000));
 		}
-		sanitizeMedia(listing);
-		lockPrivileged(listing, record, exists, admin);
-		String payload;
+		String oldPayload = exists ? record.getPayload() : null;
+		ObjectImages.PhotoChange photos = images.stageListingPhotos(listing, id, oldPayload);
 		try {
-			payload = json.writeValueAsString(listing);
-		} catch (Exception ex) {
-			throw new ApiException(400, "bad_request", "განცხადების მონაცემები არასწორია");
+			sanitizeMedia(listing);
+			lockPrivileged(listing, record, exists, admin);
+			String payload;
+			try {
+				payload = json.writeValueAsString(listing);
+			} catch (Exception ex) {
+				throw new ApiException(400, "bad_request", "განცხადების მონაცემები არასწორია");
+			}
+			if (payload.length() > MAX_PAYLOAD) {
+				throw new ApiException(413, "too_large", "განცხადება ძალიან დიდია");
+			}
+			record.setOwnerEmail(owner);
+			record.setPayload(payload);
+			listings.save(record);
+		} catch (RuntimeException ex) {
+			images.deleteAll(photos.uploaded());
+			throw ex;
 		}
-		if (payload.length() > MAX_PAYLOAD) {
-			throw new ApiException(413, "too_large", "განცხადება ძალიან დიდია");
-		}
-		record.setOwnerEmail(owner);
-		record.setPayload(payload);
-		listings.save(record);
-		return Map.of("ok", true, "id", id);
+		images.deleteAll(photos.removed());
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("ok", true);
+		out.put("id", id);
+		out.put("photos", images.clientPhotos(listing));
+		return out;
 	}
 
 	@Transactional
@@ -139,7 +164,9 @@ public class CatalogService {
 		if (!admin && !record.getOwnerEmail().equalsIgnoreCase(caller)) {
 			throw new ApiException(403, "forbidden", "ამ განცხადების წაშლა არ შეგიძლიათ");
 		}
+		String payload = record.getPayload();
 		listings.delete(record);
+		images.deleteListingPhotos(payload);
 		return Map.of("ok", true);
 	}
 
@@ -362,7 +389,7 @@ public class CatalogService {
 		return rows;
 	}
 
-	private Object toPublicListing(ListingRecord record, String viewer) {
+	private Object toPublicListing(ListingRecord record, String viewer, Map<String, Account> owners) {
 		try {
 			JsonNode tree = json.readTree(record.getPayload());
 			if (!(tree instanceof ObjectNode listing)) {
@@ -373,6 +400,29 @@ public class CatalogService {
 				pay.remove("receipt");
 				pay.remove("receiptName");
 				pay.remove("receiptType");
+			}
+			images.expandPhotos(listing);
+			listing.remove("ownerAvatar");
+			listing.remove("ownerName");
+			listing.remove("ownerPhone");
+			Account account = owners.get(record.getOwnerEmail() == null ? "" : record.getOwnerEmail().toLowerCase(Locale.ROOT));
+			if (account != null) {
+				String name = account.getName() == null ? "" : account.getName().trim();
+				if ("individual".equals(account.getRegType()) && account.getLastName() != null && !account.getLastName().isBlank()) {
+					name = (name + " " + account.getLastName().trim()).trim();
+				}
+				if (!name.isBlank()) {
+					listing.put("ownerName", name);
+				}
+				if (account.getPhone() != null && !account.getPhone().isBlank()) {
+					listing.put("ownerPhone", account.getPhone());
+				}
+				if (!account.isAvatarOff() && account.getAvatar() != null && !account.getAvatar().isBlank()) {
+					String avatar = images.clientUrl(account.getAvatar());
+					if (!avatar.isBlank()) {
+						listing.put("ownerAvatar", avatar);
+					}
+				}
 			}
 			return json.convertValue(listing, Object.class);
 		} catch (Exception ex) {

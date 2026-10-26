@@ -13,6 +13,11 @@ public class AppProperties {
 	private int tokenDays = 14;
 	private String adminEmails = "";
 	private String googleClientId = "";
+	private String r2AccessKeyId = "";
+	private String r2SecretAccessKey = "";
+	private String r2Endpoint = "";
+	private String r2Bucket = "";
+	private String r2PublicBase = "";
 
 	@PostConstruct
 	void check() {
@@ -66,6 +71,46 @@ public class AppProperties {
 
 	public void setGoogleClientId(String googleClientId) {
 		this.googleClientId = googleClientId;
+	}
+
+	public String getR2AccessKeyId() {
+		return r2AccessKeyId;
+	}
+
+	public void setR2AccessKeyId(String r2AccessKeyId) {
+		this.r2AccessKeyId = r2AccessKeyId;
+	}
+
+	public String getR2SecretAccessKey() {
+		return r2SecretAccessKey;
+	}
+
+	public void setR2SecretAccessKey(String r2SecretAccessKey) {
+		this.r2SecretAccessKey = r2SecretAccessKey;
+	}
+
+	public String getR2Endpoint() {
+		return r2Endpoint;
+	}
+
+	public void setR2Endpoint(String r2Endpoint) {
+		this.r2Endpoint = r2Endpoint;
+	}
+
+	public String getR2Bucket() {
+		return r2Bucket;
+	}
+
+	public void setR2Bucket(String r2Bucket) {
+		this.r2Bucket = r2Bucket;
+	}
+
+	public String getR2PublicBase() {
+		return r2PublicBase;
+	}
+
+	public void setR2PublicBase(String r2PublicBase) {
+		this.r2PublicBase = r2PublicBase;
 	}
 
 }

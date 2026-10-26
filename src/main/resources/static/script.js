@@ -67,6 +67,7 @@ async function pushListing(p){
  if(!p||p.owner==='demo')return true;
  const res=await apiSend('PUT','/api/listings',p);
  if(!res.ok){toast(res.data.message||'სერვერზე შენახვა ვერ მოხერხდა');return false}
+ if(Array.isArray(res.data.photos)&&res.data.photos.length===(p.photos||[]).length&&res.data.photos.some(u=>typeof u==='string'&&(u.startsWith('https://')||u.startsWith('/')))){p.photos=res.data.photos;saveItems(items)}
  return true}
 async function restoreSession(){
  try{localStorage.removeItem('mygemTok')}catch{}
@@ -324,7 +325,10 @@ function countView(p){if(me&&same(me.email,p.owner))return;let s={};try{s=JSON.p
  if(s[p.id])return;s[p.id]=1;try{sessionStorage.setItem('seenv',JSON.stringify(s))}catch{}
  pv[p.id]=(pv[p.id]||0)+1;save('pv',pv);vwRefresh()}
 function sellerOf(p){const u=users.find(u=>same(u.email,p.owner));
- return u?{u,name:(regOf(u)=='individual'?u.name+' '+(u.last||''):u.name).trim(),phone:u.phone,avatar:u.avatar,type:regLabel(u)}:{u:null,name:'mygem.ge',phone:'574173203',avatar:'',type:'მარკეტფლეისი'}}
+ const avatar=p.ownerAvatar||(u&&u.avatar)||'';
+ if(u)return {u,name:(regOf(u)=='individual'?u.name+' '+(u.last||''):u.name).trim(),phone:u.phone||p.ownerPhone||'',avatar,type:regLabel(u)};
+ if(p.ownerName)return {u:null,name:p.ownerName,phone:p.ownerPhone||'',avatar,type:''};
+ return {u:null,name:'mygem.ge',phone:'574173203',avatar:'',type:'მარკეტფლეისი'}}
 /* short public id for a seller (the e-mail itself never appears in the URL) */
 const sid=o=>{let h=5381;const t=String(o||'').toLowerCase();for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return (h>>>0).toString(36)};
 function similar(p){const sc=x=>(x.cat==p.cat?2:0)+(x.type&&x.type==p.type?2:0)+(x.gender==p.gender?1:0);
@@ -937,8 +941,8 @@ const cf=$('#clrF');if(cf)cf.onclick=e=>{e.preventDefault();F={};FCUR='GEL';
  if($('#cMetal'))initCalc();
  $$('[data-tab]').forEach(b=>b.onclick=()=>showProfile(b.dataset.tab));
  const lo=$('#logout');if(lo)lo.onclick=confirmLogout;
- const av=$('#avIn');if(av)av.onchange=async()=>{const f=av.files[0];if(!f)return;const a0=await rd(f);if(!a0)return toast(RD_FAIL);const ak=await modFilter([a0]);if(!ak.length)return;me.avatar=ak[0];delete me.avatarOff;users=users.map(u=>u.email==me.email?me:u);save('users',users);save('me',me);setLogin();toast('ფოტო განახლდა ✓');showProfile('mine')};
- const ad=$('#avDel');if(ad)ad.onclick=()=>{me.avatar='';me.avatarOff=true;users=users.map(u=>u.email==me.email?me:u);save('users',users);save('me',me);setLogin();toast('პროფილის ფოტო წაიშალა ✓');showProfile('mine')};
+ const av=$('#avIn');if(av)av.onchange=async()=>{const f=av.files[0];if(!f)return;const a0=await rd(f);av.value='';if(!a0)return toast(RD_FAIL);const ak=await modFilter([a0]);if(!ak.length)return;if(!me){openAuth('login');return}const res=await apiSend('PUT','/api/auth/profile',{avatar:ak[0],avatarOff:false});if(!res.ok){toast(res.data.message||'ფოტო ვერ აიტვირთა');return}adopt(res.data);setLogin();toast('ფოტო განახლდა ✓');showProfile('mine')};
+ const ad=$('#avDel');if(ad)ad.onclick=async()=>{if(!me)return;const res=await apiSend('PUT','/api/auth/profile',{avatar:'',avatarOff:true});if(!res.ok){toast(res.data.message||'ფოტო ვერ წაიშალა');return}adopt(res.data);setLogin();toast('პროფილის ფოტო წაიშალა ✓');showProfile('mine')};
 
  /* add listing */
  const af=$('#addForm');if(af){const dr=$('#drop'),pf=$('#aF');
@@ -1101,7 +1105,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
    if(check(ef,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგისტრაციის ტიპი':''],[N,ind?(!full?'შეიყვანეთ სახელი და გვარი':!l?'შეიყვანეთ სახელიც და გვარიც':''):nameMsg(n,'დასახელება')], 
     [E,emailMsg(em)||(!same(em,old)&&users.some(u=>same(u.email,em))?'ეს ელ-ფოსტა დაკავებულია':'')],[P,!tel?'შეიყვანეთ ტელეფონი':!isPhone(tel)?'არასწორი ტელეფონის ნომერი':''],
     [U,!un&&!me.username?'':unameMsg(un,old)],[W,W.value?pwMsg(W.value):''],[W2,W.value&&W2.value!=W.value?'პაროლები არ ემთხვევა':'']]))return;
-   const send=async current=>{if(!tokGet()){openAuth('login');toast('გთხოვთ თავიდან შეხვიდეთ');return}
+   const send=async current=>{if(!me){openAuth('login');toast('გთხოვთ თავიდან შეხვიდეთ');return}
     const body={regType:ty,regOther:ty=='other'?O.value.trim():'',shop:!ind,name:n,last:ind?l:'',email:em,phone:tel,username:un};
     if(W.value)body.password=W.value;if(current)body.currentPassword=current;
     const res=await apiSend('PUT','/api/auth/profile',body,true);

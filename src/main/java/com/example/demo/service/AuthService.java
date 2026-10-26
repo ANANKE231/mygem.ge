@@ -33,14 +33,16 @@ public class AuthService {
 	private final AppProperties props;
 	private final CatalogService catalog;
 	private final GoogleIdTokenVerifier googleTokens;
+	private final ObjectImages images;
 
-	public AuthService(AccountRepository accounts, PasswordEncoder encoder, SessionService sessions, AppProperties props, CatalogService catalog, GoogleIdTokenVerifier googleTokens) {
+	public AuthService(AccountRepository accounts, PasswordEncoder encoder, SessionService sessions, AppProperties props, CatalogService catalog, GoogleIdTokenVerifier googleTokens, ObjectImages images) {
 		this.accounts = accounts;
 		this.encoder = encoder;
 		this.sessions = sessions;
 		this.props = props;
 		this.catalog = catalog;
 		this.googleTokens = googleTokens;
+		this.images = images;
 	}
 
 	@Transactional
@@ -150,6 +152,10 @@ public class AuthService {
 	public Map<String, Object> updateProfile(String email, JsonNode body) {
 		requireObject(body);
 		Account account = requireAccount(email);
+		if (avatarOnly(body)) {
+			applyAvatar(account, body);
+			return session(account);
+		}
 		String regType = text(body, "regType").isBlank() ? account.getRegType() : text(body, "regType");
 		if (!REG_TYPES.contains(regType)) {
 			throw bad("bad_request", "აირჩიეთ რეგისტრაციის ტიპი");
@@ -203,19 +209,7 @@ public class AuthService {
 		if (phoneTaken(phone, account.getId())) {
 			throw bad("phone_taken", "ეს ნომერი უკვე გამოყენებულია");
 		}
-		if (body.has("avatar")) {
-			String avatar = raw(body, "avatar");
-			if (!avatar.isBlank() && !MediaUrls.avatar(avatar)) {
-				throw bad("bad_request", "ფოტოს ფორმატი არასწორია");
-			}
-			if (avatar.length() > MAX_AVATAR) {
-				throw bad("too_large", "ფოტო ძალიან დიდია");
-			}
-			account.setAvatar(avatar.isBlank() ? "" : avatar);
-		}
-		if (body.has("avatarOff")) {
-			account.setAvatarOff(body.path("avatarOff").asBoolean(false));
-		}
+		applyAvatar(account, body);
 
 		String previousEmail = account.getEmail();
 		account.setRegType(regType);
@@ -342,12 +336,42 @@ public class AuthService {
 		user.put("regType", account.getRegType());
 		user.put("regOther", empty(account.getRegOther()));
 		user.put("shop", account.isShop());
-		user.put("avatar", account.isAvatarOff() ? "" : empty(account.getAvatar()));
+		user.put("avatar", account.isAvatarOff() ? "" : images.clientUrl(empty(account.getAvatar())));
 		user.put("avatarOff", account.isAvatarOff());
 		user.put("created", account.getCreated() == null ? 0 : account.getCreated());
 		user.put("hasPass", account.getPasswordHash() != null);
 		user.put("hasGoogle", account.getGoogleSub() != null && !account.getGoogleSub().isBlank());
 		return user;
+	}
+
+	private void applyAvatar(Account account, JsonNode body) {
+		if (body.has("avatarOff")) {
+			account.setAvatarOff(body.path("avatarOff").asBoolean(false));
+		}
+		if (!body.has("avatar")) {
+			return;
+		}
+		String avatar = raw(body, "avatar");
+		if (images.enabled()) {
+			account.setAvatar(images.storeAvatar(avatar, account.getId(), empty(account.getAvatar())));
+			return;
+		}
+		if (!avatar.isBlank() && !MediaUrls.avatar(avatar)) {
+			throw bad("bad_request", "ფოტოს ფორმატი არასწორია");
+		}
+		if (avatar.length() > MAX_AVATAR) {
+			throw bad("too_large", "ფოტო ძალიან დიდია");
+		}
+		account.setAvatar(avatar.isBlank() ? "" : avatar);
+	}
+
+	private static boolean avatarOnly(JsonNode body) {
+		for (String key : new String[] {"name", "last", "email", "phone", "username", "password", "regType", "regOther", "shop", "currentPassword"}) {
+			if (body.has(key)) {
+				return false;
+			}
+		}
+		return body.has("avatar") || body.has("avatarOff");
 	}
 
 	private Account requireAccount(String email) {

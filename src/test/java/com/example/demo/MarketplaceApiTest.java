@@ -151,6 +151,25 @@ class MarketplaceApiTest {
 	}
 
 	@Test
+	void profilePhotoIsStoredOnTheAccount() throws Exception {
+		String seller = token(register("""
+				{"regType":"individual","name":"ნინო","last":"გელაშვილი","email":"nino@test.com","username":"nino","phone":"555222333","pass":"secret12"}
+				"""));
+		String avatar = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//2wBDAf//wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==";
+		seller = token(mvc.perform(put("/api/auth/profile").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"avatar\":\"" + avatar + "\",\"avatarOff\":false}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.user.avatar").value(avatar))
+				.andReturn());
+		mvc.perform(get("/api/me").header("Authorization", "Bearer " + seller))
+				.andExpect(jsonPath("$.user.avatar").value(avatar));
+		mvc.perform(put("/api/auth/profile").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"avatar\":\"\",\"avatarOff\":true}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.user.avatar").value(""));
+	}
+
+	@Test
 	void googleSignInNeedsAClientId() throws Exception {
 		mvc.perform(post("/api/auth/google").contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"auth_config\"}"))
 				.andExpect(status().isOk())
