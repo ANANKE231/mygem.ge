@@ -51,11 +51,12 @@ public class ObjectImages {
 	}
 
 	public PhotoChange stageListingPhotos(ObjectNode listing, long listingId, String oldPayload) {
-		if (!storage.enabled()) {
+		JsonNode photos = listing.get("photos");
+		if (photos == null || !photos.isArray() || photos.isEmpty()) {
+			keepStoredPhotos(listing, oldPayload);
 			return new PhotoChange(List.of(), List.of());
 		}
-		JsonNode photos = listing.get("photos");
-		if (photos == null || !photos.isArray()) {
+		if (!storage.enabled()) {
 			return new PhotoChange(List.of(), List.of());
 		}
 		Set<String> previous = listingKeys(oldPayload);
@@ -81,6 +82,11 @@ public class ObjectImages {
 				if (MediaUrls.objectKey(stored.value())) {
 					kept.add(stored.value());
 				}
+			}
+			if (clean.isEmpty()) {
+				deleteAll(uploaded);
+				keepStoredPhotos(listing, oldPayload);
+				return new PhotoChange(List.of(), List.of());
 			}
 		} catch (RuntimeException ex) {
 			deleteAll(uploaded);
@@ -191,6 +197,29 @@ public class ObjectImages {
 			return new Stored(created, true);
 		}
 		return null;
+	}
+
+	private void keepStoredPhotos(ObjectNode listing, String oldPayload) {
+		if (oldPayload == null || oldPayload.isBlank()) {
+			return;
+		}
+		ArrayNode previous = json.createArrayNode();
+		try {
+			JsonNode tree = json.readTree(oldPayload);
+			JsonNode photos = tree.get("photos");
+			if (photos != null && photos.isArray()) {
+				for (JsonNode node : photos) {
+					if (node.isTextual() && !node.asText().isBlank()) {
+						previous.add(node.asText());
+					}
+				}
+			}
+		} catch (Exception ignored) {
+			return;
+		}
+		if (!previous.isEmpty()) {
+			listing.set("photos", previous);
+		}
 	}
 
 	private Set<String> listingKeys(String payload) {

@@ -87,7 +87,7 @@ function applyVis(p){const hide=['blocked','off','expired'].includes(stateOf(p))
 const notify=(email,t)=>{if(!email||email=='demo')return;const n=L('notes',{});(n[email]=n[email]||[]).unshift({t,d:Date.now(),r:0});S('notes',n)};
 const items=()=>L('items',[]);
 function admSend(url,opt){return fetch(url,Object.assign({credentials:'include',headers:{'Content-Type':'application/json','X-MyGem':'1'}},opt||{}))}
-function saveItems(v){S('items',v);if(!ADMIN)return;for(const p of v){if(p&&p.id&&p.owner!=='demo')admSend('/api/listings',{method:'PUT',body:JSON.stringify(p)}).catch(()=>{})}}
+function saveItems(v){S('items',v);if(!ADMIN)return;for(const p of v){if(!p||!p.id||p.owner==='demo')continue;const body={...p};if(body._hp||!Array.isArray(body.photos)||!body.photos.length)delete body.photos;delete body._hp;admSend('/api/listings',{method:'PUT',body:JSON.stringify(body)}).catch(()=>{})}}
 const tagS=p=>`<span class="tag t-${stateOf(p)}">${ST[stateOf(p)]}</span>`;
 const empty=(ico,t,s)=>`<div class="empty">${ic(IC[ico])}<b>${t}</b>${s||''}</div>`;
 

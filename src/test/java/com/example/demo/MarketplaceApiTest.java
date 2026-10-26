@@ -86,6 +86,23 @@ class MarketplaceApiTest {
 				.andExpect(jsonPath("$.listings[0].pay.status").value("active"))
 				.andExpect(jsonPath("$.listings[0].pay.receipt").doesNotExist());
 
+		String photo = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//2wBDAf//wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA//2Q==";
+		String paid = """
+				{"id":77,"title":"VIP ბეჭედი","price":50,"photos":["%s"],"pay":{"plan":"VIP","days":7,"amount":10,"receipt":"data:image/png;base64,SECRET","receiptName":"r.png","receiptType":"image/png","status":"pending"}}
+				""".formatted(photo);
+		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON).content(paid))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.photos[0]").value(photo));
+		String cleared = """
+				{"id":77,"title":"VIP ბეჭედი","owner":"ana@test.com","price":50,"photos":[],"vip":"VIP","pay":{"plan":"VIP","status":"active","amount":10,"receipt":"data:image/png;base64,SECRET"}}
+				""";
+		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + admin).contentType(MediaType.APPLICATION_JSON).content(cleared))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.photos[0]").value(photo));
+		mvc.perform(get("/api/listings"))
+				.andExpect(jsonPath("$.listings[?(@.id == 77)].vip").value(org.hamcrest.Matchers.contains("VIP")))
+				.andExpect(jsonPath("$.listings[?(@.id == 77)].photos[0]").value(org.hamcrest.Matchers.contains(photo)));
+
 		mvc.perform(put("/api/me/favs").header("Authorization", "Bearer " + buyer).contentType(MediaType.APPLICATION_JSON)
 						.content("{\"ids\":[42,42]}"))
 				.andExpect(status().isOk())
@@ -146,6 +163,8 @@ class MarketplaceApiTest {
 		mvc.perform(delete("/api/listings/42").header("Authorization", "Bearer " + buyer))
 				.andExpect(status().isForbidden());
 		mvc.perform(delete("/api/listings/42").header("Authorization", "Bearer " + seller))
+				.andExpect(status().isOk());
+		mvc.perform(delete("/api/listings/77").header("Authorization", "Bearer " + seller))
 				.andExpect(status().isOk());
 		mvc.perform(get("/api/listings")).andExpect(jsonPath("$.listings.length()").value(0));
 	}

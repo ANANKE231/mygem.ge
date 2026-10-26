@@ -81,10 +81,15 @@ async function pullListings(){
  if(!res.ok||!Array.isArray(res.data.listings))return;
  const remote=res.data.listings.filter(p=>p&&p.id&&p.owner!=='demo');
  const ids=new Set(remote.map(p=>String(p.id)));
+ const kept=new Map();
+ for(const p of items){if(p&&p.id&&Array.isArray(p.photos)&&p.photos.length)kept.set(String(p.id),p.photos.slice())}
  const mine=me?items.filter(p=>p&&p.owner!=='demo'&&same(p.owner,me.email)&&!ids.has(String(p.id))):[];
  items=remote.concat(mine);
+ const heal=[];
+ for(const p of remote){if(!me||!same(p.owner,me.email)||(p.photos&&p.photos.length))continue;const ph=kept.get(String(p.id));if(ph){p.photos=ph;heal.push(p)}}
  saveItems(items);
- for(const p of mine)await pushListing(p)}
+ for(const p of mine)await pushListing(p);
+ for(const p of heal)await pushListing(p)}
 const stripPass=v=>{if(Array.isArray(v))v.forEach(u=>{if(u&&typeof u==='object')delete u.pass});else if(v&&typeof v==='object')delete v.pass;return v};
 const save=(k,v)=>k=='items'?saveItems(v):lsSet(k,(k=='users'||k=='me')?stripPass(v):v);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
