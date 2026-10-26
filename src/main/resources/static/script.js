@@ -773,9 +773,25 @@ const body=!r.length
   ? '<div class="empty">ვერაფერი მოიძებნა</div>'
   : `<div class="rows">${r.map(rowCard).join('')}</div>`;
  return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results">
- <div class="rbar"><h2>${r.length} განცხადება${F.q?` · «${esc(F.q)}»`:''}</h2>
+ <div class="rbar">
+  <div class="catalog-heading">
+    <h2>${r.length} განცხადება${F.q?` · «${esc(F.q)}»`:''}</h2>
+    <button type="button"
+      id="catalogCurrency"
+      class="cur sm${catalogCurrency === 'USD' ? ' on' : ''}"
+      role="switch"
+      aria-checked="${catalogCurrency === 'USD'}"
+      aria-label="ყველა ფასის დოლარში ჩვენება">
+      <span class="cl">₾</span>
+      <span class="trk"><i></i></span>
+      <span class="cl">$</span>
+    </button>
+  </div>
   
-<div class="rtools">${dd('sPer',{list:PERS,val:String(PER)})}${dd('sSort',{list:SORTS,val:SORT})}</div>
+<div class="rtools">
+  ${dd('sPer',{list:PERS,val:String(PER)})}
+  ${dd('sSort',{list:SORTS,val:SORT})}
+</div>
 </div>${body}</div></div>`},
 blog(){return `<div class="page blog"><h2 class="bh">ბლოგი</h2><p class="bsub">რჩევები, გზამკვლევები და ინსპირაცია სამკაულების სამყაროდან</p>${isAdmin()?`<div class="badm"><button type="button" class="btn sm" data-bnew>${ui('plus')}სტატიის დამატება</button></div>`:''}<div class="bgrid">${blogList().map((b,i)=>`<a class="bcard" href="#post:${b.id}"><span class="bimg"><img src="${safeUrl(b.img)}" alt="${esc(b.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="bbody"><small class="bm">${b.min} წთ კითხვა</small><b>${esc(b.t)}</b><span class="bex">${esc(b.ex)}</span></span></a>`).join('')}</div></div>`},
 post(t){const L=blogList(),i=L.findIndex(b=>String(b.id)===String(t)),b=L[i];if(!b)return `<div class="page"><div class="panel empty">სტატია ვერ მოიძებნა<div style="margin-top:16px"><a class="btn" href="#blog">ბლოგზე დაბრუნება</a></div></div></div>`;
@@ -1623,3 +1639,30 @@ document.addEventListener('click', function (e) {
   confirmDelete(button.dataset.del);
 }, true);
 window.rerender=()=>{gInit=null;route()};
+let catalogCurrency = 'GEL';
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('#catalogCurrency');
+  if (!b) return;
+
+  catalogCurrency = catalogCurrency === 'GEL' ? 'USD' : 'GEL';
+  const usd = catalogCurrency === 'USD';
+
+  items.forEach(p => {
+    pc[p.id] = catalogCurrency;
+  });
+
+  b.classList.toggle('on', usd);
+  b.setAttribute('aria-checked', String(usd));
+
+  document.querySelectorAll('.results .price[data-g]').forEach(el => {
+    el.classList.remove('flip');
+    el.textContent = fmt(Number(el.dataset.g), catalogCurrency);
+  });
+
+  document.querySelectorAll('.results [data-cs]').forEach(el => {
+    el.classList.toggle('on', usd);
+    el.setAttribute('aria-checked', String(usd));
+    el.title = usd ? 'ფასი დოლარში' : 'ფასი ლარში';
+  });
+});

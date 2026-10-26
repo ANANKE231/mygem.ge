@@ -4643,3 +4643,16 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 #modal.modal.show {
   z-index: 10000;
 }
+.catalog-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.catalog-heading h2 {
+  margin: 0;
+}
+
+#catalogCurrency {
+  flex-shrink: 0;
+}

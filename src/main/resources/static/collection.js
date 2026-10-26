@@ -79,9 +79,19 @@
   <div class="sbar">
    <h2><b>${r.length}</b> განცხადება</h2>
    <div class="sctl">
-    ${dd('sortP',{list:PERS,val:CS.p})}
-    ${dd('sortS',{list:SORTS,val:CS.s})}
-   </div>
+  <button type="button"
+    id="catalogCurrency"
+    class="cur sm${catalogCurrency === 'USD' ? ' on' : ''}"
+    role="switch"
+    aria-checked="${catalogCurrency === 'USD'}"
+    aria-label="ყველა ფასის დოლარში ჩვენება">
+    <span class="cl">₾</span>
+    <span class="trk"><i></i></span>
+    <span class="cl">$</span>
+  </button>
+  ${dd('sortP',{list:PERS,val:CS.p})}
+  ${dd('sortS',{list:SORTS,val:CS.s})}
+</div>
   </div>
   ${r.length?`<div class="lgrid">${pageItems.map(listCard).join('')}</div>`+pager(CS.pg,tot):'<div class="empty">ვერაფერი მოიძებნა </div>'}
   </div></div>`};
@@ -96,10 +106,10 @@
   const pgb=e.target.closest&&e.target.closest('[data-page]');
   if(pgb&&!pgb.disabled){CS.pg=+pgb.dataset.page||1;rerender();const t=document.querySelector('.sbar');if(t)t.scrollIntoView({behavior:'smooth',block:'start'});return}
   const c=e.target.closest&&e.target.closest('.lcard[data-id]');
-  if(c&&!e.target.closest('[data-fav],[data-cs]'))window.open(location.href.split('#')[0]+'#product:'+c.dataset.id,'_blank','noopener');
+  if(c&&!e.target.closest('[data-fav],[data-cs]'))location.hash = 'product:' + c.dataset.id;
  });
  document.addEventListener('keydown',e=>{
   if(e.key=='Enter'&&e.target.matches&&e.target.matches('.lcard[data-id]')&&!e.target.closest('[data-fav],[data-cs]'))
-   window.open(location.href.split('#')[0]+'#product:'+e.target.dataset.id,'_blank','noopener');
+   location.hash = 'product:' + e.target.dataset.id;
  });
 })();

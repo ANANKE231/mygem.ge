@@ -148,3 +148,19 @@
     align-items: flex-start;
   }
 }
+.sbar .catalog-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sbar .catalog-heading h2 {
+  margin: 0;
+  width: auto;
+}
+
+.sbar #catalogCurrency {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
