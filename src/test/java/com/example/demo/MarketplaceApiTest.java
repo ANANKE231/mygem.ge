@@ -160,6 +160,38 @@ class MarketplaceApiTest {
 				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
 				.andExpect(header().exists("Content-Security-Policy"));
 
+		long beforeRenew = System.currentTimeMillis();
+		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"id":42,"title":"ოქროს ბეჭედი ახალი","price":120,"state":"blocked","vip":"SUPER VIP","renewedAt":9999999999999}
+								"""))
+				.andExpect(status().isOk());
+		MvcResult renewed = mvc.perform(get("/api/listings").header("Authorization", "Bearer " + seller))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].title").value(org.hamcrest.Matchers.contains("ოქროს ბეჭედი ახალი")))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].vip").value(org.hamcrest.Matchers.contains("VIP")))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].state").value(org.hamcrest.Matchers.empty()))
+				.andReturn();
+		Object stamp = ((java.util.List<?>) com.jayway.jsonpath.JsonPath.read(renewed.getResponse().getContentAsString(), "$.listings[?(@.id == 42)].renewedAt")).get(0);
+		long renewedAt = ((Number) stamp).longValue();
+		org.junit.jupiter.api.Assertions.assertTrue(renewedAt >= beforeRenew && renewedAt < 9_000_000_000_000L);
+		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"id\":42,\"title\":\"ოქროს ბეჭედი ახალი\",\"renewedAt\":" + (renewedAt + 1000) + "}"))
+				.andExpect(status().isOk());
+		mvc.perform(get("/api/listings").header("Authorization", "Bearer " + seller))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].renewedAt").value(org.hamcrest.Matchers.contains(renewedAt)));
+		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"id\":42,\"title\":\"ოქროს ბეჭედი ახალი\",\"state\":\"off\"}"))
+				.andExpect(status().isOk());
+		mvc.perform(get("/api/listings").header("Authorization", "Bearer " + seller))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].state").value(org.hamcrest.Matchers.contains("off")))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].hold").value(org.hamcrest.Matchers.contains(true)));
+		mvc.perform(put("/api/listings").header("Authorization", "Bearer " + seller).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"id\":42,\"title\":\"ოქროს ბეჭედი ახალი\",\"state\":\"\"}"))
+				.andExpect(status().isOk());
+		mvc.perform(get("/api/listings").header("Authorization", "Bearer " + seller))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].state").value(org.hamcrest.Matchers.empty()))
+				.andExpect(jsonPath("$.listings[?(@.id == 42)].hold").value(org.hamcrest.Matchers.empty()));
+
 		mvc.perform(delete("/api/listings/42").header("Authorization", "Bearer " + buyer))
 				.andExpect(status().isForbidden());
 		mvc.perform(delete("/api/listings/42").header("Authorization", "Bearer " + seller))

@@ -27,7 +27,7 @@ const IDB={db:null,ok:false,ready:false,dead:false,dirty:false,sig:{},bad:{},fly
  keys:()=>IDB.tx('readonly',s=>s.getAllKeys()),
  busy:()=>Object.keys(IDB.jobs).length>0};
 let HYD=Promise.resolve();
-function saveItems(v){
+function saveItems(v,quiet){
  if(!IDB.ok)return lsSet('items',v);
  if(!IDB.ready){IDB.dirty=true;lsTry('items',v);return true}   /* still restoring: write what we have, hydrate() saves again when it is done */
  const live=new Set();let inl=false;
@@ -45,7 +45,7 @@ function saveItems(v){
  Object.keys(IDB.sig).forEach(k=>{if(!live.has(k)){delete IDB.sig[k];IDB.del(k)}});
  if(lsTry('items',out))return true;
  if(!inl&&IDB.busy())return true;                              /* too big to hold inline, but IndexedDB is still writing: the next save fixes it */
- toast('მეხსიერება გადაივსო — წაშალეთ ძველი განცხადებები ან გამოიყენეთ ნაკლები ფოტო');return false}
+ if(!quiet)toast('მეხსიერება გადაივსო — წაშალეთ ძველი განცხადებები ან გამოიყენეთ ნაკლები ფოტო');return false}
 /* does the stored copy really contain this listing and its photos? (reads localStorage and IndexedDB back) */
 async function verifyItem(p){const st=load('items',[]).find(x=>String(x.id)===String(p.id));
  if(!st)return false;if(!heavy(p))return true;
@@ -55,14 +55,9 @@ async function verifyItem(p){const st=load('items',[]).find(x=>String(x.id)===St
 /* publish-grade save: resolves true ONLY when the listing and its photos are verified in storage */
 async function commitItems(p){
  try{await HYD}catch{}
- for(let n=0;n<2;n++){
-  if(!saveItems(items))return false;
-  while(IDB.busy())await Promise.all(Object.values(IDB.jobs));
-  if(!saveItems(items))return false;
-  if(await verifyItem(p))return await pushListing(p);
-  const k='i'+p.id;if(IDB.ok){IDB.bad[k]=recSig(recOf(p));delete IDB.sig[k]}   /* IndexedDB did not keep it -> second round stores it inline */
- }
- return false}
+ const ok=await pushListing(p);
+ if(ok)saveItems(items,true);
+ return ok}
 async function pushListing(p){
  if(!p||p.owner==='demo')return true;
  const res=await apiSend('PUT','/api/listings',p);

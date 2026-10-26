@@ -338,12 +338,51 @@ public class CatalogService {
 				old = null;
 			}
 		}
-		for (String key : new String[] {"vip", "vipUntil", "state", "blockReason", "hold", "color", "colorUntil", "colorHex", "sticker", "stickerUntil", "stickers", "renewedAt", "expNote"}) {
+		for (String key : new String[] {"vip", "vipUntil", "blockReason", "color", "colorUntil", "colorHex", "sticker", "stickerUntil", "stickers"}) {
 			if (old != null && old.has(key)) {
 				listing.set(key, old.get(key));
 			} else {
 				listing.remove(key);
 			}
+		}
+		long now = System.currentTimeMillis();
+		long storedRenewal = old == null ? 0 : old.path("renewedAt").asLong(0);
+		boolean renewing = listing.path("renewedAt").isNumber() && listing.path("renewedAt").asLong() > storedRenewal + 60_000L;
+		if (renewing) {
+			listing.put("renewedAt", now);
+			listing.remove("expNote");
+		} else if (old != null && old.has("renewedAt")) {
+			listing.set("renewedAt", old.get("renewedAt"));
+			if (old.has("expNote")) {
+				listing.set("expNote", old.get("expNote"));
+			} else {
+				listing.remove("expNote");
+			}
+		} else {
+			listing.remove("renewedAt");
+			listing.remove("expNote");
+		}
+		String requested = listing.path("state").asText("");
+		String oldState = old == null ? "" : old.path("state").asText("");
+		if ("blocked".equals(oldState)) {
+			listing.put("state", "blocked");
+			listing.put("hold", true);
+		} else if ("off".equals(requested)) {
+			listing.put("state", "off");
+			listing.put("hold", true);
+			listing.put("hvis", true);
+		} else if ("off".equals(oldState) || renewing) {
+			listing.remove("state");
+			listing.remove("hold");
+			listing.remove("hvis");
+		} else if (old != null) {
+			copyField(listing, old, "state");
+			copyField(listing, old, "hold");
+			copyField(listing, old, "hvis");
+		} else {
+			listing.remove("state");
+			listing.remove("hold");
+			listing.remove("hvis");
 		}
 		if (listing.get("pay") instanceof ObjectNode pay) {
 			if (old != null && old.get("pay") instanceof ObjectNode oldPay) {
@@ -366,6 +405,14 @@ public class CatalogService {
 			if ("pending".equals(pay.path("status").asText(""))) {
 				listing.put("hold", true);
 			}
+		}
+	}
+
+	private static void copyField(ObjectNode listing, ObjectNode old, String key) {
+		if (old.has(key)) {
+			listing.set(key, old.get(key));
+		} else {
+			listing.remove(key);
 		}
 	}
 
