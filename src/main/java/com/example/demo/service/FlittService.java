@@ -22,10 +22,11 @@ import java.util.Map;
 public class FlittService {
 
 	private static final Logger log = LoggerFactory.getLogger(FlittService.class);
-	private static final URI CHECKOUT_URL = URI.create("https://pay.flitt.com/api/checkout/url");
+	private static final URI CHECKOUT_URL =
+    URI.create("https://pay.flitt.com/api/checkout/url");
 	private static final int PLAN_VIP_TETRI = 200;
 	private static final int PLAN_SVIP_TETRI = 200;
-	private static final int COLOR_TETRI = 200;
+	private static final int COLOR_TETRI = 50;
 	private static final int STICKER_TETRI = 200;
 
 	private final AppProperties props;

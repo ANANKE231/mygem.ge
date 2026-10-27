@@ -3,15 +3,18 @@ package com.example.demo.web;
 import com.example.demo.service.CatalogService;
 import com.example.demo.service.FlittService;
 import tools.jackson.databind.JsonNode;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -63,9 +66,17 @@ public class PaymentController {
 		return ResponseEntity.ok(catalog.applyFlittCallback(params, flitt));
 	}
 
-	@GetMapping("/pay/return")
-	public RedirectView payReturn(@RequestParam(value = "order_status", required = false) String status) {
-		String hash = "approved".equalsIgnoreCase(status) ? "pay/ok" : "pay/pending";
-		return new RedirectView("/#" + hash, true);
+	/**
+	 * Flitt აბრუნებს მომხმარებელს აქ (ჩვეულებრივ POST-ით). ეს მხოლოდ ეკრანისთვისაა:
+	 * სტატუსს ნამდვილად ააქტიურებს /api/payments/flitt/callback (ხელმოწერით).
+	 */
+	@RequestMapping(value = "/pay/return", method = {RequestMethod.GET, RequestMethod.POST})
+	public ResponseEntity<Void> payReturn(@RequestParam(required = false) Map<String, String> params) {
+		String status = params == null ? "" : params.getOrDefault("order_status", "");
+		String state = "approved".equalsIgnoreCase(status) ? "ok" : "pending";
+		return ResponseEntity.status(HttpStatus.SEE_OTHER)   // 303: POST გადადის GET-ში
+				.header(HttpHeaders.LOCATION, "/#home")
+				.header(HttpHeaders.CACHE_CONTROL, "no-store")
+				.build();
 	}
 }

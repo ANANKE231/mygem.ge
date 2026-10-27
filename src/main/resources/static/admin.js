@@ -74,7 +74,27 @@ const tagS=p=>`<span class="tag t-${stateOf(p)}">${ST[stateOf(p)]}</span>`;
 const empty=(ico,t,s)=>`<div class="empty">${ic(IC[ico])}<b>${t}</b>${s||''}</div>`;
 /* ---------- ურნა ---------- */
 const TRASH_DAYS=30;
-const trash=()=>L('trash',[]);
+let SERVER_TRASH = [];
+
+const trash = () => SERVER_TRASH;
+
+async function loadServerTrash() {
+  const response = await admSend('/api/listings/trash');
+  const data = await response.json();
+
+  if (!response.ok || !data.ok) {
+    throw new Error(data.message || 'ურნა ვერ ჩაიტვირთა');
+  }
+
+  SERVER_TRASH = data.listings.map(item => ({
+    id: String(item.id),
+    item,
+    d: item.deletedAt,
+    by: item.deletedBy
+  }));
+
+  rerender();
+}
 async function toTrash(p){
  const id=String(p.id);
  const r=await idbDo('mygem','blobs','readonly',s=>s.get('i'+id));
@@ -91,7 +111,7 @@ async function toTrash(p){
  if(!S('trash',t))return false;
  await idbDo('mygem','blobs','readwrite',s=>s.delete('i'+id));
  return true}
-function purgeTrash(){const t=trash(),lim=Date.now()-TRASH_DAYS*DAY,old=t.filter(x=>x.d<lim);if(!old.length)return;S('trash',t.filter(x=>x.d>=lim));old.forEach(x=>idbDo('mygem','blobs','readwrite',s=>s.delete('t'+x.id)))}
+function purgeTrash() {}
 /* ---------- blog helpers (same format as the site) ---------- */
 let BP=null,BE=null;
 const blogLines=t=>String(t).split('\n').map(x=>x.trim()).filter(Boolean);
@@ -153,7 +173,9 @@ let _rt;
 const rerender=()=>{cancelAnimationFrame(_rt);_rt=requestAnimationFrame(()=>{if(sess()&&!BE&&!$('#modal').classList.contains('show')&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))render()})};
 async function loadServerUsers(){try{const r=await admSend('/api/users');if(!r.ok)return;const d=await r.json();SERVER_USERS=Array.isArray(d.users)?d.users:[];if(tab=='users'||tab=='dash')rerender()}catch{}}
 async function loadServerItems(){try{const r=await admSend('/api/listings');if(!r.ok)return;const d=await r.json();if(Array.isArray(d.listings)){S('items',d.listings);rerender()}}catch{}}
-function enterAdmin(user){ADMIN={email:user.email,name:user.name||''};AUTH={err:'',email:''};try{localStorage.setItem('adminHint',JSON.stringify(ADMIN))}catch{}render();loadServerUsers();loadServerItems();if(BP===null)loadPosts().then(rerender)}
+function enterAdmin(user){ADMIN={email:user.email,name:user.name||''};AUTH={err:'',email:''};try{localStorage.setItem('adminHint',JSON.stringify(ADMIN))}catch{}render();loadServerUsers();
+loadServerItems();
+loadServerTrash().catch(error => toast(error.message));if(BP===null)loadPosts().then(rerender)}
 async function doLogin(){
  if(LOGGING)return;
  const em=$('#lem'),pwEl=$('#lpw');if(!em||!pwEl)return;
@@ -251,11 +273,56 @@ notes(){const n=L('adminNotes',[]),s=q.notes.toLowerCase(),c=q.notesC;
  return `<div class="ph"><div><h1>ჩანაწერები</h1><p>${TABS[5][3]}</p></div><div class="acts"><button class="btn" data-a="newnote">${ic(IC.plus)} ახალი ჩანაწერი</button></div></div>
  <div class="toolbar"><div class="fld">${ic(IC.search)}<input id="qn" placeholder="ძებნა..." value="${esc(q.notes)}"></div><select id="qc" aria-label="კატეგორია"><option value="">ყველა კატეგორია</option>${NOTE_CATS.map(k=>`<option${c==k?' selected':''}>${k}</option>`).join('')}</select></div>
  <div class="notes">${l.map(x=>`<div class="note"><small>${esc(x.c)} · ${fd(x.d)}</small><h3>${esc(x.t)}</h3><p>${esc(x.b)}</p><div class="row-a"><button class="btn sm alt" data-a="editnote" data-id="${x.id}">${ic(IC.edit)} რედაქტირება</button><button class="btn sm red" data-a="delnote" data-id="${x.id}" aria-label="წაშლა">${ic(IC.trash)}</button></div></div>`).join('')||`<div style="grid-column:1/-1">${empty('notes','ჩანაწერი არ არის','დააჭირეთ «ახალი ჩანაწერი»')}</div>`}</div>`},
- trash(){const t=trash().sort((a,b)=>b.d-a.d);
- return `<div class="ph"><div><h1>ურნა</h1><p>${TABS[6][3]}</p></div>${t.length?`<div class="acts"><button class="btn red" data-a="emptytrash">${ic(IC.trash)} გასუფთავება</button></div>`:''}</div>
- <div class="info">წაშლილი განცხადებები ინახება ${TRASH_DAYS} დღე, შემდეგ ავტომატურად იშლება სამუდამოდ. «აღდგენა» განცხადებას სიაში და საიტზე აბრუნებს. ურნა ინახება ამ ბრაუზერში.</div>
- <div class="tw"><table><thead><tr><th>დასახელება</th><th>ავტორი</th><th>ფასი</th><th>წაშალა</th><th>წაშლის დრო</th><th>დარჩა</th><th></th></tr></thead><tbody>
- ${t.map(x=>{const p=x.item,left=Math.max(0,Math.ceil((x.d+TRASH_DAYS*DAY-Date.now())/DAY));return `<tr><td><span class="t">${esc(p.title)}</span><br><span class="sub">${esc([p.loc,p.cat].filter(Boolean).join(' · '))}</span></td><td>${esc(p.owner)}</td><td>${p.nego?'შეთანხმებით':esc(p.price)+' ₾'}</td><td>${esc(x.by||'—')}</td><td>${fdt(x.d)}</td><td>${left} დღე</td><td><div class="row-a"><button class="btn sm ok" data-a="restoreItem" data-id="${esc(x.id)}">${ic(IC.up)} აღდგენა</button><button class="btn sm red" data-a="purge" data-id="${esc(x.id)}" aria-label="სამუდამოდ წაშლა">${ic(IC.trash)}</button></div></td></tr>`}).join('')||`<tr><td colspan="7">${empty('trash','ურნა ცარიელია','წაშლილი განცხადებები აქ გამოჩნდება')}</td></tr>`}</tbody></table></div>`}
+ trash() {
+  const list = trash().slice().sort((a, b) => b.d - a.d);
+
+  return `
+    <div class="ph">
+      <div>
+        <h1>ურნა</h1>
+        <p>წაშლილი განცხადებები ინახება სერვერზე.</p>
+      </div>
+      <button class="btn alt" data-a="refreshTrash">
+        განახლება
+      </button>
+    </div>
+
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>დასახელება</th>
+            <th>ავტორი</th>
+            <th>წაშალა</th>
+            <th>წაშლის დრო</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${list.map(entry => `
+            <tr>
+              <td>${esc(entry.item.title)}</td>
+              <td>${esc(entry.item.owner)}</td>
+              <td>${esc(entry.by || '—')}</td>
+              <td>${fdt(entry.d)}</td>
+              <td>
+                <button
+                  class="btn sm ok"
+                  data-a="restoreItem"
+                  data-id="${esc(entry.id)}"
+                >
+                  აღდგენა
+                </button>
+              </td>
+            </tr>
+          `).join('') || `
+            <tr><td colspan="5">ურნა ცარიელია</td></tr>
+          `}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
 };
 /* ---------- render ---------- */
 function render(){
@@ -322,19 +389,71 @@ const acts={
  unblock(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p)return;p.state='';delete p.blockReason;applyVis(p);saveItems(l);notify(p.owner,`«${p.title}» – განბლოკილია`);closeM();toast('განბლოკილია');render()},
  toggle(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p||p.state=='blocked')return;const on=p.state=='off';p.state=on?'':'off';applyVis(p);saveItems(l);notify(p.owner,`«${p.title}» – ${on?'ჩართულია':'გამორთულია'} ადმინისტრატორის მიერ`);closeM();toast(on?'განცხადება ჩაირთო':'განცხადება გამოირთო');render()},
  renew(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p)return;p.renewedAt=Date.now();delete p.expNote;applyVis(p);saveItems(l);closeM();toast('+1 თვე');render()},
-  delitem(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p)return;ask('განცხადების წაშლა',`«${p.title}» გადავა ურნაში, საიდანაც აღდგენა შეიძლება.`,'წაშლა',async()=>{if(!(await toTrash(p)))return toast('ურნაში გადატანა ვერ მოხერხდა — განცხადება არ წაშლილა');saveItems(l.filter(x=>String(x.id)!=id));await admSend('/api/listings/'+id,{method:'DELETE'}).catch(()=>{});toast('გადავიდა ურნაში');render()})},
- async restoreItem(id){const t=trash(),e=t.find(x=>String(x.id)==id);if(!e)return;
-  const it=e.item,r=await idbDo('mygem','blobs','readonly',s=>s.get('t'+id)),h=r.ok&&r.v?r.v:null;
-  if(h){const w=await idbDo('mygem','blobs','readwrite',s=>s.put(h,'i'+id));if(!w.ok)return toast('ფოტოების აღდგენა ვერ მოხერხდა')}
-  const l=items().filter(x=>String(x.id)!=id);l.push(it);
-  if(!S('items',l))return;
-  S('trash',t.filter(x=>String(x.id)!=id));
-  idbDo('mygem','blobs','readwrite',s=>s.delete('t'+id));
-  const body={...it};delete body._hp;
-  if(h&&h.photos&&h.photos.length)body.photos=h.photos;else delete body.photos;
-  if(h&&h.video)body.video=h.video;if(h&&h.audio)body.audio=h.audio;
-  admSend('/api/listings',{method:'PUT',body:JSON.stringify(body)}).catch(()=>{});
-  notify(it.owner,`«${it.title}» – აღდგენილია ადმინისტრატორის მიერ`);toast('განცხადება აღდგა');render()},
+delitem(id) {
+  const listing = items().find(p => String(p.id) === String(id));
+  if (!listing) return;
+
+  ask(
+    'განცხადების წაშლა',
+    `«${listing.title}» გადავა ურნაში. აღდგენა ადმინს შეუძლია.`,
+    'წაშლა',
+    async () => {
+      try {
+        const response = await admSend(
+          '/api/listings/' + encodeURIComponent(id),
+          { method: 'DELETE' }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+          throw new Error(data.message || 'წაშლა ვერ მოხერხდა');
+        }
+
+        S('items', items().filter(
+          p => String(p.id) !== String(id)
+        ));
+
+        await loadServerTrash();
+
+        toast('გადავიდა ურნაში');
+        render();
+      } catch (error) {
+        toast(error.message || 'სერვერთან კავშირი ვერ მოხერხდა');
+      }
+    }
+  );
+},
+async refreshTrash() {
+  try {
+    await loadServerTrash();
+    render();
+  } catch (error) {
+    toast(error.message || 'ურნა ვერ ჩაიტვირთა');
+  }
+},
+ async restoreItem(id) {
+  try {
+    const response = await admSend(
+      '/api/listings/' + encodeURIComponent(id) + '/restore',
+      { method: 'PUT' }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.message || 'აღდგენა ვერ მოხერხდა');
+    }
+
+    await loadServerTrash();
+    await loadServerItems();
+
+    toast('განცხადება აღდგა');
+    render();
+  } catch (error) {
+    toast(error.message || 'აღდგენა ვერ მოხერხდა');
+  }
+},
  purge(id){const e=trash().find(x=>String(x.id)==id);if(!e)return;ask('სამუდამოდ წაშლა',`«${e.item.title}» ვეღარ აღდგება.`,'წაშლა',async()=>{S('trash',trash().filter(x=>String(x.id)!=id));await idbDo('mygem','blobs','readwrite',s=>s.delete('t'+id));toast('წაიშალა სამუდამოდ');render()})},
  emptytrash(){const n=trash().length;if(!n)return;ask('ურნის გასუფთავება',`${n} განცხადება სამუდამოდ წაიშლება.`,'გასუფთავება',async()=>{const t=trash();S('trash',[]);for(const e of t)await idbDo('mygem','blobs','readwrite',s=>s.delete('t'+e.id));toast('ურნა გასუფთავდა');render()})},
  async receipt(id){const p=items().find(x=>String(x.id)==id);if(!p||!p.pay)return;let rc=p.pay.receipt;

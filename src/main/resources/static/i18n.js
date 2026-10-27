@@ -502,11 +502,17 @@
 
   window.applyLang = applyLang;
   window.setSiteLang = function (code) {
-    window.MYGEM_LANG = code === "en" ? "en" : "ka";
-    try { localStorage.setItem("lang", window.MYGEM_LANG); } catch (e) {}
-    applyLang(document.body);
-    if (typeof window.rerender === "function") window.rerender();
-  };
+  var next = code === "en" ? "en" : "ka";
+  if (window.MYGEM_LANG === next) return;
+
+  window.MYGEM_LANG = next;
+
+  try {
+    localStorage.setItem("lang", next);
+  } catch (e) {}
+
+  applyLang(document.body);
+};
 
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-setlang]");

@@ -4748,3 +4748,44 @@ html[data-theme="dark"] body #app .lcard[style*="background"] .cact {
 /* მთელი გვერდი არ უნდა გაიწიოს გვერდზე */
 html, body { overflow-x: clip; overscroll-behavior-x: none; }
 .hsec .grid.hscroll { -webkit-overflow-scrolling: auto; }
+
+
+.flitt-dialog {
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 20px;
+  border: 0;
+  border-radius: 20px;
+  background: #fff;
+  color: #29235c;
+  overflow: auto;
+}
+
+.flitt-dialog::backdrop {
+  background: rgb(15 12 35 / 55%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.flitt-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.flitt-dialog-head h3 {
+  margin: 0;
+}
+
+.flitt-dialog-close {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f0f7;
+  color: #29235c;
+  font-size: 26px;
+  cursor: pointer;
+}

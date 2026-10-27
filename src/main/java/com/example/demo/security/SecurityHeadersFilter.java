@@ -11,16 +11,16 @@ import java.io.IOException;
 public class SecurityHeadersFilter extends OncePerRequestFilter {
 
 	static final String CSP = String.join("; ",
-			"default-src 'self'",
-			"script-src 'self' https://accounts.google.com https://counter.top.ge",
-			"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-			"font-src 'self' https://fonts.gstatic.com data:",
-			"img-src 'self' data: blob: https:",
-			"connect-src 'self' https:",
-			"frame-src https://accounts.google.com",
-			"object-src 'none'",
-			"base-uri 'self'",
-			"form-action 'self' https://formsubmit.co");
+        "default-src 'self'",
+        "script-src 'self' https://accounts.google.com https://counter.top.ge https://pay.flitt.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://pay.flitt.com",
+        "font-src 'self' https://fonts.gstatic.com https://pay.flitt.com data:",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https:",
+        "frame-src https://accounts.google.com https://pay.flitt.com",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self' https://formsubmit.co https://pay.flitt.com");
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)

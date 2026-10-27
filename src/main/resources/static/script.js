@@ -62,7 +62,7 @@ async function commitItems(p){
  return ok}
 async function pushListing(p){
  if(!p||p.owner==='demo')return true;
- const res=await apiSend('PUT','/api/listings',p);
+ const res=await apiSend('PUT','/api/listings',p,30000);
  if(!res.ok){toast(res.data.message||'სერვერზე შენახვა ვერ მოხერხდა');return false}
  if(Array.isArray(res.data.photos)&&res.data.photos.length===(p.photos||[]).length&&res.data.photos.some(u=>typeof u==='string'&&(u.startsWith('https://')||u.startsWith('/')||u.startsWith('listings/')))){p.photos=res.data.photos;saveItems(items)}
  return true}
@@ -185,6 +185,8 @@ const fresh=p=>Math.max(+p.created||0,(p.pay&&+p.pay.verifiedAt)||0);
 /* დამატებითი სერვისები (ფერი / სტიკერი): რაც უფრო მეტი აქვს, მით უფრო წინ დგას იმავე პაკეტის შიგნით */
 const addon=p=>(cardHex(p)?1:0)+(stkIds(p).length?1:0);
 const byPkg=(a,b)=>rk(b)-rk(a)||addon(b)-addon(a)||stkIds(b).length-stkIds(a).length||fresh(b)-fresh(a);
+const sortPkg=l=>l.map(p=>({p,a:rk(p),b:addon(p),c:stkIds(p).length,d:fresh(p)}))
+ .sort((x,y)=>y.a-x.a||y.b-x.b||y.c-x.c||y.d-x.d).map(x=>x.p);
 /* paid packages (VIP / Super VIP) stay hidden from the public until the admin confirms the payment; Regular listings go live at once */
 const held=p=>!!p.hold&&!(me&&(same(me.email,p.owner)||isAdmin()));
 const pub=()=>items.filter(p=>!held(p));
@@ -238,7 +240,7 @@ const priceFld=()=>rgFld('p','ფასი (<b data-pcur>'+priceSym()+'</b>)','f
 const wFld=()=>rgFld('w','წონა (გრ)','fw1','fw2',RG_W,'');
 const fRender=(pre,t)=>{
  if(pre=='f'){const sp=FF[t],keys=sp?Object.keys(sp):fkeys(t);
-  return `<div class="pwrow${sp?' one':''}">${priceFld()}${sp?'':wFld()}</div>`+keys.map(k=>{const d=FD[k],id='f_'+k;if(d.t=='text')return `<label>${d.l}<input id="${id}" maxlength="40"></label>`;
+  return `<div class="pwrow">${priceFld()}${wFld()}</div>`+keys.map(k=>{const d=FD[k],id='f_'+k;if(d.t=='text')return `<label>${d.l}<input id="${id}" maxlength="40"></label>`;
    const list=sp?toPairs(sp[k]):mk(k=='pur'?purFor(''):d.o);return fld(d.l,dd(id,{list,all:'ყველა'}))}).join('')}
  return fkeys(t).map(k=>{const d=FD[k],id=pre+'_'+k;return d.t=='text'?`<label>${d.l}<input id="${id}" maxlength="40"></label>`:fld(d.l,dd(id,{list:mk(k=='pur'?purFor(''):d.o),ph:'აირჩიეთ...'}))}).join('')};
 function readDyn(pre){const o={};for(const k in FD){const el=$('#'+pre+'_'+k);if(!el)continue;const v=FD[k].t=='text'?el.value.trim():el.dataset.val;if(v)o[k]=v}return o}
@@ -306,14 +308,52 @@ const usdOf=g=>money(rdiv(toS(g)*100n,toS(RATE)));
 /* GEL prices: Georgian style "379,95 ₾" - comma decimals, space-grouped thousands, non-breaking space before ₾; whole numbers have no decimals, fractions always exactly two */
 const gm=s=>String(s).replace(/,/g,'\u00A0').replace('.',',');
 const gelTxt=g=>{const [i,f]=(Math.abs(+g)||0).toFixed(2).split('.');return i.replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0')+(f=='00'?'':','+f)+'\u00A0₾'};
-const fmt=(g,c='GEL')=>c=='GEL'?gelTxt(g):'$'+usdOf(g);
+const hasNative = p =>
+  p && typeof p.nativePrice === 'number' &&
+  Number.isFinite(p.nativePrice) && p.nativePrice >= 0;
+
+const listingAmount = (p, c = 'GEL') => {
+  if (!hasNative(p)) {
+    return c === 'USD'
+      ? Number(usdOf(p.price).replace(/,/g, ''))
+      : Number(p.price) || 0;
+  }
+
+  const originalCurrency = p.cur === 'USD' ? 'USD' : 'GEL';
+
+  if (c === originalCurrency) return p.nativePrice;
+
+  return c === 'GEL'
+    ? p.nativePrice * RATE
+    : p.nativePrice / RATE;
+};
+
+const fmt = (g, c = 'GEL') => {
+  if (g && typeof g === 'object') {
+    const value = listingAmount(g, c);
+
+    return c === 'GEL'
+      ? gelTxt(value)
+      : '$' + money(rdiv(toS(value) * 100n, SC));
+  }
+
+  return c === 'GEL' ? gelTxt(g) : '$' + usdOf(g);
+};
+
+const priceNodeText = (element, currency) => {
+  const listing = items.find(
+    p => String(p.id) === String(element.dataset.id)
+  );
+
+  return fmt(listing || Number(element.dataset.g), currency);
+};
 const uiLoc=()=>window.MYGEM_LANG==='en'?'en-GB':'ka-GE';
 function rateText(){const d=new Date(RATE_DATE+'T12:00:00'),ds=isNaN(d)?RATE_DATE:d.toLocaleDateString(uiLoc(),{day:'numeric',month:'long',year:'numeric'});return `საქართველოს ეროვნული ბანკის ოფიციალური კურსი: 1 $ = ${RATE.toFixed(4)} ₾ (${ds})`}
 const curSw=(id,c)=>`<button type="button" class="cur sm${c=='USD'?' on':''}" data-cs="${id}" role="switch" aria-checked="${c=='USD'}" aria-label="ფასი დოლარში" title="${c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'}"><span class="cl">₾</span><span class="trk"><i></i></span><span class="cl">$</span></button>`;
 function toggleCur(id){const c=curOf(id)=='GEL'?'USD':'GEL';pc[id]=c;
  $$(`[data-cs="${id}"]`).forEach(b=>{b.classList.toggle('on',c=='USD');b.setAttribute('aria-checked',c=='USD');b.title=c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'});
  $$(`.price[data-id="${id}"]`).forEach(p=>{p.textContent=fmt(+p.dataset.g,c);p.classList.remove('flip');void p.offsetWidth;p.classList.add('flip')})}
-function applyRate(){const n=$('#rateNote');if(n)n.textContent=rateText();$$('.price[data-g]').forEach(p=>{p.textContent=fmt(+p.dataset.g,p.dataset.id?curOf(p.dataset.id):'GEL')});if(window.calcRefresh&&$('#cMetal'))window.calcRefresh()}
+function applyRate(){const n=$('#rateNote');if(n)n.textContent=rateText();$$('.price[data-g]').forEach(p=>{p.textContent=priceNodeText(p,p.dataset.id?curOf(p.dataset.id):'GEL')});if(window.calcRefresh&&$('#cMetal'))window.calcRefresh()}
 async function loadRate(){const today=new Date().toISOString().slice(0,10),c=load('nbgRate',null);if(c&&c.fetched===today)return;
  try{const r=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies=USD',{cache:'no-store'});if(!r.ok)throw 0;
   const j=await r.json(),blk=Array.isArray(j)?j[0]:j,u=((blk&&blk.currencies)||[]).find(x=>x.code=='USD');if(!u)throw 0;
@@ -373,7 +413,7 @@ function similar(p){const sc=x=>(x.cat==p.cat?2:0)+(x.type&&x.type==p.type?2:0)+
 function pushNote(email,t){(notes[email]=notes[email]||[]).unshift({t,d:Date.now(),r:0});save('notes',notes);setBadge()}
 /* ---------- listing packages: Regular / VIP / Super VIP (+ optional color) ---------- */
 const PLANS={REG:{key:'REG',name:'Regular',price:0,days:0},VIP:{key:'VIP',name:'VIP',price:2,days:3},SVIP:{key:'SVIP',name:'SUPER VIP',price:2,days:2}};
-const COLOR={price:2,days:1},DAY=864e5;
+const COLOR={price:0.50,days:1},DAY=864e5;
 const STICKER={price:2,days:1,max:3};
 /* stickers: price is PER STICKER (STICKER.price each, max STICKER.max). Refined line icons on soft pastel tints; t = short label shown on the card, d = longer hint shown in the picker */
 const STICKERS=[
@@ -403,7 +443,113 @@ const stkIcon=id=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const PAY_HOLDER='გ.მ.',BANKS=[{id:'bog',name:'საქართველოს ბანკი',iban:'GE74BG0000000549883748'},{id:'tbc',name:'თიბისი ბანკი',iban:'GE56TB7046245064300117'}];
 let FLITT={ready:false,companyName:'მიკრო მეწარმე გიორგი მინდიაშვლი',companyId:'',companyPhone:'574173203',companyEmail:'mygemge@gmail.com',companyAddress:'თბილისი, საქართველო',companyIban:'GE56TB7046245064300117'};
 async function loadFlitt(){const res=await apiSend('GET','/api/payments/config');if(!res.ok||!res.data)return;FLITT={...FLITT,...res.data,ready:!!res.data.ready};try{document.documentElement.classList.toggle('flitt-on',FLITT.ready)}catch{}}
-async function startFlittPay(listingId){const res=await apiSend('POST','/api/payments/checkout',{listingId});if(!res.ok){toast(res.data.message||'გადახდის დაწყება ვერ მოხერხდა');return false}if(res.data.checkoutUrl){location.href=res.data.checkoutUrl;return true}toast('გადახდის ბმული ვერ მოვიძიეთ');return false}
+function openFlittDialog() {
+  if (document.querySelector('#flittDialog')) return null;
+
+  const opener = document.activeElement;
+  const dialog = document.createElement('dialog');
+
+  dialog.id = 'flittDialog';
+  dialog.className = 'flitt-dialog';
+  dialog.setAttribute('aria-labelledby', 'flittDialogTitle');
+  dialog.innerHTML = `
+    <div class="flitt-dialog-head">
+      <h3 id="flittDialogTitle">გადახდა</h3>
+      <button type="button" class="flitt-dialog-close" aria-label="დახურვა">×</button>
+    </div>
+    <div id="flittLoading" role="status"><i class="flitt-spin"></i><span>გადახდა იტვირთება…</span></div>
+    <div id="flittCheckout"></div>
+  `;
+
+  dialog.querySelector('.flitt-dialog-close').onclick = () => dialog.close();
+
+  dialog.addEventListener('close', () => {
+    dialog.remove();
+    document.documentElement.classList.remove('flitt-open');
+    if (dialog._onClose) dialog._onClose();
+    else if (opener && opener.isConnected) opener.focus({ preventScroll: true });
+  }, { once: true });
+
+  document.body.appendChild(dialog);
+  dialog.showModal();
+  document.documentElement.classList.add('flitt-open');
+  return dialog;
+}
+
+async function runFlittCheckout(dialog, listingId) {
+  if (typeof window.checkout !== 'function') {
+    toast('გადახდის კომპონენტი ვერ ჩაიტვირთა — განაახლეთ გვერდი');
+    if (dialog.open) dialog.close();
+    return false;
+  }
+  try {
+    const res = await apiSend('POST', '/api/payments/checkout', { listingId }, 15000);
+
+    if (!dialog.isConnected || !dialog.open) return false;
+    if (!res.ok || !res.data.checkoutToken) {
+      throw new Error(res.data.message || 'გადახდის დაწყება ვერ მოხერხდა');
+    }
+
+    const ld = dialog.querySelector('#flittLoading');
+    if (ld) ld.remove();
+
+    window.checkout('#flittCheckout', {
+      options: {
+        methods: ['card', 'wallets'],
+        active_tab: 'card',
+        full_screen: false,
+        locales: [window.MYGEM_LANG === 'en' ? 'en' : 'ka']
+      },
+      params: { token: res.data.checkoutToken }
+    });
+    return true;
+  } catch (error) {
+    if (dialog.isConnected && dialog.open) dialog.close();
+    toast(error.message || 'გადახდის გახსნა ვერ მოხერხდა');
+    return false;
+  }
+}
+
+async function startFlittPay(listingId, paymentTab) {
+  const tab = paymentTab || window.open('about:blank', '_blank');
+
+  if (!tab || tab.closed) {
+    toast('გადახდის გასახსნელად დაუშვით ახალი ტაბის გახსნა');
+    return false;
+  }
+
+  tab.opener = null;
+
+  try {
+    const res = await apiSend(
+      'POST',
+      '/api/payments/checkout',
+      { listingId },
+      35000
+    );
+
+    if (!res.ok || !res.data.checkoutUrl) {
+      throw new Error(
+        res.data.message || 'გადახდის ბმული ვერ მივიღეთ'
+      );
+    }
+
+    const url = new URL(res.data.checkoutUrl);
+
+    if (url.protocol !== 'https:' || url.hostname !== 'pay.flitt.com') {
+      throw new Error('გადახდის ბმული არასწორია');
+    }
+
+    if (tab.closed) return false;
+
+    tab.location.replace(url.href);
+    return true;
+  } catch (error) {
+    if (!tab.closed) tab.close();
+    toast(error.message || 'გადახდის დაწყება ვერ მოხერხდა');
+    return false;
+  }
+}
 const planName=k=>k=='SVIP'?'Super VIP':PLANS[k].name;
 const planLabel=k=>k=='REG'?'Regular — უფასო':`${planName(k)} — ${PLANS[k].price} ₾ · ${PLANS[k].days} დღე`;
 const planOf=n=>Object.values(PLANS).find(x=>x.name==n);
@@ -516,6 +662,7 @@ function showLink(url){curAuth=null;modal.classList.add('show');
 async function shareP(id){const p=items.find(x=>String(x.id)===String(id));if(!p)return;
  const base=location.protocol=='file:'?location.href.split('#')[0]:location.origin+location.pathname,url=base+'#product:'+p.id,data={title:p.title,url};
  if(navigator.share&&(!navigator.canShare||navigator.canShare(data))){try{await navigator.share(data);return}catch(e){if(e&&e.name=='AbortError')return}}
+    /* ფანჯარა მაშინვე იხსნება */
  let ok=false;try{await navigator.clipboard.writeText(url);ok=true}catch{}
  if(!ok){try{const t=document.createElement('textarea');t.value=url;t.setAttribute('readonly','');t.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.append(t);t.select();t.setSelectionRange(0,url.length);ok=document.execCommand('copy');t.remove()}catch{}}
  if(ok)toast('ბმული დაკოპირდა ✓');else showLink(url)}
@@ -541,8 +688,9 @@ function confirmDelete(id){const p=items.find(x=>String(x.id)===String(id));if(!
   closeModal();
   $$(`.card[data-id="${p.id}"]`).forEach(c=>c.remove());
   setFavCnt();toast('განცხადება წაიშალა ✓');
-  if(parseHash()[0]!=='profile')location.hash='profile:mine';
-  setTimeout(()=>{save('items',items);save('favs',favs);save('pv',pv)},0);
+  if(parseHash()[0]!=='profile'){window.__fast=1;location.hash='profile:mine'}
+else if(!$('#app .card')){const g=$('#app .grid');if(g)g.outerHTML='<div class="empty">ჩანაწერი არ არის</div>'}
+  (window.requestIdleCallback||setTimeout)(()=>{save('items',items);save('favs',favs);save('pv',pv)});
   apiSend('DELETE','/api/listings/'+p.id).then(res=>{
     if(res.ok)return;
     items=snap.items;favs=snap.favs;save('items',items);save('favs',favs);setFavCnt();
@@ -648,10 +796,21 @@ const rowGrid=l=>`<div class="hrow"><div class="grid hscroll">${l.slice(0,12).ma
 /* ---------- filters ---------- */
 const filters=()=>`<div class="fgrid">${fld('საძიებო სიტყვა',dd('fT',{list:DD.type,all:'ყველა',other:1,otherPh:'ნივთის დასახელება'}))}${fld('მდებარეობა',dd('fl',{list:mk(LOC),all:'ყველა'}))}<div class="dyn" id="fDyn" data-t="">${fRender('f','')}</div></div><div class="frow"><button class="btn" id="goS">${ui('search')}<span>ძებნა</span></button><button type="button" class="btn alt" id="clrF" aria-label="გასუფთავება" title="გასუფთავება">${ui('trash')}</button></div>`;
 const EPS=1e-9;
-const priceIn=p=>F.cur=='USD'?+usdOf(p.price).replace(/,/g,''):p.price;
+const priceIn = p =>
+  listingAmount(p, F.cur === 'USD' ? 'USD' : 'GEL');
 const gmatch=(p,v)=>p.gender==v||p.gender=='უნისექსი';
 const match=p=>{const hay=(p.title+' '+(p.typeOther||'')).toLowerCase(),pr=priceIn(p);
- return (!F.q||hsMatch(p,F.q))&&(!p.nego||!(F.p1||F.p2))&&(!F.t||(F.t=='other'?(F.o?hay.includes(F.o.toLowerCase()):p.type=='other'):p.type==F.t))&&(!F.l||p.loc==F.l)&&Object.entries(F.x||{}).every(([k,v])=>!v||(k=='brand'?String(av(p,k)||'').toLowerCase().includes(v.toLowerCase()):k=='gen'?gmatch(p,v):av(p,k)==v))&&(!F.w1||p.weight>=F.w1)&&(!F.w2||p.weight<=F.w2)&&(!F.p1||pr>=F.p1-EPS)&&(!F.p2||pr<=F.p2+EPS)};
+ const mkMatch=()=>{const hq=F.q?hsPrep(F.q):null,cur=F.cur=='USD'?'USD':'GEL',oq=F.o?F.o.toLowerCase():'',
+  xs=Object.entries(F.x||{}).filter(([,v])=>v),needP=!!(F.p1||F.p2);
+ return p=>{
+  if(hq&&!hq(p))return false;
+  if(needP){if(p.nego)return false;const pr=listingAmount(p,cur);if((F.p1&&pr<F.p1-EPS)||(F.p2&&pr>F.p2+EPS))return false}
+  if(F.t){if(F.t=='other'){if(oq){if(!(p.title+' '+(p.typeOther||'')).toLowerCase().includes(oq))return false}else if(p.type!='other')return false}else if(p.type!=F.t)return false}
+  if(F.l&&p.loc!=F.l)return false;
+  for(const[k,v]of xs){if(k=='brand'?!String(av(p,k)||'').toLowerCase().includes(v.toLowerCase()):k=='gen'?!gmatch(p,v):av(p,k)!=v)return false}
+  if(F.w1&&p.weight<F.w1)return false;if(F.w2&&p.weight>F.w2)return false;
+  return true}};
+  return (!F.q||hsMatch(p,F.q))&&(!p.nego||!(F.p1||F.p2))&&(!F.t||(F.t=='other'?(F.o?hay.includes(F.o.toLowerCase()):p.type=='other'):p.type==F.t))&&(!F.l||p.loc==F.l)&&Object.entries(F.x||{}).every(([k,v])=>!v||(k=='brand'?String(av(p,k)||'').toLowerCase().includes(v.toLowerCase()):k=='gen'?gmatch(p,v):av(p,k)==v))&&(!F.w1||p.weight>=F.w1)&&(!F.w2||p.weight<=F.w2)&&(!F.p1||pr>=F.p1-EPS)&&(!F.p2||pr<=F.p2+EPS)};
 
 /* ---------- calculator ---------- */
 const M={'ოქრო':{k:'au',s:[375,585,750,916,999]},'ვერცხლი':{k:'ag',s:[800,925,999]},'პლატინა':{k:'pt',s:[850,950]}};
@@ -788,19 +947,24 @@ const homeBlog=()=>{const b=blogList().slice(0,3);if(!b.length)return '';
  const c=(x,big)=>`<a class="hbc${big?' big':''}" href="#post:${x.id}"><span class="hbi"><img src="${safeUrl(x.img)}" alt="${esc(x.t)}" width="1400" height="934" loading="lazy" decoding="async"></span><span class="hbb"><small>${x.min} წთ კითხვა</small><b>${esc(x.t)}</b>${big?`<span class="hbe">${esc(x.ex)}</span>`:''}</span></a>`;
  return `<section class="sec hblog" id="blogHome"><h2>ბლოგი</h2><div class="hbg">${c(b[0],1)}<div class="hbs">${b.slice(1).map(x=>c(x,0)).join('')}</div></div><div class="more"><a class="btn" href="#blog">გაიგეთ მეტი</a></div></section>`};
 
+ const PAGE=24;let RES=[];
 /* ---------- views ---------- */
 const views={
 home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ძვირფასი სამკაულების უსაზღვრო არჩევანი ერთ სივრცეში.</p><div class="sbox">${filters()}</div></section>
 ${(()=>{const P=pub().sort(byPkg);return homeSec('svipSec','Super VIP კოლექცია',P.filter(p=>pkgOf(p)=='SUPER VIP'),'ჯერ არ არის Super VIP განცხადებები')+homeSec('vipSec','VIP+ კოლექცია',P.filter(p=>pkgOf(p)=='VIP'),'ჯერ არ არის VIP განცხადებები',true)})()}
 <section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeBlog()}`},
-search(){let r=pub().filter(match);
+search(){let r=pub().filter(mkMatch());
  if(PER)r=r.filter(p=>Date.now()-(p.created||0)<=PER*DAY);
- r.sort(SORT=='old'?(a,b)=>(a.created||0)-(b.created||0):SORT=='pa'?(a,b)=>a.price-b.price:SORT=='pd'?(a,b)=>b.price-a.price:byPkg);
+   if(SORT=='old')r.sort((a,b)=>(a.created||0)-(b.created||0));
+  else if(SORT=='pa')r.sort((a,b)=>a.price-b.price);
+  else if(SORT=='pd')r.sort((a,b)=>b.price-a.price);
+  else r=sortPkg(r);
+  RES=r;
  
 const body=!r.length
   ? '<div class="empty">ვერაფერი მოიძებნა</div>'
-  : `<div class="rows">${r.map(rowCard).join('')}</div>`;
+  : `<div class="rows">${r.slice(0,PAGE).map(rowCard).join('')}</div>${r.length>PAGE?`<div class="more"><button type="button" class="btn alt" id="moreRows">მეტის ჩვენება (${r.length-PAGE})</button></div>`:''}`;
  return `<div class="layout"><aside><div class="sbox">${filters()}</div></aside><div class="results">
  <div class="rbar">
   <div class="catalog-heading">
@@ -920,7 +1084,8 @@ const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გადახდა მიღებულია ✓ — სტატუსი ავტომატურად ჩაირთვება':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');history.replaceState(null,'',hashOf('profile','mine'));h='profile';t='mine'}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
  const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
  const _prev=lastV;lastV=v;navN++;lastIdx=idx;
- if(REDUCE || v === 'product' || v === 'search' || _prev === 'search'){
+ if(REDUCE || window.__fast || v === 'product' || v === 'search' || _prev === 'search'){
+  window.__fast=0;
   app.getAnimations().forEach(a => a.cancel());
   render();
   return;
@@ -1054,7 +1219,8 @@ const cf=$('#clrF');if(cf)cf.onclick=e=>{e.preventDefault();F={};FCUR='GEL';
     const k=$('#aK').dataset.val||'',KO=$('#aKO'),A=readDyn('a'),pk=PL.dataset.val,pl=PLANS[pk],sel=stk(),
           ed=window.EDITP,
      d={...(ed||{}),id:ed?ed.id:'preview',title:$('#aT').value.trim()||'განცხადების სათაური',cat:ed?ed.cat:'',type:k,
-      typeOther:k=='other'&&KO?KO.value.trim():'',weight:+$('#aW').value||0,price:$('#aNego').checked?0:priceGel(),nego:$('#aNego').checked,cur:curUSD()?'USD':'GEL',
+      typeOther:k=='other'&&KO?KO.value.trim():'',weight:+$('#aW').value||0,price:$('#aNego').checked?0:priceGel(),
+nativePrice:$('#aNego').checked?0:(+$('#aP').value||0),nego:$('#aNego').checked,cur:curUSD()?'USD':'GEL',
       gender:A.gen||'',attrs:A,loc:$('#aL').dataset.val||'',photos:ph.length?[ph[0]]:[],
       owner:ed?ed.owner:me.email,created:ed?ed.created:Date.now()};
     /* ახალ განცხადებაზე სტატუსი/ფერი/სტიკერები ფორმიდან იკითხება; რედაქტირებისას რჩება ის, რაც განცხადებას რეალურად აქვს (vip, color, stickers, pay) */
@@ -1136,7 +1302,19 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
     setDD($('#aK'),q.type);setDyn('a',q.type,{...(q.attrs||{}),gen:q.gender},{});
     if(q.type=='other'&&$('#aKO'))$('#aKO').value=q.typeOther||'';
     setDD($('#aL'),q.loc||'');$('#aT').value=q.title||'';$('#aD').value=q.desc||'';$('#aW').value=q.weight||'';
-    if(q.nego){$('#aNego').checked=true;$('#aNego').onchange()}else $('#aP').value=q.price||'';
+    const editUSD = hasNative(q) && q.cur === 'USD';
+const currencyButton = $('#aCur');
+
+currencyButton.classList.toggle('on', editUSD);
+currencyButton.setAttribute('aria-checked', String(editUSD));
+$('#aPS').textContent = editUSD ? '$' : '₾';
+
+if (q.nego) {
+  $('#aNego').checked = true;
+  $('#aNego').onchange();
+} else {
+  $('#aP').value = hasNative(q) ? q.nativePrice : (q.price || '');
+}
     window.ph=[...(q.photos||[])];drawPrev();
     if(q.video){window.vid={data:q.video,name:'ვიდეო',size:q.video.length*.75};drawVid()}
     if(q.audio){window.aud={data:q.audio,name:'ხმოვანი აღწერა',size:q.audio.length*.75};drawAud()}}
@@ -1151,7 +1329,8 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
    if(n){S.hidden=false;S.textContent=`⚠️ გამოსაქვეყნებლად შეასწორეთ ან შეავსეთ ${n} ველი`;{const bd=af.querySelector('.bad'),pn=bd&&bd.closest('.astep');if(pn){goStep(+pn.dataset.pane,false);setTimeout(()=>bd.scrollIntoView({block:'center',behavior:'smooth'}),30)}}return toast('განცხადება არ გამოქვეყნდა — შეავსეთ ყველა სავალდებულო ველი')}
    S.hidden=true;
       if(window.EDITP){const q=window.EDITP,old={...q},sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;
-    Object.assign(q,{title:t,type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:$('#aNego').checked?0:p,nego:$('#aNego').checked,photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
+    Object.assign(q,{title:t,type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:$('#aNego').checked?0:p,
+nativePrice:$('#aNego').checked?0:(+$('#aP').value||0),cur:curUSD()?'USD':'GEL',cur:curUSD()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
     sb.disabled=true;sb.textContent='ინახება…';let ok=false;try{ok=await commitItems(q)}catch{ok=false}
     if(!ok){Object.assign(q,old);saveItems(items);sb.disabled=false;sb.textContent=sbt;return toast('ცვლილებები ვერ შეინახა')}
     toast('ცვლილებები შენახულია ✓');location.hash='profile:mine';return}
@@ -1162,13 +1341,70 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
     if(need&&!FLITT.ready&&window.rc){pay.receipt=window.rc.data;pay.receiptName=window.rc.name;pay.receiptType=window.rc.type}
     const rec={id:now,title:t,cat:'',type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:$('#aNego').checked?0:p,nego:$('#aNego').checked,cur:curUSD()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:'',vip:'',hold:need,color:false,sticker:false,stickers:[],owner:me.email,created:now,pay};
     items.push(rec);
-    /* the listing is only reported as published once it - and every photo - has been written AND read back from storage */
-    const sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;af.dataset.busy='1';sb.disabled=true;sb.textContent=need&&FLITT.ready?'გადახდაზე გადასვლა…':'ინახება…';
-    let ok=false;try{ok=await commitItems(rec)}catch{ok=false}
-    if(!ok){delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;const ix=items.indexOf(rec);if(ix>-1)items.splice(ix,1);saveItems(items);S.hidden=false;S.textContent='⚠️ განცხადება ვერ შეინახა — ფოტოები ვერ ჩაიწერა (მეხსიერება გადაივსო). სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('განცხადება არ გამოქვეყნდა — ფოტოები ვერ შეინახა')}
-    window.ph=[];
-    if(need&&FLITT.ready){const went=await startFlittPay(rec.id);if(went)return;delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;return toast('განცხადება შენახულია — გადახდა ხელახლა სცადეთ პროფილიდან')}
-    delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
+
+let paymentTab = null;
+
+if (need && FLITT.ready) {
+  paymentTab = window.open('about:blank', '_blank');
+  if (paymentTab) paymentTab.opener = null;
+}
+
+const sb = af.querySelector('button[type=submit]');
+const sbt = sb.textContent;
+
+af.dataset.busy = '1';
+sb.disabled = true;
+sb.textContent = 'ინახება…';
+
+let saved = false;
+
+try {
+  saved = await commitItems(rec);
+} catch {
+  saved = false;
+}
+
+if (!saved) {
+  if (paymentTab && !paymentTab.closed) paymentTab.close();
+
+  delete af.dataset.busy;
+  sb.disabled = false;
+  sb.textContent = sbt;
+
+  const index = items.indexOf(rec);
+  if (index !== -1) items.splice(index, 1);
+  saveItems(items);
+
+  S.hidden = false;
+  S.textContent = 'განცხადება ვერ შეინახა — სცადეთ ხელახლა.';
+  return toast('განცხადების შენახვა ვერ მოხერხდა');
+}
+
+delete af.dataset.busy;
+sb.disabled = false;
+sb.textContent = sbt;
+
+if (need && FLITT.ready) {
+  location.hash = 'profile:mine';
+
+  if (paymentTab && !paymentTab.closed) {
+    const opened = await startFlittPay(rec.id, paymentTab);
+
+    if (!opened) {
+      toast('განცხადება შენახულია — გადახდა გააგრძელეთ პროფილიდან');
+    }
+  } else {
+    toast('განცხადება შენახულია — დაუშვით ახალი ტაბის გახსნა და გადახდა პროფილიდან გააგრძელეთ');
+  }
+
+  return;
+}
+
+window.ph = [];
+
+   delete af.dataset.busy;
+sb.disabled = false;
+sb.textContent = sbt;
     await addNote(need?`«${t}» გაიგზავნა. გადახდა მოწმდება — განცხადება გამოჩნდება ადმინისტრატორის დადასტურების შემდეგ`:'განცხადება გამოქვეყნდა: '+t);if(need)(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – ${paid?pl.name:'დამატებითი სერვისები'}, ${amt} ₾`));toast('განცხადება დაემატა ✓');showPub();location.hash='profile:mine'}}
 
  /* profile edit */
@@ -1333,13 +1569,13 @@ async function modFilter(list){if(!list.length)return list;
 const hs=$('#hs'),hsIn=$('#hsIn'),sRes=$('#sRes');
 /* header search: a word that names an item type (ring, bracelet...) shows only that type; every other word must appear in the title / type / metal / gender */
 const TSTEM={ring:['ბეჭ','ring'],bracelet:['სამაჯ','bracelet'],earring:['საყურ','earring'],watch:['საათ','watch'],brooch:['ბროშ','brooch'],necklace:['ყელსაბ','necklace'],coin:['მონეტ','coin'],cross:['ჯვარ','cross'],chain:['ჯაჭვ','chain']};
-function hsMatch(p,q){const toks=String(q).toLowerCase().split(/\s+/).filter(Boolean);if(!toks.length)return false;
- const hay=[p.title,typeName(p),p.typeOther,p.desc].join(' ').toLowerCase();
- return toks.every(t=>{const ty=Object.keys(TSTEM).find(k=>TSTEM[k].some(st=>t.length>=3&&(t.startsWith(st)||(t.length>=4&&st.startsWith(t)))));
-  return ty?p.type==ty:hay.includes(t)})}
+function hsPrep(q){const toks=String(q).toLowerCase().split(/\s+/).filter(Boolean).map(t=>({t,ty:Object.keys(TSTEM).find(k=>TSTEM[k].some(st=>t.length>=3&&(t.startsWith(st)||(t.length>=4&&st.startsWith(t)))))}));
+ return p=>{if(!toks.length)return false;const hay=[p.title,typeName(p),p.typeOther,p.desc].join(' ').toLowerCase();
+  return toks.every(x=>x.ty?p.type==x.ty:hay.includes(x.t))}}
+const hsMatch=(p,q)=>hsPrep(q)(p);
 function hsRun(){const q=hsIn.value.trim().toLowerCase();hsX.hidden=!hsIn.value;if(!q){sRes.classList.remove('show');return}
    const all=pub().filter(p=>hsMatch(p,q)),r=all.slice(0,8);
- sRes.innerHTML=r.length?r.map(p=>`<div class="sr" data-id="${p.id}"><div class="st" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div><div class="si"><b>${esc(p.title)}</b><small>${[p.cat,typeName(p),p.gender].filter(Boolean).map(esc).join(' · ')}</small></div>${p.nego?'<span class="price nego">შეთანხმებით</span>':`<span class="price" data-g="${p.price}">${fmt(p.price)}</span>`}</div>`).join('')+(all.length>8?`<div class="empty" style="padding:10px;font-size:13px">და კიდევ ${all.length-8}... დააზუსტეთ ძებნა</div>`:''):'<div class="empty">ვერაფერი მოიძებნა </div>';
+ sRes.innerHTML=r.length?r.map(p=>`<div class="sr" data-id="${p.id}"><div class="st" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div><div class="si"><b>${esc(p.title)}</b><small>${[p.cat,typeName(p),p.gender].filter(Boolean).map(esc).join(' · ')}</small></div>${p.nego?'<span class="price nego">შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p,curOf(p.id))}</span>`}</div>`).join('')+(all.length>8?`<div class="empty" style="padding:10px;font-size:13px">და კიდევ ${all.length-8}... დააზუსტეთ ძებნა</div>`:''):'<div class="empty">ვერაფერი მოიძებნა </div>';
  hsPos();sRes.classList.add('show')}
 /* results panel sits directly under the search field */
 function hsPos(){if(innerWidth>900){const r=hs.getBoundingClientRect(),w=Math.min(480,innerWidth-16);sRes.style.top=(r.bottom+6)+'px';sRes.style.width=w+'px';sRes.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';sRes.style.right='auto'}else{['top','left','right','width'].forEach(k=>sRes.style[k]='')}}
@@ -1360,7 +1596,7 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>{if(docume
 $('#hsBtn').onclick=e=>{e.stopPropagation();
  if(hs.classList.contains('open')){if(hsIn.value.trim())hsGo();else hsClose()}
  else{hsY=window.scrollY;hs.classList.add('open');hsIn.focus({preventScroll:true});hsKeep()}};
-hsIn.oninput=hsRun;
+let hsT=0;hsIn.oninput=()=>{clearTimeout(hsT);hsT=setTimeout(hsRun,120)};
 hsIn.onkeydown=e=>{
  if(e.key=='Enter'){e.preventDefault();hsGo()}
  else if(e.key=='Escape'){if(hsIn.value){hsIn.value='';hsRun()}else hsClose()}};
@@ -1620,7 +1856,7 @@ window.addEventListener('hashchange', route);
 
 HYD = hydrate();
 
-const sigI=()=>items.map(p=>p.id+'|'+(p.photos||[]).length+'|'+p.vip+'|'+p.title+'|'+p.price+'|'+p.hold).join(',');
+const sigI=()=>items.map(p=>p.id+'|'+(p.photos||[]).length+'|'+p.vip+'|'+p.title+'|'+p.price+'|'+p.nativePrice+'|'+p.cur+'|'+p.hold).join(',');
 const sigB=()=>blogList().map(b=>b.id).join(',');
 let s0='',b0='';
 const net=Promise.all([restoreSession(),loadFlitt()]).then(()=>pullListings());
