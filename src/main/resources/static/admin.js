@@ -17,7 +17,6 @@ const IC={
  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.1-5.5 6.5-5.5s5.900 1.900 6.500 5.500M16 4.500a3.500 3.500 0 010 7M18 14.800c2 .6 3.200 2.300 3.500 5.200"/>',
  blog:'<path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4M8.500 12h7M8.500 16h5"/>',
  notes:'<path d="M4 4h16v12l-5 5H4z"/><path d="M15 21v-5h5M8 9h8M8 13h4"/>',
- settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M18.700 5.300l-2.100 2.100M7.400 16.600l-2.100 2.100"/>',
  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
  ban:'<circle cx="12" cy="12" r="9"/><path d="M5.600 5.600l12.800 12.800"/>',
@@ -39,7 +38,7 @@ const IC={
  up:'<path d="M12 20V9M7 13l5-5 5 5M5 4h14"/>',
  eye:'<path d="M2 12s3.500-7 10-7 10 7 10 7-3.500 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'
 };
-const TABS=[['dash','მთავარი','მიმოხილვა','ყველაფერი ერთ გვერდზე'],['items','განცხადებები','მონაცემები','განცხადებების მართვა და მოდერაცია'],['pay','გადახდები','','გადახდების შემოწმება და დადასტურება'],['users','მომხმარებლები','','რეგისტრირებული მომხმარებლები'],['blog','ბლოგი','შიგთავსი','სტატიების დამატება და რედაქტირება'],['notes','ჩანაწერები','ხელსაწყოები','პირადი ჩანაწერები ადმინისთვის'],['settings','პარამეტრები','','საიტის კონფიგურაცია']];
+const TABS=[['dash','მთავარი','მიმოხილვა','ყველაფერი ერთ გვერდზე'],['items','განცხადებები','მონაცემები','განცხადებების მართვა და მოდერაცია'],['pay','გადახდები','','გადახდების შემოწმება და დადასტურება'],['users','მომხმარებლები','','რეგისტრირებული მომხმარებლები'],['blog','ბლოგი','შიგთავსი','სტატიების დამატება და რედაქტირება'],['notes','ჩანაწერები','ხელსაწყოები','პირადი ჩანაწერები ადმინისთვის'],['trash','ურნა','','წაშლილი განცხადებების აღდგენა']];
 
 /* ---------- toast / modal ---------- */
 const toast=t=>{const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.innerHTML=ic(IC.check)+'<span></span>';d.lastChild.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),3000)};
@@ -49,28 +48,11 @@ $('#modal').onclick=e=>{if(e.target.id=='modal'||e.target.closest('[data-close]'
 const ask=(title,txt,okLabel,fn)=>{modal(`<h2 style="margin-bottom:8px">${esc(title)}</h2><p class="hint" style="margin-bottom:18px;font-size:14px">${esc(txt)}</p><div class="row-a"><button class="btn red" id="mok">${esc(okLabel)}</button><button class="btn alt" data-close>გაუქმება</button></div>`);$('#mok').onclick=()=>{closeM();fn()}};
 
 /* ---------- config ---------- */
-const CFG_FIELDS=[
- ['SITE_URL','საიტის მისამართი (ბმულებისთვის ადმინიდან საიტზე)','https://mygem.ge/'],
- ['ADMIN_EMAILS','ადმინების ელ-ფოსტები (მძიმით გამოყოფილი)','mygemge@gmail.com','list'],
- ['CONTACT_EMAIL','საკონტაქტო ელ-ფოსტა (widget-ის შეტყობინებები)','mygem@gmail.com'],
- ['TRYON_API','AI მოზომვის worker URL','https://mygem-tryon.xxx.workers.dev'],
- ['AUTH_API','Google შესვლის worker URL','https://...workers.dev'],
- ['METALS_API','ლითონების ფასის worker URL','https://...workers.dev'],
- ['BLOG_API','ბლოგის worker URL','https://...workers.dev'],
- ['SMS_API','SMS worker URL','https://...workers.dev'],
- ['MOD_API','ფოტო-მოდერაციის worker URL','https://...workers.dev'],
- ['SMS_VERIFY','SMS დადასტურება','','bool'],
- ['MOD_REQUIRED','ფოტო-მოდერაცია სავალდებულოა','','bool'],
- ['AD_banner','რეკლამის სურათი','/images/ad.jpg'],['AD_link','რეკლამის ბმული','https://...'],
- ['AD_facebook','Facebook ბმული','https://www.facebook.com/mygem.ge'],['AD_instagram','Instagram ბმული','https://www.instagram.com/mygem.ge'],
- ['AD_email','რეკლამის ელ-ფოსტა','mygemge@gmail.com'],['AD_phone','რეკლამის ტელეფონი (+995...)','+995574173203'],['AD_phoneText','ტელეფონი ტექსტად','574 173 203']
-];
-const CFG_GROUPS=[['საიტი და ადმინები',['SITE_URL','ADMIN_EMAILS','CONTACT_EMAIL']],['სერვისები (workers)',['TRYON_API','AUTH_API','METALS_API','BLOG_API','SMS_API','MOD_API']],['ფუნქციები',['SMS_VERIFY','MOD_REQUIRED']],['რეკლამა და კონტაქტები',['AD_banner','AD_link','AD_facebook','AD_instagram','AD_email','AD_phone','AD_phoneText']]];
 const cfg=()=>L('adminCfg',{});
 const adminList=()=>{const c=cfg().ADMIN_EMAILS;return[...new Set(['mygemge@gmail.com',...(Array.isArray(c)?c:String(c||'').split(',')).map(s=>s.trim()).filter(Boolean)])]};
 
 /* ---------- site links ----------
-   The public site is served at /. Set SITE_URL in admin settings if it lives on another address. */
+   The public site is served at /. */
 const siteRoot=()=>{let u=String(cfg().SITE_URL||'').trim();if(!u)u=location.protocol=='file:'?'https://mygem.ge/':location.origin+'/';return u.replace(/\/*$/,'/')};
 const siteBase=()=>siteRoot();
 const link=h=>siteBase()+'#'+h;
@@ -90,7 +72,26 @@ function admSend(url,opt){return fetch(url,Object.assign({credentials:'include',
 function saveItems(v){S('items',v);if(!ADMIN)return;for(const p of v){if(!p||!p.id||p.owner==='demo')continue;const body={...p};if(body._hp||!Array.isArray(body.photos)||!body.photos.length)delete body.photos;delete body._hp;admSend('/api/listings',{method:'PUT',body:JSON.stringify(body)}).catch(()=>{})}}
 const tagS=p=>`<span class="tag t-${stateOf(p)}">${ST[stateOf(p)]}</span>`;
 const empty=(ico,t,s)=>`<div class="empty">${ic(IC[ico])}<b>${t}</b>${s||''}</div>`;
-
+/* ---------- ურნა ---------- */
+const TRASH_DAYS=30;
+const trash=()=>L('trash',[]);
+async function toTrash(p){
+ const id=String(p.id);
+ const r=await idbDo('mygem','blobs','readonly',s=>s.get('i'+id));
+ const h=Object.assign({},r.ok&&r.v?r.v:{});
+ if(!(h.photos&&h.photos.length)&&p.photos&&p.photos.length)h.photos=p.photos;
+ if(!h.video&&p.video)h.video=p.video;
+ if(!h.audio&&p.audio)h.audio=p.audio;
+ if(!h.receipt&&p.pay&&p.pay.receipt)h.receipt=p.pay.receipt;
+ const item=JSON.parse(JSON.stringify(p));
+ delete item.photos;delete item.video;delete item.audio;if(item.pay)delete item.pay.receipt;
+ const has=!!((h.photos&&h.photos.length)||h.video||h.audio||h.receipt);
+ if(has){item._hp=true;const w=await idbDo('mygem','blobs','readwrite',s=>s.put(h,'t'+id));if(!w.ok)return false}
+ const t=trash().filter(x=>String(x.id)!=id);t.unshift({id,item,d:Date.now(),by:(ME()||{}).email||''});
+ if(!S('trash',t))return false;
+ await idbDo('mygem','blobs','readwrite',s=>s.delete('i'+id));
+ return true}
+function purgeTrash(){const t=trash(),lim=Date.now()-TRASH_DAYS*DAY,old=t.filter(x=>x.d<lim);if(!old.length)return;S('trash',t.filter(x=>x.d>=lim));old.forEach(x=>idbDo('mygem','blobs','readwrite',s=>s.delete('t'+x.id)))}
 /* ---------- blog helpers (same format as the site) ---------- */
 let BP=null,BE=null;
 const blogLines=t=>String(t).split('\n').map(x=>x.trim()).filter(Boolean);
@@ -105,16 +106,17 @@ const blogImg=f=>new Promise(r=>{const x=new FileReader();x.onerror=x.onabort=()
 let BR=new Map(),BS={ok:false,n:0};
 const blogParse=t=>{const m=String(t).match(/BLOG_EXTRA\s*=\s*(\[[\s\S]*\])\s*;?/);if(!m)return null;try{const a=JSON.parse(m[1]);return Array.isArray(a)?a:null}catch{return null}};
 const deletedIds=()=>L('blogDeleted',[]);
+/* posts: local IndexedDB read and the site's blog-extra.js download run in parallel */
 async function loadPosts(){
- const r=await idbDo('mygem-blog','kv','readonly',s=>s.get('posts')),local=r.ok&&Array.isArray(r.v)?r.v:[];
- let remote=[];BS={ok:false,n:0};
- try{const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),6000);const t=await(await fetch(siteRoot()+'static/blog-extra.js',{cache:'no-store',signal:ctl.signal})).text();clearTimeout(tm);const a=blogParse(t);if(a){remote=a;BS={ok:true,n:a.length}}}catch{}
+ BS={ok:false,n:0};
+ const rem=(async()=>{try{const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),3000);const t=await(await fetch(siteRoot()+'static/blog-extra.js',{cache:'no-cache',signal:ctl.signal})).text();clearTimeout(tm);const a=blogParse(t);if(a){BS={ok:true,n:a.length};return a}}catch{}return[]})();
+ const r=await idbDo('mygem-blog','kv','readonly',s=>s.get('posts')),local=r.ok&&Array.isArray(r.v)?r.v:[],remote=await rem;
  BR=new Map(remote.map(b=>[String(b.id),JSON.stringify(b)]));
  const del=new Set(deletedIds().map(String)),m=new Map();
  remote.forEach(b=>{if(!del.has(String(b.id)))m.set(String(b.id),b)});
  local.forEach(b=>m.set(String(b.id),b));
  BP=[...m.values()].sort((a,b)=>(b.created||0)-(a.created||0));
- if(local.length!=BP.length)await savePosts()}
+ if(local.length!=BP.length)savePosts()}
 const blogPub=b=>BR.get(String(b.id))===JSON.stringify(b);
 const savePosts=async()=>(await idbDo('mygem-blog','kv','readwrite',s=>s.put(BP,'posts'))).ok;
 const draftSave=()=>{if(BE&&!BE.id)try{localStorage.setItem('blogDraft',JSON.stringify({t:BE.t,ex:BE.ex,text:BE.text,mm:BE.mm}))}catch{}};
@@ -128,13 +130,16 @@ const PER=20,NOTE_CATS=['ანგარიში','ბმული','სამ�
 
 /* ---------- admin auth ----------
    The password is checked by the server and stored there as a BCrypt hash.
-   A browser-only password can no longer open this page. */
-let ADMIN=null,SERVER_USERS=[],AUTH={err:'',email:''};
+   A browser-only password can no longer open this page.
+   adminHint only remembers the e-mail/name so the panel can paint instantly on refresh;
+   the server (/api/me) still verifies the session in the background. */
+let ADMIN=null,SERVER_USERS=[],AUTH={err:'',email:''},LOGGING=false;
 try{sessionStorage.removeItem('adminTok')}catch{}
 const sess=()=>ADMIN;
 const ME=()=>ADMIN?{email:ADMIN.email,name:ADMIN.name||''}:null;
 const userList=()=>{const by=new Map();L('users',[]).forEach(u=>{if(u&&u.email){const c={...u};delete c.pass;by.set(String(u.email).toLowerCase(),c)}});SERVER_USERS.forEach(u=>{if(u&&u.email){const k=String(u.email).toLowerCase();by.set(k,{...(by.get(k)||{}),...u});delete by.get(k).pass}});return [...by.values()]};
 function renderLogin(){
+ LOGGING=false;
  $('#root').innerHTML=`<div class="login"><div class="lcard"><div class="lg">${ic(IC.items)}</div><h1>mygem.ge</h1><p class="hint" style="font-size:14px;margin-top:4px">ადმინისტრატორის შესვლა</p>
  <p class="hint">შედით იმ ელფოსტით, რომელიც სერვერზე ადმინად არის მითითებული. პაროლი ბრაუზერში არ ინახება. თუ ანგარიში ჯერ არ გაქვთ, ჯერ დარეგისტრირდით საიტზე.</p>
  <form id="lf"><label>ელ-ფოსტა<input id="lem" type="email" name="email" autocomplete="username" required value="${esc(AUTH.email)}" placeholder="admin@example.com"></label>
@@ -143,26 +148,31 @@ function renderLogin(){
  <button class="btn" type="submit" style="width:100%">შესვლა</button></form>
  <a class="lnk" href="${esc(siteBase())}">← საიტზე დაბრუნება</a></div></div>`;
  const em=$('#lem');if(em&&!em.value)em.focus();else{const pw=$('#lpw');if(pw)pw.focus()}}
-async function loadServerUsers(){try{const r=await admSend('/api/users');if(!r.ok)return;const d=await r.json();SERVER_USERS=Array.isArray(d.users)?d.users:[];if(sess()&&(tab=='users'||tab=='dash'))render()}catch{}}
-async function loadServerItems(){try{const r=await admSend('/api/listings');if(!r.ok)return;const d=await r.json();if(Array.isArray(d.listings)){S('items',d.listings);if(sess()&&!BE)render()}}catch{}}
-function enterAdmin(user){ADMIN={email:user.email,name:user.name||''};AUTH={err:'',email:''};render();loadServerUsers();loadServerItems();if(BP===null)loadPosts().then(()=>{if(!BE)render()})}
-async function doLogin(){const email=$('#lem').value.trim(),pw=$('#lpw').value;AUTH.email=email;
- const fail=m=>{AUTH.err=m;renderLogin()};
+/* render at most once per frame; skipped while a modal is open or a field is being typed in */
+let _rt;
+const rerender=()=>{cancelAnimationFrame(_rt);_rt=requestAnimationFrame(()=>{if(sess()&&!BE&&!$('#modal').classList.contains('show')&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))render()})};
+async function loadServerUsers(){try{const r=await admSend('/api/users');if(!r.ok)return;const d=await r.json();SERVER_USERS=Array.isArray(d.users)?d.users:[];if(tab=='users'||tab=='dash')rerender()}catch{}}
+async function loadServerItems(){try{const r=await admSend('/api/listings');if(!r.ok)return;const d=await r.json();if(Array.isArray(d.listings)){S('items',d.listings);rerender()}}catch{}}
+function enterAdmin(user){ADMIN={email:user.email,name:user.name||''};AUTH={err:'',email:''};try{localStorage.setItem('adminHint',JSON.stringify(ADMIN))}catch{}render();loadServerUsers();loadServerItems();if(BP===null)loadPosts().then(rerender)}
+async function doLogin(){
+ if(LOGGING)return;
+ const em=$('#lem'),pwEl=$('#lpw');if(!em||!pwEl)return;
+ const email=em.value.trim(),pw=pwEl.value;
+ if(!email||!pw)return;
+ AUTH.email=email;
+ const btn=$('#lf button[type=submit]');
+ const fail=m=>{LOGGING=false;AUTH.err=m;renderLogin()};
  const lk=L('adminLock',{n:0,until:0});if(lk.until>Date.now())return fail('ძალიან ბევრი მცდელობა. სცადეთ '+Math.ceil((lk.until-Date.now())/1000)+' წამში');
+ LOGGING=true;if(btn){btn.disabled=true;btn.textContent='შესვლა…'}
  let r,d;try{r=await admSend('/api/auth/login',{method:'POST',body:JSON.stringify({login:email,password:pw})});d=await r.json()}catch{return fail('სერვერთან დაკავშირება ვერ მოხერხდა')}
  if(!r.ok||!d.user){lk.n=(lk.n||0)+1;if(lk.n>=5)lk.until=Date.now()+30000*Math.min(lk.n-4,10);S('adminLock',lk);return fail(d.message||'არასწორი ელ-ფოსტა ან პაროლი')}
  let meR,meD;try{meR=await admSend('/api/me');meD=await meR.json()}catch{return fail('სერვერთან დაკავშირება ვერ მოხერხდა')}
  if(!meR.ok||!meD.admin){await admSend('/api/auth/session',{method:'DELETE'}).catch(()=>{});return fail('ამ ანგარიშს ადმინისტრატორის უფლება არ აქვს')}
- S('adminLock',{n:0,until:0});enterAdmin(meD.user||d.user||{email})}
+ S('adminLock',{n:0,until:0});LOGGING=false;enterAdmin(meD.user||d.user||{email})}
 async function restoreAdmin(){
- let r,d;try{r=await admSend('/api/me');d=await r.json()}catch{renderLogin();return}
- if(!r.ok||!d.admin){ADMIN=null;renderLogin();return}
+ let r,d;try{r=await admSend('/api/me');d=await r.json()}catch{if(!ADMIN)renderLogin();return}
+ if(!r.ok||!d.admin){ADMIN=null;try{localStorage.removeItem('adminHint')}catch{}renderLogin();return}
  enterAdmin(d.user||{email:''})}
-async function changePw(form){const me=ME();if(!me)return;const o=$('#po').value,n=$('#pn').value,n2=$('#pn2').value;
- if(n.length<8)return toast('ახალი პაროლი მინიმუმ 8 სიმბოლო უნდა იყოს');if(n!==n2)return toast('ახალი პაროლები არ ემთხვევა');
- let r,d;try{r=await admSend('/api/auth/profile',{method:'PUT',body:JSON.stringify({password:n,currentPassword:o})});d=await r.json()}catch{return toast('სერვერთან დაკავშირება ვერ მოხერხდა')}
- if(!r.ok)return toast(d.message||'პაროლი ვერ შეიცვალა');
- form.reset();toast('პაროლი შეიცვალა')}
 
 /* ---------- automatic expiry control ----------
    განცხადებას ვადა გასდის 1 თვეში (იგივე წესი, რაც საიტზე): ვადაგასულია → იმალება და ავტორს ეგზავნება შეტყობინება.
@@ -190,7 +200,7 @@ dash(){const it=items(),us=userList(),pv=L('pv',{}),now=Date.now(),c={active:0,e
  <div class="card"><h2>განცხადებების სტატუსები</h2><div class="split">${seg.map(([k,,col])=>`<i style="width:${it.length?c[k]/it.length*100:0}%;background:${col}"></i>`).join('')}</div><div class="legend">${seg.map(([k,l,col])=>`<span style="--c:${col}">${l}: <b>${c[k]}</b></span>`).join('')}</div></div>
  <div class="two"><div class="card"><h2 style="margin-bottom:8px">ბოლო განცხადებები</h2>${recent.map(p=>`<div class="li" data-a="view" data-id="${esc(p.id)}"><div class="th" data-th="${esc(p.id)}"></div><b>${esc(p.title)}</b><small>${fd(p.created)}</small></div>`).join('')||empty('items','ცარიელია')}</div>
  <div class="card"><h2 style="margin-bottom:8px">ახალი მომხმარებლები</h2>${ru.map(u=>`<div class="li" data-go="users" data-qs="${esc(u.email)}"><span class="av">${esc((u.name||u.email||'?')[0].toUpperCase())}</span><b>${esc((u.name||'')+' '+(u.last||''))}</b><small>${esc(u.email)}</small></div>`).join('')||empty('users','ცარიელია')}</div></div>
- <div class="card"><h2>ბექაპი</h2><p class="sub">მონაცემები ბრაუზერშია, ამიტომ პერიოდულად გადმოწერეთ ასლი (ფოტოები და ქვითრები არ შედის).</p><div class="row-a"><button class="btn" data-a="backup">${ic(IC.dl)} ბექაპის გადმოწერა</button><label class="btn alt" style="cursor:pointer">აღდგენა (პარამეტრები + ჩანაწერები)<input type="file" accept=".json" id="restore" hidden></label></div></div>`},
+ <div class="card"><h2>ბექაპი</h2><p class="sub">მონაცემები ბრაუზერშია, ამიტომ პერიოდულად გადმოწერეთ ასლი (ფოტოები და ქვითრები არ შედის).</p><div class="row-a"><button class="btn" data-a="backup">${ic(IC.dl)} ბექაპის გადმოწერა</button><label class="btn alt" style="cursor:pointer">აღდგენა (ჩანაწერები)<input type="file" accept=".json" id="restore" hidden></label></div></div>`},
 
 items(){const all=items(),pv=L('pv',{}),cnt={'':all.length};Object.keys(ST).forEach(k=>cnt[k]=0);all.forEach(p=>cnt[stateOf(p)]++);
  let l=all.slice();const f=q.itemsF,s=q.items.toLowerCase();
@@ -218,7 +228,7 @@ users(){const us=userList(),it=items(),s=q.users.toLowerCase(),l=us.filter(u=>!s
  return `<div class="ph"><div><h1>მომხმარებლები</h1><p>${TABS[3][3]}</p></div></div>
  <div class="toolbar"><div class="fld">${ic(IC.search)}<input id="qu" placeholder="ძებნა: სახელი, ელ-ფოსტა, ტელეფონი..." value="${esc(q.users)}"></div><span class="count">სულ: ${l.length}</span></div>
  <div class="tw"><table><thead><tr><th>სახელი</th><th>ელ-ფოსტა</th><th>ტელეფონი</th><th>ტიპი</th><th>განცხადებები</th><th>შექმნილია</th><th></th></tr></thead><tbody>
- ${l.map(u=>`<tr><td><div class="row-a" style="align-items:center;flex-wrap:nowrap"><span class="av">${esc((u.name||u.email||'?')[0].toUpperCase())}</span><div><b>${esc((u.name||'')+' '+(u.last||''))}</b>${u.google?' <span class="tag vip">Google</span>':''}${adminList().some(a=>same(a,u.email))?' <span class="tag t-active">ადმინი</span>':''}</div></div></td><td>${esc(u.email)}</td><td>${esc(u.phone||'—')}</td><td>${esc(u.regType||'')}</td><td>${it.filter(p=>same(p.owner,u.email)).length}</td><td>${fd(u.created)}</td><td><div class="row-a"><button class="btn sm alt" data-a="userItems" data-id="${esc(u.email)}">განცხადებები</button><button class="btn sm red" data-a="deluser" data-id="${esc(u.email)}">წაშლა</button></div></td></tr>`).join('')||`<tr><td colspan="7">${empty('users','მომხმარებელი არ მოიძებნა')}</td></tr>`}</tbody></table></div>`},
+ ${l.map(u=>`<tr><td><div class="row-a" style="align-items:center;flex-wrap:nowrap"><span class="av">${esc((u.name||u.email||'?')[0].toUpperCase())}</span><div><b>${esc((u.name||'')+' '+(u.last||''))}</b>${u.google?' <span class="tag vip">Google</span>':''}${adminList().some(a=>same(a,u.email))?' <span class="tag t-active">ადმინი</span>':''}</div></div></td><td>${esc(u.email)}</td><td>${esc(u.phone||'—')}</td><td>${esc(u.regType||'')}</td><td>${it.filter(p=>same(p.owner,u.email)).length}</td><td>${fd(u.created)}</td><td><div class="row-a"><button class="btn sm alt" data-a="userItems" data-id="${esc(u.email)}">განცხადებები</button>${same(u.email,(ME()||{}).email)?'':`<button class="btn sm red" data-a="deluser" data-id="${esc(u.email)}">წაშლა</button>`}</div></td></tr>`).join('')||`<tr><td colspan="7">${empty('users','მომხმარებელი არ მოიძებნა')}</td></tr>`}</tbody></table></div>`},
 
 blog(){if(BP===null)return '<div class="empty">იტვირთება…</div>';
  if(BE)return `<div class="editbar"><button class="btn alt sm" data-a="bcancel">${ic(IC.back)} უკან</button><span class="ttl">${BE.id?'სტატიის რედაქტირება':'ახალი სტატია'}</span><button class="btn alt" data-a="bcancel">გაუქმება</button><button class="btn" data-a="bsave">${ic(IC.check)} ${BE.id?'შენახვა':'გამოქვეყნება'}</button></div>
@@ -241,21 +251,17 @@ notes(){const n=L('adminNotes',[]),s=q.notes.toLowerCase(),c=q.notesC;
  return `<div class="ph"><div><h1>ჩანაწერები</h1><p>${TABS[5][3]}</p></div><div class="acts"><button class="btn" data-a="newnote">${ic(IC.plus)} ახალი ჩანაწერი</button></div></div>
  <div class="toolbar"><div class="fld">${ic(IC.search)}<input id="qn" placeholder="ძებნა..." value="${esc(q.notes)}"></div><select id="qc" aria-label="კატეგორია"><option value="">ყველა კატეგორია</option>${NOTE_CATS.map(k=>`<option${c==k?' selected':''}>${k}</option>`).join('')}</select></div>
  <div class="notes">${l.map(x=>`<div class="note"><small>${esc(x.c)} · ${fd(x.d)}</small><h3>${esc(x.t)}</h3><p>${esc(x.b)}</p><div class="row-a"><button class="btn sm alt" data-a="editnote" data-id="${x.id}">${ic(IC.edit)} რედაქტირება</button><button class="btn sm red" data-a="delnote" data-id="${x.id}" aria-label="წაშლა">${ic(IC.trash)}</button></div></div>`).join('')||`<div style="grid-column:1/-1">${empty('notes','ჩანაწერი არ არის','დააჭირეთ «ახალი ჩანაწერი»')}</div>`}</div>`},
-
-settings(){const c=cfg(),F=Object.fromEntries(CFG_FIELDS.map(f=>[f[0],f]));
- const fld=k=>{const [,l,ph,t]=F[k];return t=='bool'?`<label>${l}<select name="${k}"><option value="">არ შეცვალო</option><option value="true"${c[k]==='true'?' selected':''}>დიახ</option><option value="false"${c[k]==='false'?' selected':''}>არა</option></select></label>`:`<label>${l}<input name="${k}" placeholder="${esc(ph)}" value="${esc(Array.isArray(c[k])?c[k].join(', '):c[k]||'')}"></label>`};
- return `<div class="ph"><div><h1>პარამეტრები</h1><p>${TABS[6][3]}</p></div><div class="acts"><button class="btn alt" data-a="expcfg">${ic(IC.dl)} site-config.js</button><button class="btn" type="submit" form="cf">${ic(IC.check)} შენახვა</button></div></div>
- <div class="info">შეავსეთ, დააჭირეთ «site-config.js» და ატვირთეთ ფაილი საიტზე. ცარიელი ველები ფაილში არ მოხვდება. «საიტის მისამართი» მხოლოდ ამ ადმინისთვისაა. თუ ცარიელია, ლოკალურად გამოიყენება <code>${esc(SITE_PAGE)}</code>.</div>
- <form id="cf">${CFG_GROUPS.map(([t,ks])=>`<div class="card"><h2 style="margin-bottom:14px">${t}</h2><div class="grid2">${ks.map(fld).join('')}</div></div>`).join('')}</form>
- <div class="card"><h2>პაროლის შეცვლა</h2><p class="sub">შესული ადმინი: <b>${esc((ME()||{}).email||'')}</b></p><form id="pwf" class="grid2" style="max-width:640px"><label class="full">ამჟამინდელი პაროლი<input id="po" type="password" autocomplete="current-password" required></label><label>ახალი პაროლი<input id="pn" type="password" autocomplete="new-password" minlength="8" required></label><label>გაიმეორეთ ახალი პაროლი<input id="pn2" type="password" autocomplete="new-password" required></label><div class="full"><button class="btn" type="submit">${ic(IC.check)} პაროლის შეცვლა</button></div></form></div>
- <div class="card"><h2>დამატებითი ინფორმაცია</h2><p class="hint">ფასები (VIP 2 ₾ / 3 დღე, Super VIP 2 ₾ / 2 დღე, ფერი 0.50 ₾, სტიკერი 2 ₾) და საბანკო ანგარიშები script.js-შია და აქედან არ იცვლება.</p></div>`}
+ trash(){const t=trash().sort((a,b)=>b.d-a.d);
+ return `<div class="ph"><div><h1>ურნა</h1><p>${TABS[6][3]}</p></div>${t.length?`<div class="acts"><button class="btn red" data-a="emptytrash">${ic(IC.trash)} გასუფთავება</button></div>`:''}</div>
+ <div class="info">წაშლილი განცხადებები ინახება ${TRASH_DAYS} დღე, შემდეგ ავტომატურად იშლება სამუდამოდ. «აღდგენა» განცხადებას სიაში და საიტზე აბრუნებს. ურნა ინახება ამ ბრაუზერში.</div>
+ <div class="tw"><table><thead><tr><th>დასახელება</th><th>ავტორი</th><th>ფასი</th><th>წაშალა</th><th>წაშლის დრო</th><th>დარჩა</th><th></th></tr></thead><tbody>
+ ${t.map(x=>{const p=x.item,left=Math.max(0,Math.ceil((x.d+TRASH_DAYS*DAY-Date.now())/DAY));return `<tr><td><span class="t">${esc(p.title)}</span><br><span class="sub">${esc([p.loc,p.cat].filter(Boolean).join(' · '))}</span></td><td>${esc(p.owner)}</td><td>${p.nego?'შეთანხმებით':esc(p.price)+' ₾'}</td><td>${esc(x.by||'—')}</td><td>${fdt(x.d)}</td><td>${left} დღე</td><td><div class="row-a"><button class="btn sm ok" data-a="restoreItem" data-id="${esc(x.id)}">${ic(IC.up)} აღდგენა</button><button class="btn sm red" data-a="purge" data-id="${esc(x.id)}" aria-label="სამუდამოდ წაშლა">${ic(IC.trash)}</button></div></td></tr>`}).join('')||`<tr><td colspan="7">${empty('trash','ურნა ცარიელია','წაშლილი განცხადებები აქ გამოჩნდება')}</td></tr>`}</tbody></table></div>`}
 };
-
 /* ---------- render ---------- */
 function render(){
  const me=ME();
  if(!me){renderLogin();return}
- sweepExpired();
+ sweepExpired();purgeTrash();
  const pend=items().filter(p=>p.pay&&p.pay.status=='pending').length,cur=TABS.find(t=>t[0]==tab);
  document.title=(cur?cur[1]+' · ':'')+'mygem.ge ადმინი';
  $('#root').innerHTML=`<div class="app"><aside class="side"><div class="brand"><span class="lg">${ic(IC.items)}</span><div><b>mygem.ge</b><small>ადმინ პანელი</small></div></div>${TABS.map(([k,l,g])=>`${g?`<div class="grp">${g}</div>`:''}<button class="nv${tab==k?' on':''}" data-tab="${k}" ${tab==k?'aria-current="page"':''}>${ic(IC[k])}<span>${l}</span>${k=='pay'&&pend?`<span class="bd">${pend}</span>`:''}</button>`).join('')}<div class="me"><span class="av">${esc((me.name||me.email||'A')[0].toUpperCase())}</span><div><b>${esc(me.email)}</b><a href="${esc(siteBase())}" target="_blank" rel="noopener">საიტის გახსნა ↗</a></div></div></aside>
@@ -263,10 +269,11 @@ function render(){
  if($('#gs').value)gSearch();
  thumbs();
 }
-async function thumbs(){const els=[...document.querySelectorAll('[data-th]')];if(!els.length)return;const db=await idb('mygem','blobs'),all=items();
- for(const el of els){const id=el.dataset.th,p=all.find(x=>String(x.id)==id);let u=p&&!p._hp&&p.photos&&p.photos[0];
-  if(!u&&db&&p){u=await new Promise(res=>{try{const r=db.transaction('blobs').objectStore('blobs').get('i'+id);r.onsuccess=()=>res(r.result&&r.result.photos&&r.result.photos[0]);r.onerror=()=>res(null)}catch{res(null)}})}
-  if(u&&el.isConnected)el.style.backgroundImage=`url("${u}")`}}
+/* thumbnails load in parallel */
+async function thumbs(){const els=[...document.querySelectorAll('[data-th]')];if(!els.length)return;const byId=new Map(items().map(p=>[String(p.id),p]));
+ await Promise.all(els.map(async el=>{const id=el.dataset.th,p=byId.get(id);let u=p&&!p._hp&&p.photos&&p.photos[0];
+  if(!u&&p){const db=await idb('mygem','blobs');if(db)u=await new Promise(res=>{try{const r=db.transaction('blobs').objectStore('blobs').get('i'+id);r.onsuccess=()=>res(r.result&&r.result.photos&&r.result.photos[0]);r.onerror=()=>res(null)}catch{res(null)}})}
+  if(u&&el.isConnected)el.style.backgroundImage=`url("${u}")`}))}
 
 /* ---------- global search ---------- */
 function gSearch(){const v=$('#gs').value.trim().toLowerCase(),box=$('#gsr');gsQ=$('#gs').value;if(!v){box.classList.remove('show');return}
@@ -315,7 +322,21 @@ const acts={
  unblock(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p)return;p.state='';delete p.blockReason;applyVis(p);saveItems(l);notify(p.owner,`«${p.title}» – განბლოკილია`);closeM();toast('განბლოკილია');render()},
  toggle(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p||p.state=='blocked')return;const on=p.state=='off';p.state=on?'':'off';applyVis(p);saveItems(l);notify(p.owner,`«${p.title}» – ${on?'ჩართულია':'გამორთულია'} ადმინისტრატორის მიერ`);closeM();toast(on?'განცხადება ჩაირთო':'განცხადება გამოირთო');render()},
  renew(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p)return;p.renewedAt=Date.now();delete p.expNote;applyVis(p);saveItems(l);closeM();toast('+1 თვე');render()},
- delitem(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p)return;ask('განცხადების წაშლა',`«${p.title}» სამუდამოდ წაიშლება.`,'წაშლა',async()=>{saveItems(l.filter(x=>String(x.id)!=id));await admSend('/api/listings/'+id,{method:'DELETE'}).catch(()=>{});const pv=L('pv',{});delete pv[id];S('pv',pv);await idbDo('mygem','blobs','readwrite',s=>s.delete('i'+id));toast('წაიშალა');render()})},
+  delitem(id){const l=items(),p=l.find(x=>String(x.id)==id);if(!p)return;ask('განცხადების წაშლა',`«${p.title}» გადავა ურნაში, საიდანაც აღდგენა შეიძლება.`,'წაშლა',async()=>{if(!(await toTrash(p)))return toast('ურნაში გადატანა ვერ მოხერხდა — განცხადება არ წაშლილა');saveItems(l.filter(x=>String(x.id)!=id));await admSend('/api/listings/'+id,{method:'DELETE'}).catch(()=>{});toast('გადავიდა ურნაში');render()})},
+ async restoreItem(id){const t=trash(),e=t.find(x=>String(x.id)==id);if(!e)return;
+  const it=e.item,r=await idbDo('mygem','blobs','readonly',s=>s.get('t'+id)),h=r.ok&&r.v?r.v:null;
+  if(h){const w=await idbDo('mygem','blobs','readwrite',s=>s.put(h,'i'+id));if(!w.ok)return toast('ფოტოების აღდგენა ვერ მოხერხდა')}
+  const l=items().filter(x=>String(x.id)!=id);l.push(it);
+  if(!S('items',l))return;
+  S('trash',t.filter(x=>String(x.id)!=id));
+  idbDo('mygem','blobs','readwrite',s=>s.delete('t'+id));
+  const body={...it};delete body._hp;
+  if(h&&h.photos&&h.photos.length)body.photos=h.photos;else delete body.photos;
+  if(h&&h.video)body.video=h.video;if(h&&h.audio)body.audio=h.audio;
+  admSend('/api/listings',{method:'PUT',body:JSON.stringify(body)}).catch(()=>{});
+  notify(it.owner,`«${it.title}» – აღდგენილია ადმინისტრატორის მიერ`);toast('განცხადება აღდგა');render()},
+ purge(id){const e=trash().find(x=>String(x.id)==id);if(!e)return;ask('სამუდამოდ წაშლა',`«${e.item.title}» ვეღარ აღდგება.`,'წაშლა',async()=>{S('trash',trash().filter(x=>String(x.id)!=id));await idbDo('mygem','blobs','readwrite',s=>s.delete('t'+id));toast('წაიშალა სამუდამოდ');render()})},
+ emptytrash(){const n=trash().length;if(!n)return;ask('ურნის გასუფთავება',`${n} განცხადება სამუდამოდ წაიშლება.`,'გასუფთავება',async()=>{const t=trash();S('trash',[]);for(const e of t)await idbDo('mygem','blobs','readwrite',s=>s.delete('t'+e.id));toast('ურნა გასუფთავდა');render()})},
  async receipt(id){const p=items().find(x=>String(x.id)==id);if(!p||!p.pay)return;let rc=p.pay.receipt;
   if(!rc){const r=await idbDo('mygem','blobs','readonly',s=>s.get('i'+id));rc=r.ok&&r.v?r.v.receipt:''}
   if(!rc)return toast('ქვითარი ვერ მოიძებნა (სხვა ბრაუზერში ატვირთული ფაილი ამ ბრაუზერში არ ჩანს)');
@@ -329,7 +350,7 @@ const acts={
   notify(p.owner,`«${p.title}» – გადახდა დადასტურდა${y.days>0?'. '+y.plan+' აქტიურია '+fdt(p.vipUntil)+'-მდე':''}`);toast('გადახდა დადასტურდა');render()},
  payno(id){modal(`<h2 style="margin-bottom:10px">გადახდის უარყოფა</h2><label>მიზეზი (არასავალდებულო)<textarea id="br" maxlength="300"></textarea></label><div class="row-a" style="margin-top:14px"><button class="btn red" id="mok">უარყოფა</button><button class="btn alt" data-close>გაუქმება</button></div>`);
   $('#mok').onclick=()=>{const l=items(),p=l.find(x=>String(x.id)==id);if(!p||!p.pay)return;const r=$('#br').value.trim();delete p.hold;delete p.hvis;p.pay.status='rejected';p.pay.reason=r;p.pay.verifiedBy=(ME()||{}).email;p.pay.verifiedAt=Date.now();saveItems(l);notify(p.owner,`«${p.title}» – გადახდა ვერ დადასტურდა${r?': '+r:''}. განცხადება გამოქვეყნებულია Regular სტატუსით`);closeM();toast('უარყოფილია');render()}},
- deluser(email){ask('მომხმარებლის წაშლა',`${email} წაიშლება (მისი განცხადებები დარჩება).`,'წაშლა',()=>{S('users',L('users',[]).filter(u=>!same(u.email,email)));toast('წაიშალა');render()})},
+ deluser(email){if(same(email,(ME()||{}).email))return toast('საკუთარი თავის წაშლა შეუძლებელია');ask('მომხმარებლის წაშლა',`${email} წაიშლება (მისი განცხადებები დარჩება).`,'წაშლა',()=>{S('users',L('users',[]).filter(u=>!same(u.email,email)));toast('წაიშალა');render()})},
  userItems(email){go('items',{items:email,itemsF:'',page:1})},
  gsuser(email){go('users',{users:email})},
  gsnote(id){go('notes',{notes:'',notesC:''});noteForm(id)},
@@ -354,18 +375,11 @@ const acts={
   if(k=='b'){const ins='**'+(v.slice(a,b)||'ტექსტი')+'**';t.value=v.slice(0,a)+ins+v.slice(b);t.focus();t.setSelectionRange(a,a+ins.length)}
   else{const ls=v.lastIndexOf('\n',a-1)+1;t.value=v.slice(0,ls)+(k=='h'?'# ':'- ')+v.slice(ls);t.focus()}
   t.dispatchEvent(new Event('input',{bubbles:true}))},
- logout(){ADMIN=null;admSend('/api/auth/session',{method:'DELETE'}).catch(()=>{});closeM();BE=null;AUTH={err:'',email:''};render()},
+ logout(){ADMIN=null;try{localStorage.removeItem('adminHint')}catch{}admSend('/api/auth/session',{method:'DELETE'}).catch(()=>{});closeM();BE=null;AUTH={err:'',email:''};render()},
  togglepw(){const i=$('#lpw');if(i)i.type=i.type=='password'?'text':'password'},
  authmode(){renderLogin()},
  newnote(){noteForm('new')},editnote(id){noteForm(id)},
- delnote(id){S('adminNotes',L('adminNotes',[]).filter(x=>x.id!=id));toast('წაიშალა');render()},
- expcfg(){const c=cfg(),o=[],add=(k,v)=>o.push(`window.${k}=${JSON.stringify(v)};`);
-  if(c.ADMIN_EMAILS&&c.ADMIN_EMAILS.length)add('ADMIN_EMAILS',c.ADMIN_EMAILS);
-  ['CONTACT_EMAIL','TRYON_API','AUTH_API','METALS_API','BLOG_API','SMS_API','MOD_API'].forEach(k=>{if(c[k])add(k,c[k])});
-  ['SMS_VERIFY','MOD_REQUIRED'].forEach(k=>{if(c[k]==='true'||c[k]==='false')add(k,c[k]==='true')});
-  const ad={};[['banner','AD_banner'],['link','AD_link'],['facebook','AD_facebook'],['instagram','AD_instagram'],['email','AD_email'],['phone','AD_phone'],['phoneText','AD_phoneText']].forEach(([a,b])=>{if(c[b])ad[a]=c[b]});
-  if(Object.keys(ad).length)add('AD_CONFIG',ad);
-  dl('site-config.js','/* mygem.ge — generated '+new Date().toISOString().slice(0,10)+' */\n'+o.join('\n')+'\n','text/javascript');toast('site-config.js ჩამოიტვირთა')}
+ delnote(id){S('adminNotes',L('adminNotes',[]).filter(x=>x.id!=id));toast('წაიშალა');render()}
 };
 
 /* ---------- events ---------- */
@@ -380,13 +394,13 @@ document.addEventListener('click',e=>{
  const a=all[0];if(a){e.preventDefault();acts[a.dataset.a](a.dataset.id)}});
 document.addEventListener('input',e=>{const i=e.target.id,map={qi:'items',qu:'users',qn:'notes'};
  if(i=='gs'){gSearch();return}
- if(map[i]){q[map[i]]=e.target.value;if(i=='qi')q.page=1;const p=e.target.selectionStart;render();const n=$('#'+i);if(n){n.focus();n.setSelectionRange(p,p)}return}
+ if(map[i]){q[map[i]]=e.target.value;if(i=='qi')q.page=1;const p=e.target.selectionStart;clearTimeout(window._qt);window._qt=setTimeout(()=>{render();const n=$('#'+i);if(n){n.focus();n.setSelectionRange(p,p)}},120);return}
  const bk={bt:'t',be:'ex',bb:'text',bm:'mm'}[i];
  if(BE&&bk){BE[bk]=e.target.value;if(i=='bt'){const c=$('#tc');if(c)c.textContent=e.target.value.length+'/120'}const pv=$('#pvb');if(pv)pv.innerHTML=prevHtml();draftSave()}});
 document.addEventListener('change',async e=>{const i=e.target.id;
  if(i=='so'){q.sort=e.target.value;render()}
  if(i=='qc'){q.notesC=e.target.value;render()}
- if(i=='restore'){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.adminCfg)S('adminCfg',d.adminCfg);if(d.adminNotes)S('adminNotes',d.adminNotes);toast('პარამეტრები და ჩანაწერები აღდგა');render()}catch{toast('ფაილი არასწორია')}};r.readAsText(f)}
+ if(i=='restore'){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.adminNotes)S('adminNotes',d.adminNotes);toast('ჩანაწერები აღდგა');render()}catch{toast('ფაილი არასწორია')}};r.readAsText(f)}
  if(i=='impblog'){const f=e.target.files[0];e.target.value='';if(!f)return;const a=blogParse(await f.text());if(!a)return toast('ფაილი არასწორია — საჭიროა blog-extra.js');
   const m=new Map((BP||[]).map(b=>[String(b.id),b]));a.forEach(b=>{if(b&&b.id)m.set(String(b.id),b)});BP=[...m.values()].sort((x,y)=>(y.created||0)-(x.created||0));
   BR=new Map(a.map(b=>[String(b.id),JSON.stringify(b)]));BS={ok:true,n:a.length};S('blogDeleted',[]);await savePosts();toast(a.length+' სტატია იმპორტირდა');render()}
@@ -396,11 +410,11 @@ document.addEventListener('dragover',e=>{const c=e.target.closest&&e.target.clos
 document.addEventListener('dragleave',e=>{const c=e.target.closest&&e.target.closest('#cv');if(c)c.classList.remove('drag')});
 document.addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('#cv');if(c){e.preventDefault();c.classList.remove('drag');await setCover(e.dataTransfer.files[0])}});
 document.addEventListener('submit',e=>{e.preventDefault();
- if(e.target.id=='lf'||e.target.id=='sf'){doLogin(e.target.id=='sf');return}
- if(e.target.id=='pwf'){changePw(e.target);return}
- if(e.target.id=='cf'){const c={};new FormData(e.target).forEach((v,k)=>{v=String(v).trim();if(!v)return;c[k]=k=='ADMIN_EMAILS'?v.split(',').map(s=>s.trim()).filter(Boolean):v});S('adminCfg',c);toast('შენახულია');render()}
+ if(e.target.id=='lf'){doLogin();return}
  if(e.target.id=='nf'){const t=$('#nt').value.trim();if(!t)return toast('შეიყვანეთ სათაური');const id=e.target.dataset.id,l=L('adminNotes',[]),o={id:id=='new'?uid():id,t,c:$('#nc').value,b:$('#nb').value.trim(),d:Date.now()},i=l.findIndex(x=>x.id==o.id);if(i>-1)l[i]=o;else l.unshift(o);S('adminNotes',l);closeM();toast('შენახულია');render()}});
 document.addEventListener('keydown',e=>{
+ /* Enter in the login form logs in immediately */
+ if(e.key=='Enter'&&e.target.closest&&e.target.closest('#lf')&&e.target.tagName=='INPUT'){e.preventDefault();doLogin();return}
  const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
  if((e.key=='/'&&!typing)||((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()=='k')){const g=$('#gs');if(g){e.preventDefault();g.focus();g.select()}}
  if(e.key=='Escape'){closeM();const r=$('#gsr');if(r)r.classList.remove('show')}
@@ -410,4 +424,11 @@ document.addEventListener('keydown',e=>{
   if(e.key=='Enter'){const s=$('#gsr a.sel')||$('#gsr a');if(s){e.preventDefault();s.click()}}}
  if(BE&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()=='s'){e.preventDefault();acts.bsave()}});
 window.addEventListener('storage',()=>{if(!BE&&!$('#modal').classList.contains('show'))render()});
+
+/* ---------- start ----------
+   1) if this browser was signed in before, paint the panel immediately from local data
+   2) load blog posts in parallel with the server session check
+   3) the server (/api/me) is still the only thing that decides whether the session is valid */
+try{const h=JSON.parse(localStorage.getItem('adminHint'));if(h&&h.email){ADMIN={email:h.email,name:h.name||''};render()}}catch{}
+loadPosts().then(rerender);
 restoreAdmin();

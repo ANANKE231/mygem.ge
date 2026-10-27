@@ -11,7 +11,9 @@ const lsTry=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}ca
 const isData=s=>typeof s=='string'&&s.startsWith('data:');
 const heavy=p=>(p.photos||[]).some(isData)||!!(p.pay&&p.pay.receipt)||isData(p.video)||isData(p.audio);
 const hsh=x=>{x=String(x||'');let a=0;const st=Math.max(1,x.length>>8);for(let i=0;i<x.length;i+=st)a=(a*31+x.charCodeAt(i))|0;return a};
-const recSig=r=>(r.photos||[]).length+'|'+(r.photos||[]).reduce((a,x)=>a+x.length,0)+'|'+(r.photos||[]).reduce((a,x)=>(a*17+hsh(x))|0,0)+'|'+String(r.receipt||'').length+'|'+hsh(r.receipt)+'|'+String(r.video||'').length+'|'+hsh(r.video)+'|'+String(r.audio||'').length+'|'+hsh(r.audio);
+const _sc=new WeakMap();
+const recSig=r=>{let s=_sc.get(r);if(s===undefined){s=recSig0(r);_sc.set(r,s)}return s};
+const recSig0=r=>(r.photos||[]).length+'|'+(r.photos||[]).reduce((a,x)=>a+x.length,0)+'|'+(r.photos||[]).reduce((a,x)=>(a*17+hsh(x))|0,0)+'|'+String(r.receipt||'').length+'|'+hsh(r.receipt)+'|'+String(r.video||'').length+'|'+hsh(r.video)+'|'+String(r.audio||'').length+'|'+hsh(r.audio);
 const recOf=p=>({photos:p.photos||[],receipt:p.pay?p.pay.receipt||'':'',video:p.video||'',audio:p.audio||''});
 const IDB={db:null,ok:false,ready:false,dead:false,dirty:false,sig:{},bad:{},fly:{},jobs:{},
  open(){return new Promise(r=>{let end=false;const fin=v=>{if(!end){end=true;r(v)}},tm=setTimeout(()=>{IDB.dead=true;fin(false)},4000);
@@ -69,7 +71,17 @@ async function restoreSession(){
  const res=await apiSend('GET','/api/me');
  if(!res.ok){if(res.status===401){me=null;save('me',null)}return}
  adopt({user:res.data.user,admin:!!res.data.admin});
- if(me&&Array.isArray(res.data.notes)){notes[me.email]=res.data.notes;save('notes',notes)}
+ if(me&&Array.isArray(res.data.notes)){
+ const key=n=>(+n.d||0)+'|'+n.t,
+  local=notes[me.email]||[],
+  lmap=new Map(local.map(n=>[key(n),n])),
+  srv=res.data.notes.map(n=>({...n,r:(n.r||(lmap.get(key(n))||{}).r)?1:0})),
+  sk=new Set(srv.map(key)),
+  extra=local.filter(n=>!sk.has(key(n)));
+ notes[me.email]=srv.concat(extra).sort((a,b)=>(+b.d||0)-(+a.d||0)).slice(0,100);
+ save('notes',notes);setBadge();
+ 
+}
  if(Array.isArray(res.data.favs)){favs=res.data.favs;save('favs',favs)}}
 async function pullListings(){
  const res=await apiSend('GET','/api/listings');
@@ -83,7 +95,8 @@ async function pullListings(){
  const heal=[];
  for(const p of remote){if(!me||!same(p.owner,me.email)||(p.photos&&p.photos.length))continue;const ph=kept.get(String(p.id));if(ph){p.photos=ph;heal.push(p)}}
  saveItems(items);
- Promise.allSettled([...mine,...heal].map(pushListing))}
+ const pend=[...mine,...heal].filter(p=>!p._synced);
+setTimeout(()=>Promise.allSettled(pend.map(p=>pushListing(p).then(ok=>{if(ok)p._synced=1}))),3000)}
 const stripPass=v=>{if(Array.isArray(v))v.forEach(u=>{if(u&&typeof u==='object')delete u.pass});else if(v&&typeof v==='object')delete v.pass;return v};
 const save=(k,v)=>k=='items'?saveItems(v):lsSet(k,(k=='users'||k=='me')?stripPass(v):v);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -105,8 +118,12 @@ const safeUrl=s=>{s=fixPh(String(s||''));
  try{const u=new URL(s,location.origin);if(u.protocol==='https:'||(u.protocol==='http:'&&u.origin===location.origin))return esc(u.href)}catch{}
  return ''};
 /* background-image for a photo: quotes / brackets / spaces in a path can no longer break the style attribute (data: URLs are unaffected) */
+const _bu=new Map();
+const blobUrl=s=>{if(!isData(s)||s.length<2000)return s;let u=_bu.get(s);if(u)return u;
+ try{const m=s.match(/^data:([^;]+);base64,([\s\S]*)$/),b=atob(m[2]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
+  u=URL.createObjectURL(new Blob([a],{type:m[1]}));_bu.set(s,u);return u}catch{return s}};
 const bgi = s => {
-  s = fixPh(String(s || ''));
+  s = blobUrl(fixPh(String(s || '')));
   return s
     ? `background-image:url('${esc(s.replace(/[\\'"()\s]/g,
         c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')
@@ -261,10 +278,10 @@ let items=load('items',null)||[];
 /* put photos / receipts back on the items that were stored in IndexedDB (runs once before the first page render) */
 async function hydrate(){if(!(await IDB.open()))return;
  let fail=false;
- try{for(const p of items){if(!p._hp)continue;const r=await IDB.get('i'+p.id);
-   if(!r.ok){fail=true;continue}                               /* read error: keep the pointer and retry on the next visit - never wipe anything */
+ try{await Promise.all(items.filter(p=>p._hp).map(async p=>{const r=await IDB.get('i'+p.id);
+   if(!r.ok){fail=true;return}
    delete p._hp;const v=r.v;
-   if(v){p.photos=v.photos||[];p.video=v.video||'';p.audio=v.audio||'';if(p.pay)p.pay.receipt=v.receipt||'';IDB.sig['i'+p.id]=recSig(v)}else p.photos=[]}}catch{fail=true}
+   if(v){p.photos=v.photos||[];p.video=v.video||'';p.audio=v.audio||'';if(p.pay)p.pay.receipt=v.receipt||'';IDB.sig['i'+p.id]=recSig(v)}else p.photos=[]}))}catch{fail=true}
  IDB.ready=true;
  try{if(!fail){const ks=await IDB.keys();if(ks.ok)(ks.v||[]).forEach(k=>{if(!(k in IDB.sig))IDB.del(k)})}
   if(IDB.dirty||items.some(heavy)){IDB.dirty=false;save('items',items)}}catch{}}
@@ -295,7 +312,7 @@ function rateText(){const d=new Date(RATE_DATE+'T12:00:00'),ds=isNaN(d)?RATE_DAT
 const curSw=(id,c)=>`<button type="button" class="cur sm${c=='USD'?' on':''}" data-cs="${id}" role="switch" aria-checked="${c=='USD'}" aria-label="ფასი დოლარში" title="${c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'}"><span class="cl">₾</span><span class="trk"><i></i></span><span class="cl">$</span></button>`;
 function toggleCur(id){const c=curOf(id)=='GEL'?'USD':'GEL';pc[id]=c;
  $$(`[data-cs="${id}"]`).forEach(b=>{b.classList.toggle('on',c=='USD');b.setAttribute('aria-checked',c=='USD');b.title=c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'});
- $$(`.price[data-id="${id}"]`).forEach(p=>{p.classList.remove('flip');void p.offsetWidth;p.classList.add('flip');setTimeout(()=>p.textContent=fmt(+p.dataset.g,c),250)})}
+ $$(`.price[data-id="${id}"]`).forEach(p=>{p.textContent=fmt(+p.dataset.g,c);p.classList.remove('flip');void p.offsetWidth;p.classList.add('flip')})}
 function applyRate(){const n=$('#rateNote');if(n)n.textContent=rateText();$$('.price[data-g]').forEach(p=>{p.textContent=fmt(+p.dataset.g,p.dataset.id?curOf(p.dataset.id):'GEL')});if(window.calcRefresh&&$('#cMetal'))window.calcRefresh()}
 async function loadRate(){const today=new Date().toISOString().slice(0,10),c=load('nbgRate',null);if(c&&c.fetched===today)return;
  try{const r=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies=USD',{cache:'no-store'});if(!r.ok)throw 0;
@@ -511,12 +528,18 @@ const canDel=p=>!!me&&!!p&&(same(me.email,p.owner)||isAdmin());
 function confirmDelete(id){const p=items.find(x=>String(x.id)===String(id));if(!canDel(p))return;curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<div class="confirm"><div class="ci">${ui('trash')}</div><h3>დარწმუნებული ხართ, რომ გსურთ განცხადების წაშლა?</h3><p>«${esc(p.title)}»<br>წაშლის შემდეგ განცხადების აღდგენა შეუძლებელია.</p><div class="row2"><button type="button" class="btn danger" id="dlYes">დიახ, წაშლა</button><button type="button" class="btn alt" id="dlNo">გაუქმება</button></div></div>`;
  $('#dlNo').focus();$('#dlNo').onclick=closeModal;
- $('#dlYes').onclick=async()=>{if(!canDel(p))return closeModal();const ownerMail=p.owner;
-  const res=await apiSend('DELETE','/api/listings/'+p.id);
-  if(!res.ok){toast(res.data.message||'წაშლა ვერ მოხერხდა');return}
+ $('#dlYes').onclick=()=>{if(!canDel(p))return closeModal();
+  const snap={items:items.slice(),favs:favs.slice()};
   items=items.filter(x=>x.id!==p.id);favs=favs.filter(x=>x!==p.id);delete pv[p.id];delete pc[p.id];
-  save('items',items);save('favs',favs);save('pv',pv);setFavCnt();closeModal();toast('განცხადება წაიშალა ✓');
-  if(parseHash()[0] === 'profile')route();else location.hash='profile:mine'}}
+  closeModal();
+  $$(`.card[data-id="${p.id}"]`).forEach(c=>c.remove());
+  setFavCnt();toast('განცხადება წაიშალა ✓');
+  if(parseHash()[0]!=='profile')location.hash='profile:mine';
+  setTimeout(()=>{save('items',items);save('favs',favs);save('pv',pv)},0);
+  apiSend('DELETE','/api/listings/'+p.id).then(res=>{
+    if(res.ok)return;
+    items=snap.items;favs=snap.favs;save('items',items);save('favs',favs);setFavCnt();
+    toast(res.data.message||'წაშლა ვერ მოხერხდა');route()})}}
 /* ---------- photo editor: the owner can delete (and add) photos of an existing listing ---------- */
 const AUD_MB=5,AUD_SEC=60,AUP='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>',AMIC='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
 const fmtT=t=>{t=Math.max(0,Math.floor(t||0));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
@@ -595,11 +618,11 @@ const SORTS=[['new','თარიღი კლებადი'],['old','თა�
 UI.list='<path d="M4 6h16M4 12h16M4 18h16"/>';
 const ago=ts=>{const d=Math.floor((Date.now()-(ts||0))/DAY);return d<1?'დღეს':d==1?'გუშინ':d<30?d+' დღის წინ':d<365?Math.floor(d/30)+' თვის წინ':Math.floor(d/365)+' წლის წინ'};
 function rowCard(p){
- const f=favs.includes(p.id),c=pc[p.id]||'GEL',metal=(p.attrs&&p.attrs.metal)||p.cat,tn=typeName(p),
+ const f=favs.includes(p.id),hex=cardHex(p),c=pc[p.id]||'GEL',metal=(p.attrs&&p.attrs.metal)||p.cat,tn=typeName(p),
   at=[[CATE[p.cat]||'🪙',metal],['⚖',p.weight?p.weight+' გრ':''],[TYPEE[p.type]||'💎',tn],[GENE[p.gender],p.gender]].filter(x=>x[1]),
   own=canDel(p)&&location.hash.startsWith('#profile');
  /* სტიკერები და ფერი ბარათზე შეგნებულად არ არის — ისინი მხოლოდ განცხადების გვერდზე ჩანს */
- return `<div class="card lrow" data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">
+ return `<div class="card lrow${cardCls(hex)}"${hex?` style="--bc:${hex}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">
   <div class="limg" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div>
   <div class="lmid"><h4>${esc(p.title)}</h4>
    <div class="lattr">${at.map(([e,t])=>`<span><i class="te" aria-hidden="true">${e}\uFE0E</i>${esc(t)}</span>`).join('')}</div>
@@ -611,9 +634,9 @@ function rowCard(p){
   </div></div>`}
 function card(p,plain){const f=favs.includes(p.id),c=p.id==='preview'?(p.cur||'GEL'):(pc[p.id]||p.cur||'GEL'),tn=typeName(p),hex=plain?'':cardHex(p);
  const tags=[[CATE[p.cat],p.cat],[TYPEE[p.type],tn],['⚖',p.weight?p.weight+' გრ':''],['🔖',p.attrs&&p.attrs.pur?p.attrs.pur+' სინჯი':''],[GENE[p.gender],p.gender]].filter(x=>x[1]).slice(0,3).map(([e,t])=>`<span class="tg">${e?`<i class="te" aria-hidden="true">${e}\uFE0E</i>`:''}${esc(t)}</span>`).join('');
- return `<div class="card${p.vip?(p.vip=='VIP'?' is-vip':' is-svip'):''}${cardCls(hex)}"${hex?` style="--bc:${hex}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}<div class="img"><div class="imgi" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div></div><div class="in"><div class="cmeta"><small class="loc">${esc(p.loc||'')}</small>${vwHTML(p.id)}</div><div class="trow"><h4>${esc(p.title)}</h4><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>${ownChip(p)}<div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${curSw(p.id,c)}`}</div>${(()=>{const own=canDel(p)&&(parseHash()[0] === 'profile'),sk=plain?'':stkHTML(p);return tags||sk||own?`<div class="cfoot">${tags?`<div class="tags">${tags}</div>`:''}${sk}${own?`<div class="cbot"><span class="cbl">${ownerOf(p)?`<button type="button" class="cdel cedit" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}</button>`:''}<button type="button" class="cdel" data-del="${p.id}" aria-label="განცხადების წაშლა" title="წაშლა">${ui('trash')}<span>წაშლა</span></button></span></div>`:''}</div>`:''})()}</div></div>`}
+ return `<div class="card${p.vip?(p.vip=='VIP'?' is-vip':' is-svip'):''}${cardCls(hex)}"${hex?` style="--bc:${hex}"`:''} data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}">${p.vip?`<span class="badge ${p.vip=='VIP'?'s':''}">${CROWN}${p.vip}</span>`:''}<div class="img"><div class="imgi" ${p.photos[0]?`data-bg="${bgi(p.photos[0]).replace(/"/g,'&quot;')}"`:''}>${p.photos[0]?'':ill(p)}</div></div><div class="in"><div class="cmeta"><small class="loc">${esc(p.loc||'')}</small>${vwHTML(p.id)}</div><div class="trow"><h4>${esc(p.title)}</h4><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="${f?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება'}" title="ფავორიტები">${ui('heart')}</button></div>${ownChip(p)}<div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${curSw(p.id,c)}`}</div>${(()=>{const own=canDel(p)&&(parseHash()[0] === 'profile'),sk=plain?'':stkHTML(p);return tags||sk||own?`<div class="cfoot">${tags?`<div class="tags">${tags}</div>`:''}${sk}${own?`<div class="cbot"><span class="cbl">${ownerOf(p)?`<button type="button" class="cdel cedit" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება" title="ფოტოების რედაქტირება">${ui('image')}</button>`:''}<button type="button" class="cdel" data-del="${p.id}" aria-label="განცხადების წაშლა" title="წაშლა">${ui('trash')}<span>წაშლა</span></button></span></div>`:''}</div>`:''})()}</div></div>`}
 const grid=l=>`<div class="grid">${l.map(p=>card(p)).join('')}</div>`;
-const rowGrid=l=>`<div class="hrow"><div class="grid hscroll">${l.map(p=>card(p,1)).join('')}</div></div>`;
+const rowGrid=l=>`<div class="hrow"><div class="grid hscroll">${l.slice(0,12).map(p=>card(p,1)).join('')}</div></div>`;
 
 /* ---------- filters ---------- */
 const filters=()=>`<div class="fgrid">${fld('საძიებო სიტყვა',dd('fT',{list:DD.type,all:'ყველა',other:1,otherPh:'ნივთის დასახელება'}))}${fld('მდებარეობა',dd('fl',{list:mk(LOC),all:'ყველა'}))}<div class="dyn" id="fDyn" data-t="">${fRender('f','')}</div></div><div class="frow"><button class="btn" id="goS">${ui('search')}<span>ძებნა</span></button><button type="button" class="btn alt" id="clrF" aria-label="გასუფთავება" title="გასუფთავება">${ui('trash')}</button></div>`;
@@ -761,8 +784,7 @@ const homeBlog=()=>{const b=blogList().slice(0,3);if(!b.length)return '';
 /* ---------- views ---------- */
 const views={
 home(){return `<section class="hero"><h1>იპოვე შენი სრულყოფილი სამკაული</h1><p>ძვირფასი სამკაულების უსაზღვრო არჩევანი ერთ სივრცეში.</p><div class="sbox">${filters()}</div></section>
-${homeSec('svipSec','Super VIP კოლექცია',pub().filter(p=>pkgOf(p)=='SUPER VIP').sort(byPkg),'ჯერ არ არის Super VIP განცხადებები')}
-${homeSec('vipSec','VIP+ კოლექცია',pub().filter(p=>pkgOf(p)=='VIP').sort(byPkg),'ჯერ არ არის VIP განცხადებები',true)}
+${(()=>{const P=pub().sort(byPkg);return homeSec('svipSec','Super VIP კოლექცია',P.filter(p=>pkgOf(p)=='SUPER VIP'),'ჯერ არ არის Super VIP განცხადებები')+homeSec('vipSec','VIP+ კოლექცია',P.filter(p=>pkgOf(p)=='VIP'),'ჯერ არ არის VIP განცხადებები',true)})()}
 <section class="calc-wrap" id="calcHome"><div class="calc-in">${calcBox()}</div></section>
 ${homeBlog()}`},
 search(){let r=pub().filter(match);
@@ -910,6 +932,8 @@ function reveal(){if(REDUCE||!('IntersectionObserver' in window))return;if(io)io
   vis.forEach((en,i)=>{en.target.style.setProperty('--d',Math.min(i,6)*90+'ms');en.target.classList.remove('rv')});
   es.forEach(en=>{if(en.intersectionRatio===0&&en.boundingClientRect.top>0){en.target.style.setProperty('--d','0ms');en.target.classList.add('rv')}})
  },{threshold:[0,.1],rootMargin:'0px 0px -40px 0px'});
+ const lz=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const el=e.target;el.style.cssText=el.dataset.bg;lz.unobserve(el)}}),{rootMargin:'300px'});
+$$('.imgi[data-bg]',$('#app')).forEach(el=>lz.observe(el));
  $$('.card',$('#app')).forEach(el=>{el.classList.add('rv');io.observe(el)})}
 
 /* product page: gallery + back button */
@@ -1134,7 +1158,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
     let ok=false;try{ok=await commitItems(rec)}catch{ok=false}
     delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
     if(!ok){const ix=items.indexOf(rec);if(ix>-1)items.splice(ix,1);saveItems(items);S.hidden=false;S.textContent='⚠️ განცხადება ვერ შეინახა — ფოტოები ვერ ჩაიწერა (მეხსიერება გადაივსო). სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('განცხადება არ გამოქვეყნდა — ფოტოები ვერ შეინახა')}
-    window.ph=[];addNote(need?`«${t}» გაიგზავნა. გადახდა მოწმდება — განცხადება გამოჩნდება ადმინისტრატორის დადასტურების შემდეგ`:'განცხადება გამოქვეყნდა: '+t);if(need)(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – ${paid?pl.name:'დამატებითი სერვისები'}, ${amt} ₾`));toast('განცხადება დაემატა ✓');showPub();location.hash='profile:mine'}}
+    window.ph=[];await addNote(need?`«${t}» გაიგზავნა. გადახდა მოწმდება — განცხადება გამოჩნდება ადმინისტრატორის დადასტურების შემდეგ`:'განცხადება გამოქვეყნდა: '+t);if(need)(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – ${paid?pl.name:'დამატებითი სერვისები'}, ${amt} ₾`));toast('განცხადება დაემატა ✓');showPub();location.hash='profile:mine'}}
 
  /* profile edit */
  const ef=$('#eForm');if(ef){const T=$('#eT');if(regOf(me)=='other')$('#eTO').value=me.regOther||'';
@@ -1333,10 +1357,31 @@ hsIn.onkeydown=e=>{
 /* ---------- notifications ---------- */
 const myNotes=()=>me?(notes[me.email]||[]):[];
 function setBadge(){const n=myNotes().filter(x=>!x.r).length,b=$('#noteDot');b.textContent=n;b.style.display=n?'grid':'none'}
-function addNote(t){if(!me)return;(notes[me.email]=notes[me.email]||[]).unshift({t,d:Date.now(),r:0});save('notes',notes);setBadge()}
+async function addNote(t) {
+  if (!me) return false;
+
+  const email = me.email;
+  const list = notes[email] = notes[email] || [];
+
+  list.unshift({ t, d: Date.now(), r: 0 });
+  save('notes', notes);
+  setBadge();
+
+  const res = await apiSend('PUT', '/api/me/notes', {
+    notes: { [email]: list }
+  });
+
+  if (!res.ok) {
+    toast('შეტყობინება სერვერზე ვერ შეინახა');
+    return false;
+  }
+
+  return true;
+}
 $('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');pmClose();const P=$('#notePanel'),l=myNotes();
  P.innerHTML=`<h4>შეტყობინებები</h4>${l.length?l.slice(0,20).map(n=>`<div class="note ${n.r?'':'new'}">${esc(n.t)}<small>${new Date(n.d).toLocaleString(uiLoc())}</small></div>`).join(''):'<div class="empty">შეტყობინებები არ არის</div>'}`;
- P.classList.toggle('show');l.forEach(n=>n.r=1);save('notes',notes);setBadge()};
+ P.classList.toggle('show');const hadNew=l.some(n=>!n.r);l.forEach(n=>n.r=1);save('notes',notes);setBadge();
+ if(hadNew)apiSend('PUT','/api/me/notes',{notes:{[me.email]:notes[me.email]},markRead:true})};
 document.addEventListener('click',e=>{const b=e.target.closest('#fCur');if(!b)return;
  FCUR=FCUR=='USD'?'GEL':'USD';const on=FCUR=='USD';
  b.classList.toggle('on',on);b.setAttribute('aria-checked',on);
@@ -1347,7 +1392,7 @@ document.addEventListener('click',e=>{
  const cl=e.target.closest('a[href="#calculator"]'),ch=$('#calcHome');if(cl&&ch&&(!location.hash||location.hash=='#home')){e.preventDefault();ch.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'})}
   const cd=e.target.closest('.card[data-id]');if(cd&&!e.target.closest('[data-fav],[data-cshare],[data-cs],[data-del],[data-eph]')){
  location.hash = 'product:' + cd.dataset.id;}
- const so=e.target.closest('.sr[data-id]');if(so){location.hash='product:'+so.dataset.id}
+ const so=e.target.closest('.sr[data-id]');if(so){const id=so.dataset.id;hsClose();location.hash='product:'+id}
  const pf=e.target.closest('[data-pfav]');if(pf){if(!me)openAuth('login');else{const id=+pf.dataset.pfav;favs=favs.includes(id)?favs.filter(x=>x!=id):[...favs,id];save('favs',favs);setFavCnt();const on=favs.includes(id);pf.classList.toggle('on',on);pf.setAttribute('aria-pressed',on);const lb=on?'ფავორიტებიდან ამოღება':'ფავორიტებში დამატება';pf.setAttribute('aria-label',lb);pf.title=lb}}
  const rcb=e.target.closest('[data-rcpt]');if(rcb)openReceipt(rcb.dataset.rcpt);
  const pok=e.target.closest('[data-payok]');if(pok)payDecide(pok.dataset.payok,true);
@@ -1528,12 +1573,23 @@ if(check(fm,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგ
  window.mygemConsent={get:state,has:c=>c=='essential'||!!state()[c],run:(cat,fn)=>{subs.push({cat,fn,done:false});flush()},open:openP};
  bar.classList.toggle('show',!read());flush();
 })();
-const quiet=()=>{const[h,t]=parseHash();if(!/^(home|search)$/.test(h))return;
+const quiet=()=>{const[h,t]=parseHash();
+ if(!/^(home|search|profile|product|favs|seller)$/.test(h))return;
+ if(h=='profile'&&(t=='edit'||t=='blog'))return;   // ფორმა შევსების პროცესში არ გადაიხატოს
+ if($('#modal.show'))return;                        // ღია ფანჯარა არ შეწყდეს
  const y=window.scrollY;$('#app').innerHTML=views[h](t);bind();if(window.applyLang)window.applyLang(document.body);window.scrollTo({top:y,behavior:'instant'})};
-setLogin();window.addEventListener('hashchange',route);HYD=hydrate();
-HYD.finally(()=>route());
-restoreSession().then(()=>pullListings()).then(()=>{setLogin();quiet()}).catch(()=>{});
-loadBlog().then(()=>{const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post')quiet()});
+setLogin();
+window.addEventListener('hashchange', route);
+
+HYD = hydrate();
+
+const sigI=()=>items.map(p=>p.id+'|'+(p.photos||[]).length+'|'+p.vip+'|'+p.title+'|'+p.price+'|'+p.hold).join(',');
+const sigB=()=>blogList().map(b=>b.id).join(',');
+let s0='',b0='';
+const net=restoreSession().then(()=>pullListings());
+HYD.then(()=>{setLogin();route();s0=sigI();b0=sigB()});
+Promise.all([HYD,net]).then(()=>{setLogin();if(sigI()!==s0){s0=sigI();quiet()}});
+loadBlog().then(()=>{if(sigB()!==b0){b0=sigB();const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post')quiet()}});
 loadRate();
 /* the header height depends on the (large, responsive) logo: publish it as --hh so dropdowns, sticky panels and anchor scrolling always sit just below it */
 (()=>{const t=$('.top');if(!t)return;const set=()=>document.documentElement.style.setProperty('--hh',t.offsetHeight+'px');set();
@@ -1665,4 +1721,12 @@ document.addEventListener('click', e => {
     el.setAttribute('aria-checked', String(usd));
     el.title = usd ? 'ფასი დოლარში' : 'ფასი ლარში';
   });
+});
+mygemConsent.run('analytics', function () {
+  if (document.querySelector('script[src*="counter.top.ge/counter.js"]')) return;
+
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://counter.top.ge/counter.js';
+  document.body.appendChild(s);
 });

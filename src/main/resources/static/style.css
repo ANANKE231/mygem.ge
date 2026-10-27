@@ -4656,3 +4656,85 @@ footer { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
 #catalogCurrency {
   flex-shrink: 0;
 }
+html[data-theme="dark"] #app .card.lrow.is-color,
+html[data-theme="dark"] #app .card.lrow.is-white {
+  background: var(--bc, #fff) !important;
+}
+html[data-theme="dark"] #app .card.lrow.is-color h4,
+html[data-theme="dark"] #app .card.lrow.is-white h4,
+html[data-theme="dark"] #app .card.lrow.is-color .price,
+html[data-theme="dark"] #app .card.lrow.is-white .price,
+html[data-theme="dark"] #app .card.lrow.is-color .loc,
+html[data-theme="dark"] #app .card.lrow.is-white .loc {
+  color: #1a1c1f !important;
+  -webkit-text-fill-color: #1a1c1f !important;
+  opacity: 1 !important;
+}
+html[data-theme="dark"] #app .card.lrow.is-color .lattr span,
+html[data-theme="dark"] #app .card.lrow.is-white .lattr span,
+html[data-theme="dark"] #app .card.lrow.is-color .lfoot small,
+html[data-theme="dark"] #app .card.lrow.is-white .lfoot small,
+html[data-theme="dark"] #app .card.lrow.is-color .vw,
+html[data-theme="dark"] #app .card.lrow.is-white .vw {
+  color: #505660 !important;
+}
+html[data-theme="dark"] #app .card.lrow[style*="--bc"] h4,
+html[data-theme="dark"] #app .card.lrow[style*="--bc"] .price,
+html[data-theme="dark"] #app .card.lrow[style*="--bc"] .loc {
+  color: #1a1c1f !important;
+  -webkit-text-fill-color: #1a1c1f !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* DARK MODE: ფერადი list-view ბარათი (inline background) */
+html[data-theme="dark"] body #app .lcard[style*="background"] :is(
+  .ltitle, .price, .lloc, .ltop
+) {
+  color: #111318 !important;
+  -webkit-text-fill-color: #111318 !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+html[data-theme="dark"] body #app .lcard[style*="background"] :is(
+  .lsp, .lsp span, .lfoot, .lago, .ldot, .vw
+) {
+  color: #3d434c !important;
+  -webkit-text-fill-color: #3d434c !important;
+}
+
+html[data-theme="dark"] body #app .lcard[style*="background"] .lsp svg {
+  color: #6b7280 !important;
+}
+
+html[data-theme="dark"] body #app .lcard[style*="background"] .lcond {
+  color: #1b7f4b !important;
+  -webkit-text-fill-color: #1b7f4b !important;
+}
+
+html[data-theme="dark"] body #app .lcard[style*="background"] .cur {
+  background: #fff;
+  color: #1a1c1f;
+  border-color: #69717d;
+}
+
+html[data-theme="dark"] body #app .lcard[style*="background"] .cact {
+  background: transparent;
+  color: #1a1c1f;
+}
+.toast {
+  z-index: 20001 !important;
+}
+/* VIP / Super VIP რიგი: ბოლო ბარათის შემდეგ გადახვევა აღარ გრძელდება */
+.hsec .grid.hscroll {
+  overscroll-behavior-x: none;
+  scroll-snap-type: x proximity;   /* mandatory-ს ნაცვლად */
+  scroll-padding-inline: 0;
+}
+.hsec .grid.hscroll::after { content: none; }
+.hsec .hrow { overflow: hidden; }
+
+/* მთელი გვერდი არ უნდა გაიწიოს გვერდზე */
+html, body { overflow-x: clip; overscroll-behavior-x: none; }
+.hsec .grid.hscroll { -webkit-overflow-scrolling: auto; }

@@ -6,7 +6,8 @@
 <meta name="robots" content="noindex,nofollow">
 <title>mygem.ge — ადმინი</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
 <style>
    /* ადმინის პანელი და ავტორიზაცია */
 html {
@@ -430,12 +431,17 @@ td .sub{color:var(--mu);font-size:12.5px}
  .editbar{top:8px}.pv{top:auto}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.modal { backdrop-filter: none; }
+.topbar { backdrop-filter: none; background: #F4F5FA; }
+.editbar { backdrop-filter: none; background: #fff; }
+.modal .box, .modal.drawer .box, main { animation-duration: .12s; }
+tbody tr, .kp, .post { transition: none; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <div class="modal" id="modal"><div class="box" id="mbox"></div></div>
-<script src="/static/admin.js?v=2"></script>
+<script src="/static/admin.js?v=3"></script>
 
 </body>
 </html>

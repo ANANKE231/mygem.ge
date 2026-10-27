@@ -424,4 +424,7 @@ else {
   if (page === 'edit' && $('#editForm')) return;
   return _route.apply(this, arguments);
 };
+
+/* უკვე დახატულ გვერდზეც დაამატოს რედაქტირების ღილაკები */
+injectAll();
 })();

@@ -1,5 +1,5 @@
 [INFO] Scanning for projects...
-[INFO] Loaded 24244 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO] Loaded 24259 auto-discovered prefixes for remote repository central (prefixes-central.txt)
 [INFO] 
 [INFO] --------------------------< com.example:demo >--------------------------
 [INFO] Building  0.0.1-SNAPSHOT
@@ -38,24 +38,24 @@
 
  :: Spring Boot ::                (v4.1.1)
 
-2026-10-26T23:30:22.968+04:00  INFO 19508 --- [mygem] [           main] com.example.demo.DemoApplication         : Starting DemoApplication using Java 25 with PID 19508 (D:\Download\mygem.ge\target\classes started by HP in D:\Download\mygem.ge)
-2026-10-26T23:30:22.971+04:00  INFO 19508 --- [mygem] [           main] com.example.demo.DemoApplication         : No active profile set, falling back to 1 default profile: "default"
-2026-10-26T23:30:23.761+04:00  INFO 19508 --- [mygem] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-10-26T23:30:23.831+04:00  INFO 19508 --- [mygem] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 61 ms. Found 5 JPA repository interfaces.
-2026-10-26T23:30:24.353+04:00  INFO 19508 --- [mygem] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8081 (http)
-2026-10-26T23:30:24.370+04:00  INFO 19508 --- [mygem] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-10-26T23:30:24.371+04:00  INFO 19508 --- [mygem] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
-2026-10-26T23:30:24.428+04:00  INFO 19508 --- [mygem] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1405 ms
-2026-10-26T23:30:24.577+04:00  INFO 19508 --- [mygem] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-10-26T23:30:24.644+04:00  INFO 19508 --- [mygem] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
-2026-10-26T23:30:25.000+04:00  INFO 19508 --- [mygem] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-10-26T23:30:25.023+04:00  INFO 19508 --- [mygem] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-10-26T23:30:36.088+04:00  WARN 19508 --- [mygem] [           main] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: 08001
-2026-10-26T23:30:36.089+04:00  WARN 19508 --- [mygem] [           main] org.hibernate.orm.jdbc.error             : The connection attempt failed.
-2026-10-26T23:30:36.090+04:00  WARN 19508 --- [mygem] [           main] org.hibernate.orm.jdbc                   : HHH100046: Could not obtain connection to query JDBC database metadata
+2026-10-27T11:58:08.270+04:00  INFO 12980 --- [mygem] [           main] com.example.demo.DemoApplication         : Starting DemoApplication using Java 25 with PID 12980 (D:\Download\mygem.ge\target\classes started by HP in D:\Download\mygem.ge)
+2026-10-27T11:58:08.278+04:00  INFO 12980 --- [mygem] [           main] com.example.demo.DemoApplication         : No active profile set, falling back to 1 default profile: "default"
+2026-10-27T11:58:08.968+04:00  INFO 12980 --- [mygem] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-27T11:58:09.013+04:00  INFO 12980 --- [mygem] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 39 ms. Found 5 JPA repository interfaces.
+2026-10-27T11:58:09.601+04:00  INFO 12980 --- [mygem] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8081 (http)
+2026-10-27T11:58:09.614+04:00  INFO 12980 --- [mygem] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-27T11:58:09.614+04:00  INFO 12980 --- [mygem] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
+2026-10-27T11:58:09.675+04:00  INFO 12980 --- [mygem] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1350 ms
+2026-10-27T11:58:09.764+04:00  INFO 12980 --- [mygem] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-27T11:58:09.809+04:00  INFO 12980 --- [mygem] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.5.Final
+2026-10-27T11:58:10.275+04:00  INFO 12980 --- [mygem] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-27T11:58:10.305+04:00  INFO 12980 --- [mygem] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-27T11:58:13.480+04:00  WARN 12980 --- [mygem] [           main] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 0, SQLState: 28P01
+2026-10-27T11:58:13.481+04:00  WARN 12980 --- [mygem] [           main] org.hibernate.orm.jdbc.error             : FATAL: password authentication failed for user "postgres"
+2026-10-27T11:58:13.482+04:00  WARN 12980 --- [mygem] [           main] org.hibernate.orm.jdbc                   : HHH100046: Could not obtain connection to query JDBC database metadata
 
-org.hibernate.exception.JDBCConnectionException: Unable to obtain isolated JDBC connection [The connection attempt failed.] [n/a]
-	at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:80) ~[hibernate-core-7.4.5.Final.jar:7.4.5.Final]
+org.hibernate.exception.AuthException: Unable to obtain isolated JDBC connection [FATAL: password authentication failed for user "postgres"] [n/a]
+	at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:87) ~[hibernate-core-7.4.5.Final.jar:7.4.5.Final]
 	at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.4.5.Final.jar:7.4.5.Final]
 	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.4.5.Final.jar:7.4.5.Final]
 	at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:101) ~[hibernate-core-7.4.5.Final.jar:7.4.5.Final]
@@ -195,8 +195,10 @@ org.hibernate.exception.JDBCConnectionException: Unable to obtain isolated JDBC 
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365) ~[spring-boot-4.1.1.jar:4.1.1]
 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354) ~[spring-boot-4.1.1.jar:4.1.1]
 	at com.example.demo.DemoApplication.main(DemoApplication.java:12) ~[classes/:na]
-Caused by: org.postgresql.util.PSQLException: The connection attempt failed.
-	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:439) ~[postgresql-42.7.13.jar:42.7.13]
+Caused by: org.postgresql.util.PSQLException: FATAL: password authentication failed for user "postgres"
+	at org.postgresql.core.v3.ConnectionFactoryImpl.doAuthentication(ConnectionFactoryImpl.java:837) ~[postgresql-42.7.13.jar:42.7.13]
+	at org.postgresql.core.v3.ConnectionFactoryImpl.tryConnect(ConnectionFactoryImpl.java:309) ~[postgresql-42.7.13.jar:42.7.13]
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:367) ~[postgresql-42.7.13.jar:42.7.13]
 	at org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:52) ~[postgresql-42.7.13.jar:42.7.13]
 	at org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:295) ~[postgresql-42.7.13.jar:42.7.13]
 	at org.postgresql.Driver.makeConnection(Driver.java:437) ~[postgresql-42.7.13.jar:42.7.13]
@@ -212,25 +214,15 @@ Caused by: org.postgresql.util.PSQLException: The connection attempt failed.
 	at org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentInitiator$ConnectionProviderJdbcConnectionAccess.obtainConnection(JdbcEnvironmentInitiator.java:508) ~[hibernate-core-7.4.5.Final.jar:7.4.5.Final]
 	at org.hibernate.resource.transaction.backend.jdbc.internal.JdbcIsolationDelegate.delegateWork(JdbcIsolationDelegate.java:48) ~[hibernate-core-7.4.5.Final.jar:7.4.5.Final]
 	... 135 common frames omitted
-Caused by: java.net.SocketTimeoutException: Connect timed out
-	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:547) ~[na:na]
-	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:594) ~[na:na]
-	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:284) ~[na:na]
-	at java.base/java.net.Socket.connect(Socket.java:659) ~[na:na]
-	at org.postgresql.core.PGStream.createSocket(PGStream.java:270) ~[postgresql-42.7.13.jar:42.7.13]
-	at org.postgresql.core.PGStream.<init>(PGStream.java:131) ~[postgresql-42.7.13.jar:42.7.13]
-	at org.postgresql.core.v3.ConnectionFactoryImpl.tryConnect(ConnectionFactoryImpl.java:221) ~[postgresql-42.7.13.jar:42.7.13]
-	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:367) ~[postgresql-42.7.13.jar:42.7.13]
-	... 149 common frames omitted
 
-2026-10-26T23:30:36.104+04:00 ERROR 19508 --- [mygem] [           main] j.LocalContainerEntityManagerFactoryBean : Failed to initialize JPA EntityManagerFactory: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
-2026-10-26T23:30:36.106+04:00 ERROR 19508 --- [mygem] [           main] t.s.DeferredServletContainerInitializers : Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'tokenAuthFilterRegistration' defined in class path resource [com/example/demo/config/SecurityConfig.class]: Unsatisfied dependency expressed through method 'tokenAuthFilterRegistration' parameter 0: Error creating bean with name 'tokenAuthFilter' defined in class path resource [com/example/demo/config/SecurityConfig.class]: Unsatisfied dependency expressed through method 'tokenAuthFilter' parameter 0: Error creating bean with name 'sessionService' defined in file [D:\Download\mygem.ge\target\classes\com\example\demo\security\SessionService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'loginSessionRepository' defined in com.example.demo.repo.LoginSessionRepository defined in @EnableJpaRepositories declared on DataJpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
-2026-10-26T23:30:36.144+04:00  INFO 19508 --- [mygem] [           main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
-2026-10-26T23:30:36.161+04:00  WARN 19508 --- [mygem] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Unable to start web server
-2026-10-26T23:30:36.170+04:00  INFO 19508 --- [mygem] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-10-27T11:58:13.496+04:00 ERROR 12980 --- [mygem] [           main] j.LocalContainerEntityManagerFactoryBean : Failed to initialize JPA EntityManagerFactory: Unable to create requested service [org.hibernate.engine.jdbc.env.spi.JdbcEnvironment] due to: Unable to determine Dialect without JDBC metadata (please set 'jakarta.persistence.jdbc.url' for common cases or 'hibernate.dialect' when a custom Dialect implementation must be provided)
+2026-10-27T11:58:13.498+04:00 ERROR 12980 --- [mygem] [           main] t.s.DeferredServletContainerInitializers : Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'tokenAuthFilterRegistration' defined in class path resource [com/example/demo/config/SecurityConfig.class]: Unsatisfied dependency expressed through method 'tokenAuthFilterRegistration' parameter 0: Error creating bean with name 'tokenAuthFilter' defined in class path resource [com/example/demo/config/SecurityConfig.class]: Unsatisfied dependency expressed through method 'tokenAuthFilter' parameter 0: Error creating bean with name 'sessionService' defined in file [D:\Download\mygem.ge\target\classes\com\example\demo\security\SessionService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'loginSessionRepository' defined in com.example.demo.repo.LoginSessionRepository defined in @EnableJpaRepositories declared on DataJpaRepositoriesRegistrar.EnableJpaRepositoriesConfiguration: Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory' while setting bean property 'entityManager'
+2026-10-27T11:58:13.529+04:00  INFO 12980 --- [mygem] [           main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-10-27T11:58:13.538+04:00  WARN 12980 --- [mygem] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Unable to start web server
+2026-10-27T11:58:13.544+04:00  INFO 12980 --- [mygem] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
 
 Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
-2026-10-26T23:30:36.187+04:00 ERROR 19508 --- [mygem] [           main] o.s.boot.SpringApplication               : Application run failed
+2026-10-27T11:58:13.555+04:00 ERROR 12980 --- [mygem] [           main] o.s.boot.SpringApplication               : Application run failed
 
 org.springframework.context.ApplicationContextException: Unable to start web server
 	at org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:167) ~[spring-boot-web-server-4.1.1.jar:4.1.1]
@@ -402,8 +394,8 @@ Caused by: org.hibernate.HibernateException: Unable to determine Dialect without
 [INFO] ------------------------------------------------------------------------
 [ERROR] BUILD FAILURE
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  16.805 s
-[INFO] Finished at: 2026-10-26T23:30:36+04:00
+[INFO] Total time:  8.796 s
+[INFO] Finished at: 2026-10-27T11:58:13+04:00
 [INFO] ------------------------------------------------------------------------
 [ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:4.1.1:run (default-cli) on project demo: Process terminated with exit code: 1 -> [Help 1]
 [ERROR] 

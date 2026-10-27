@@ -12,7 +12,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
 
 	static final String CSP = String.join("; ",
 			"default-src 'self'",
-			"script-src 'self' https://accounts.google.com",
+			"script-src 'self' https://accounts.google.com https://counter.top.ge",
 			"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 			"font-src 'self' https://fonts.gstatic.com data:",
 			"img-src 'self' data: blob: https:",

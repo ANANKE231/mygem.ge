@@ -164,3 +164,8 @@
   align-items: center;
   flex-shrink: 0;
 }
+[data-theme="dark"] .lcard:is(.is-color, .is-white, [style*="--bc"]) .ltitle,
+[data-theme="dark"] .lcard:is(.is-color, .is-white, [style*="--bc"]) .price {
+  color: #1a1c1f !important;
+  -webkit-text-fill-color: #1a1c1f !important;
+}
