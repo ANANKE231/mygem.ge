@@ -18,6 +18,16 @@ public class AppProperties {
 	private String r2Endpoint = "";
 	private String r2Bucket = "";
 	private String r2PublicBase = "";
+	private long flittMerchantId;
+	private String flittPaymentKey = "";
+	private String flittCreditKey = "";
+	private String publicBaseUrl = "https://mygem.ge";
+	private String companyName = "მიკრო მეწარმე გიორგი მინდიაშვლი";
+	private String companyId = "";
+	private String companyPhone = "574173203";
+	private String companyEmail = "mygemge@gmail.com";
+	private String companyAddress = "თბილისი, საქართველო";
+	private String companyIban = "GE56TB7046245064300117";
 
 	@PostConstruct
 	void check() {
@@ -111,6 +121,86 @@ public class AppProperties {
 
 	public void setR2PublicBase(String r2PublicBase) {
 		this.r2PublicBase = r2PublicBase;
+	}
+
+	public long getFlittMerchantId() {
+		return flittMerchantId;
+	}
+
+	public void setFlittMerchantId(long flittMerchantId) {
+		this.flittMerchantId = flittMerchantId;
+	}
+
+	public String getFlittPaymentKey() {
+		return flittPaymentKey;
+	}
+
+	public void setFlittPaymentKey(String flittPaymentKey) {
+		this.flittPaymentKey = flittPaymentKey;
+	}
+
+	public String getFlittCreditKey() {
+		return flittCreditKey;
+	}
+
+	public void setFlittCreditKey(String flittCreditKey) {
+		this.flittCreditKey = flittCreditKey;
+	}
+
+	public String getPublicBaseUrl() {
+		return publicBaseUrl;
+	}
+
+	public void setPublicBaseUrl(String publicBaseUrl) {
+		this.publicBaseUrl = publicBaseUrl;
+	}
+
+	public String getCompanyName() {
+		return companyName;
+	}
+
+	public void setCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
+
+	public String getCompanyId() {
+		return companyId;
+	}
+
+	public void setCompanyId(String companyId) {
+		this.companyId = companyId;
+	}
+
+	public String getCompanyPhone() {
+		return companyPhone;
+	}
+
+	public void setCompanyPhone(String companyPhone) {
+		this.companyPhone = companyPhone;
+	}
+
+	public String getCompanyEmail() {
+		return companyEmail;
+	}
+
+	public void setCompanyEmail(String companyEmail) {
+		this.companyEmail = companyEmail;
+	}
+
+	public String getCompanyAddress() {
+		return companyAddress;
+	}
+
+	public void setCompanyAddress(String companyAddress) {
+		this.companyAddress = companyAddress;
+	}
+
+	public String getCompanyIban() {
+		return companyIban;
+	}
+
+	public void setCompanyIban(String companyIban) {
+		this.companyIban = companyIban;
 	}
 
 }

@@ -443,6 +443,16 @@ footer { background: var(--w); color: var(--mu); padding: 52px 5% 24px; border-t
 .fcol a:not(.fh) { transition: color 0.2s; }
 .fcol a:hover { color: var(--gold-d); }
 .copy { text-align: center; margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--cream2); font-size: var(--fs-sm); }
+.faddr,.fco { color: var(--mu); font-size: var(--fs-sm); line-height: 1.4; }
+.flink { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 4px; }
+.paylogos { display: inline-flex; align-items: center; gap: 8px; margin: 8px 0; }
+.paylogos .plogo { display: inline-flex; }
+.paylogos .plogo svg { width: 52px; height: 18px; display: block; }
+.foot-logos { margin: 10px 0 4px; }
+.flittbox { margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--cream2); border-radius: var(--r); background: #FAFBFC; }
+.flitt-lead { margin: 0 0 8px; color: var(--mu); font-size: var(--fs-sm); line-height: 1.45; }
+html.flitt-on .flitt-off { display: none !important; }
+html:not(.flitt-on) .flitt-on { display: none !important; }
 
 /* ---------- Modals & auth ---------- */
 .modal { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); backdrop-filter: blur(3px); display: none; place-items: center; z-index: 100; padding: 16px; }

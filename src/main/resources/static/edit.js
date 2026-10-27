@@ -41,7 +41,7 @@
   const pl=PL?PLANS[PL.dataset.val]:PLANS[window.__editPlan||'REG'];if(!pl){box.innerHTML='';return}
   const CK=$('#aColor'),sv=$('#aSP .sval'),n=cleanStk(sv?sv.value.split(','):[]).length,rows=pl.key=='REG'?[]:[[`${planName(pl.key)} · ${pl.days} დღე`,pl.price]];
   const PB=$('#payBox'),need=pl.key!='REG'||(CK&&CK.checked)||n>0;
-  if(PB)$$('.pdet',PB).forEach(e=>e.hidden=!need);
+  if(PB)$$('.pdet',PB).forEach(e=>{if(e.classList.contains('flitt-on')){e.hidden=!need||!FLITT.ready;return}if(e.classList.contains('flitt-off')){e.hidden=!need||FLITT.ready;return}e.hidden=!need});
   if(!need&&window.rc){window.rc=null;drawRc();clearOne($('#rcptFld'))}
   if(CK&&CK.checked)rows.push([`ფერადი გამოყოფა · ${COLOR.days} დღე`,COLOR.price]);
   if(n)rows.push([`სტიკერები × ${n} (${STICKER.price} ₾ თითოეული) · განცხადების ამოწურვამდე`,n*STICKER.price]);
@@ -171,7 +171,7 @@ if (!p || !ownerOf(p)) return;
   af.onsubmit=async e=>{e.preventDefault();if(af.dataset.busy)return;
    const K=$('#aK'),L=$('#aL'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),k=K.dataset.val,t=T.value.trim(),d=D.value.trim(),w=+W.value,pr=G(),nego=$('#aNego').checked,A={},
     col=CK.checked,sv=$('#aSP .sval'),sel=cleanStk(sv?sv.value.split(','):[]),pk=PLs.dataset.val||'REG',pl=PLANS[pk]||PLANS.REG,paid=pk!='REG'&&!!PLANS[pk],
-    need=paid||col||sel.length>0,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price,rcOk=!!window.rc||!!(old&&old.receipt&&amt<=old.amount),
+    need=paid||col||sel.length>0,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price,rcOk=!!FLITT.ready||!!window.rc||!!(old&&old.receipt&&amt<=old.amount),
     dyn=fkeys(k).map(x=>{
   const el=$('#a_'+x);
   const v=FD[x].t=='text'?el.value.trim():el.dataset.val;
@@ -190,12 +190,14 @@ if (!p || !ownerOf(p)) return;
    const bk={...p},now=Date.now(),sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;af.dataset.busy='1';sb.disabled=true;sb.textContent='ინახება…';
    Object.assign(p,{title:t,type:k,typeOther:k=='other'?KOe.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:nego?0:pr,nego,cur:U()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
    const rc=window.rc||{data:old&&old.receipt,name:old&&old.receiptName,type:old&&old.receiptType};
-   if(need)p.pay={plan:paid?pl.name:'Regular',days:paid?pl.days:0,color:col,sticker:sel.length>0,stickers:sel,stkN:sel.length,amount:amt,receipt:rc.data,receiptName:rc.name,receiptType:rc.type,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:''};
+   if(need){p.pay={plan:paid?pl.name:'Regular',days:paid?pl.days:0,color:col,sticker:sel.length>0,stickers:sel,stkN:sel.length,amount:amt,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:'',provider:FLITT.ready?'flitt':'bank'};if(!FLITT.ready){p.pay.receipt=rc.data;p.pay.receiptName=rc.name;p.pay.receiptType=rc.type}}
    else if(old)delete p.pay;
    if(!paid){delete p.hold;delete p.hvis}applyVis(p);
+   sb.textContent=need&&FLITT.ready?'გადახდაზე გადასვლა…':sbt;
    let ok=false;try{ok=await commitItems(p)}catch{ok=false}
+   if(!ok){delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;Object.assign(p,bk);if(!('pay' in bk))delete p.pay;saveItems(items);S.hidden=false;S.textContent='⚠️ ცვლილებები ვერ შეინახა — სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('ცვლილებები ვერ შეინახა')}
+   if(need&&FLITT.ready){const went=await startFlittPay(p.id);if(went)return;delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;return toast('ცვლილებები შენახულია — გადახდა ხელახლა სცადეთ')}
    delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
-   if(!ok){Object.assign(p,bk);if(!('pay' in bk))delete p.pay;saveItems(items);S.hidden=false;S.textContent='⚠️ ცვლილებები ვერ შეინახა — სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('ცვლილებები ვერ შეინახა')}
    if(need){addNote(`«${t}» განახლდა. დამატებითი სერვისების გადახდა მოწმდება — ისინი ჩაირთვება დადასტურების შემდეგ`);(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – დამატებითი სერვისები, ${amt} ₾`))}
    else addNote('განცხადება განახლდა: '+t);
    window.ph=[];toast('განცხადება განახლდა ✓');location.hash='product:'+p.id}}

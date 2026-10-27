@@ -401,6 +401,9 @@ const SI={
  ship:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>'};
 const stkIcon=id=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SI[id]||''}</svg>`;
 const PAY_HOLDER='გ.მ.',BANKS=[{id:'bog',name:'საქართველოს ბანკი',iban:'GE74BG0000000549883748'},{id:'tbc',name:'თიბისი ბანკი',iban:'GE56TB7046245064300117'}];
+let FLITT={ready:false,companyName:'მიკრო მეწარმე გიორგი მინდიაშვლი',companyId:'',companyPhone:'574173203',companyEmail:'mygemge@gmail.com',companyAddress:'თბილისი, საქართველო',companyIban:'GE56TB7046245064300117'};
+async function loadFlitt(){const res=await apiSend('GET','/api/payments/config');if(!res.ok||!res.data)return;FLITT={...FLITT,...res.data,ready:!!res.data.ready};try{document.documentElement.classList.toggle('flitt-on',FLITT.ready)}catch{}}
+async function startFlittPay(listingId){const res=await apiSend('POST','/api/payments/checkout',{listingId});if(!res.ok){toast(res.data.message||'გადახდის დაწყება ვერ მოხერხდა');return false}if(res.data.checkoutUrl){location.href=res.data.checkoutUrl;return true}toast('გადახდის ბმული ვერ მოვიძიეთ');return false}
 const planName=k=>k=='SVIP'?'Super VIP':PLANS[k].name;
 const planLabel=k=>k=='REG'?'Regular — უფასო':`${planName(k)} — ${PLANS[k].price} ₾ · ${PLANS[k].days} დღე`;
 const planOf=n=>Object.values(PLANS).find(x=>x.name==n);
@@ -416,6 +419,7 @@ function sweep(){const now=Date.now();let ch=false;
   if(p.sticker&&p.stickerUntil&&p.stickerUntil<=now){p.sticker=false;delete p.stickerUntil;p.stickers=[];ch=true}});
  if(ch)save('items',items);return ch}
 const ownChip=p=>{if(!me||!p.pay||!same(me.email,p.owner))return '';const s=p.pay.status;
+ if(s=='pending'&&FLITT.ready&&(p.pay.provider=='flitt'||!p.pay.receipt))return `<span class="pstat">გადახდა მოლოდინშია</span><button type="button" class="btn sm" data-flitt="${p.id}">გადახდის გაგრძელება</button>`;
  return s=='pending'?'<span class="pstat">მოწმდება — გამოჩნდება დადასტურების შემდეგ</span>':s=='rejected'?'<span class="pstat rejected">გადახდა არ დადასტურდა</span>':''};
 async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch{}
  try{const x=document.createElement('textarea');x.value=t;x.setAttribute('readonly','');x.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.append(x);x.select();x.setSelectionRange(0,t.length);const ok=document.execCommand('copy');x.remove();return ok}catch{return false}}
@@ -446,7 +450,7 @@ function stkSync(box,nx){box.querySelector('.sval').value=nx.join(',');$$('.sq',
 /* live price breakdown in the add-listing form: package + colour + STICKER.price per selected sticker */
 function paySummary(){const box=$('#paySum'),PL=$('#aPlan');if(!box||!PL)return;const pl=PLANS[PL.dataset.val];if(!pl){box.innerHTML='';return}
  const CK=$('#aColor'),sv=$('#aSP .sval'),n=cleanStk(sv?sv.value.split(','):[]).length,rows=pl.key=='REG'?[]:[[`${planName(pl.key)} · ${pl.days} დღე`,pl.price]];
- const PB=$('#payBox'),need=pl.key!='REG'||(CK&&CK.checked)||n>0;if(PB)$$('.pdet',PB).forEach(e=>e.hidden=!need);if(!need&&window.rc){window.rc=null;drawRc();clearOne($('#rcptFld'))}
+ const PB=$('#payBox'),need=pl.key!='REG'||(CK&&CK.checked)||n>0;if(PB)$$('.pdet',PB).forEach(e=>{if(e.classList.contains('flitt-on')){e.hidden=!need||!FLITT.ready;return}if(e.classList.contains('flitt-off')){e.hidden=!need||FLITT.ready;return}e.hidden=!need});if(!need&&window.rc){window.rc=null;drawRc();clearOne($('#rcptFld'))}
  if(CK&&CK.checked)rows.push([`ფერადი გამოყოფა · ${COLOR.days} დღე`,COLOR.price]);
  if(n)rows.push([`სტიკერები × ${n} (${STICKER.price} ₾ თითოეული) · ${STICKER.days} დღე`,n*STICKER.price]);
  if(!rows.length){box.innerHTML='';return}
@@ -473,15 +477,18 @@ function setPick(box,hex,toastIt){if(!okHex(hex))return;hex=hex.toLowerCase();
   if(colorActive(p))p.colorHex=hex;else p.pay.colorHex=hex;save('items',items);$$(`.card[data-id="${p.id}"]`).forEach(c=>paintCard(c,hex));if(toastIt)toast('ბარათის ფერი შეინახა ✓')}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-cpc]');if(b){const box=b.closest('.cpick');if(box)setPick(box,b.dataset.cpc,true)}});
 const COPY_I='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>';
-const payBox=()=>`<div class="paybox full" id="payBox"><h4 class="pdet">გადახდა ბანკის გადარიცხვით</h4>
-<div class="payrecv pdet"><span>მიმღები:</span><b>${esc(PAY_HOLDER)}</b></div>
-<div class="banks pdet">${BANKS.map(k=>`<div class="bank"><div class="bn">${esc(k.name)}</div><div class="bacc"><span>ანგარიშის ნომერი</span><div class="brow"><b id="iban_${k.id}">${esc(k.iban)}</b><button type="button" class="copybtn" data-copy="${k.id}" aria-label="${esc(k.name)} – ანგარიშის ნომრის კოპირება">${COPY_I}<span>კოპირება</span></button></div></div></div>`).join('')}</div>
+const payBox=()=>`<div class="paybox full" id="payBox"><h4 class="pdet">${FLITT.ready?'გადახდა ბარათით / Apple Pay / Google Pay':'გადახდა ბანკის გადარიცხვით'}</h4>
+<div class="payrecv pdet flitt-off"><span>მიმღები:</span><b>${esc(PAY_HOLDER)}</b></div>
+<div class="banks pdet flitt-off">${BANKS.map(k=>`<div class="bank"><div class="bn">${esc(k.name)}</div><div class="bacc"><span>ანგარიშის ნომერი</span><div class="brow"><b id="iban_${k.id}">${esc(k.iban)}</b><button type="button" class="copybtn" data-copy="${k.id}" aria-label="${esc(k.name)} – ანგარიშის ნომრის კოპირება">${COPY_I}<span>კოპირება</span></button></div></div></div>`).join('')}</div>
+<div class="flittbox pdet flitt-on"${FLITT.ready?'':' hidden'}><p class="flitt-lead">გადახდა ხდება Flitt-ის უსაფრთხო გვერდზე. მხარდაჭერილია ბარათი, Google Pay და Apple Pay. თანხა ₾-ში.</p><div class="paylogos" aria-label="Visa Mastercard">${payLogos()}</div></div>
 <label class="chk addon"><input type="checkbox" id="aColor"> ფერადი გამოყოფა · +${COLOR.price} ₾ · ${COLOR.days} დღე</label>
 <div class="cpbox" id="aColorBox" hidden><span>აირჩიეთ ბარათის ფერი</span>${pickHTML("aCP",BC_DEF)}</div>
 <div class="cpbox" id="aStkBox"><span>სტიკერები (არასავალდებულო) · +${STICKER.price} ₾ თითოეული · მაქს. ${STICKER.max} · ${STICKER.days} დღე</span>${stkPickHTML("aSP",[])}</div>
 <div class="paysum" id="paySum" aria-live="polite"></div>
-<div class="fld pdet" id="rcptFld"><span>გადახდის ქვითარი (სავალდებულოა)</span><label class="drop rc" for="aR"><b>ატვირთეთ ქვითარი</b><small>სურათი ან PDF · PDF მაქს. 1.5MB</small></label><input type="file" id="aR" accept="image/*,application/pdf" hidden><div class="rcprev" id="rcPrev"></div></div>
-<p class="paynote pdet">ქვითრის ატვირთვა სტატუსს ავტომატურად არ ააქტიურებს — გადახდას ადმინისტრატორი ამოწმებს. დადასტურების შემდეგ სტატუსი ჩაირთვება და ვადა ამ მომენტიდან დაითვლება.</p></div>`;
+<div class="fld pdet flitt-off" id="rcptFld"><span>გადახდის ქვითარი (სავალდებულოა)</span><label class="drop rc" for="aR"><b>ატვირთეთ ქვითარი</b><small>სურათი ან PDF · PDF მაქს. 1.5MB</small></label><input type="file" id="aR" accept="image/*,application/pdf" hidden><div class="rcprev" id="rcPrev"></div></div>
+<p class="paynote pdet flitt-off">ქვითრის ატვირთვა სტატუსს ავტომატურად არ ააქტიურებს — გადახდას ადმინისტრატორი ამოწმებს. დადასტურების შემდეგ სტატუსი ჩაირთვება და ვადა ამ მომენტიდან დაითვლება.</p>
+<p class="paynote pdet flitt-on"${FLITT.ready?'':' hidden'}>გამოქვეყნების შემდეგ გადახდის გვერდზე გადახვალთ. წარმატებული გადახდის შემდეგ სტატუსი ავტომატურად ჩაირთვება.</p></div>`;
+const payLogos=()=>`<span class="plogo visa" title="Visa" aria-label="Visa"><svg viewBox="0 0 60 20" role="img" aria-hidden="true"><rect width="60" height="20" rx="3" fill="#1A1F71"/><text x="30" y="14" text-anchor="middle" fill="#fff" font-size="10" font-family="Arial,sans-serif" font-weight="700" font-style="italic">VISA</text></svg></span><span class="plogo mc" title="Mastercard" aria-label="Mastercard"><svg viewBox="0 0 60 20" role="img" aria-hidden="true"><rect width="60" height="20" rx="3" fill="#000"/><circle cx="24" cy="10" r="7" fill="#EB001B"/><circle cx="36" cy="10" r="7" fill="#F79E1B"/><path d="M30 4.8a7 7 0 010 10.4 7 7 0 010-10.4z" fill="#FF5F00"/></svg></span>`;
 /* admin: verify or reject payments */
 function payPanel(){const pend=pendingPay().sort((a,b)=>a.pay.created-b.pay.created),act=items.filter(p=>(p.vip&&p.vipUntil)||(p.color&&p.colorUntil)||(p.sticker&&p.stickerUntil)).sort((a,b)=>(a.vipUntil||a.colorUntil||a.stickerUntil)-(b.vipUntil||b.colorUntil||b.stickerUntil)),
  th=p=>`<div class="pthm" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div>`;
@@ -910,7 +917,7 @@ const hashOf=(v,t)=>'#'+(v=='post'?SL.blog:SL[v]||v)+(t?'/'+(v=='profile'?TB[t]|
 /* HI() = მიმდინარე მისამართი კოდის შიგნით გამოსაყენებელი (ძველი) სახით, მაგ. '#search', '#profile:blog' */
 const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 /* page transition: same slide + fade language as the Login <-> Registration swap */
-function route(){sweep();let[h,t]=parseHash();if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
+function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გადახდა მიღებულია ✓ — სტატუსი ავტომატურად ჩაირთვება':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');history.replaceState(null,'',hashOf('profile','mine'));h='profile';t='mine'}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
  const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
  const _prev=lastV;lastV=v;navN++;lastIdx=idx;
  if(REDUCE || v === 'product' || v === 'search' || _prev === 'search'){
@@ -1078,7 +1085,7 @@ const cf=$('#clrF');if(cf)cf.onclick=e=>{e.preventDefault();F={};FCUR='GEL';
       [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':wc(t)>3?'მაქსიმუმ 3 სიტყვა':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
       [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,$('#aNego').checked?'':(!(p>0)?'მიუთითეთ ფასი (0-ზე მეტი)':p>100000000?'ფასი ძალიან მაღალია':'')]]}
     if(i==2)return [[$('#photoFld'),ph.length<3?`ატვირთეთ მინიმუმ 3 ფოტო (ახლა: ${ph.length})`:'']];
-    if(i==3)return [[$('#rcptFld'),(PL.dataset.val!='REG'||CK.checked||stk().length>0)&&!window.rc?'ატვირთეთ გადახდის ქვითარი (სავალდებულოა ფასიანი განცხადებისთვის)':'']];
+    if(i==3)return [[$('#rcptFld'),FLITT.ready?'':(PL.dataset.val!='REG'||CK.checked||stk().length>0)&&!window.rc?'ატვირთეთ გადახდის ქვითარი (სავალდებულოა ფასიანი განცხადებისთვის)':'']];
     return []};
    const tryStep=(n,sc)=>{n=Math.max(1,Math.min(4,n));const cur=window.aStep;if(n<=cur)return goStep(n,sc);
     for(let i=cur;i<n;i++){if(window.aStep!=i)goStep(i,false);const bad=check(af,stepList(i));
@@ -1139,7 +1146,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
    const n=check(af,[[K,k?'':'აირჩიეთ ნივთის ტიპი'],[KO,k=='other'&&!KO.value.trim()?'მიუთითეთ ნივთის დასახელება':''],...dyn,[L,L.dataset.val?'':'აირჩიეთ მდებარეობა'],
 [T,!t?'შეიყვანეთ დასახელება':t.length<3?'მინიმუმ 3 სიმბოლო':wc(t)>3?'მაქსიმუმ 3 სიტყვა':''],[D,!d?'შეიყვანეთ აღწერა':d.length<10?'აღწერა ძალიან მოკლეა (მინ. 10 სიმბოლო)':''],
     [W,!(w>0)?'მიუთითეთ წონა (0-ზე მეტი)':w>10000?'წონა ძალიან დიდია':''],[P,$('#aNego').checked?'':(!(p>0)?'მიუთითეთ ფასი (0-ზე მეტი)':p>100000000?'ფასი ძალიან მაღალია':'')],
-    [$('#photoFld'),ph.length<3?`ატვირთეთ მინიმუმ 3 ფოტო (ახლა: ${ph.length})`:''],[$('#rcptFld'),(PL.dataset.val!='REG'||CK.checked||cleanStk($('#aSP .sval').value.split(',')).length>0)&&!window.rc?'ატვირთეთ გადახდის ქვითარი (სავალდებულოა ფასიანი განცხადებისთვის)':''],[TM,TM.checked?'':'გასაგრძელებლად დაეთანხმეთ წესებსა და პირობებს']]);
+    [$('#photoFld'),ph.length<3?`ატვირთეთ მინიმუმ 3 ფოტო (ახლა: ${ph.length})`:''],[$('#rcptFld'),FLITT.ready?'':(PL.dataset.val!='REG'||CK.checked||cleanStk($('#aSP .sval').value.split(',')).length>0)&&!window.rc?'ატვირთეთ გადახდის ქვითარი (სავალდებულოა ფასიანი განცხადებისთვის)':''],[TM,TM.checked?'':'გასაგრძელებლად დაეთანხმეთ წესებსა და პირობებს']]);
    const S=$('#formSum');
    if(n){S.hidden=false;S.textContent=`⚠️ გამოსაქვეყნებლად შეასწორეთ ან შეავსეთ ${n} ველი`;{const bd=af.querySelector('.bad'),pn=bd&&bd.closest('.astep');if(pn){goStep(+pn.dataset.pane,false);setTimeout(()=>bd.scrollIntoView({block:'center',behavior:'smooth'}),30)}}return toast('განცხადება არ გამოქვეყნდა — შეავსეთ ყველა სავალდებულო ველი')}
    S.hidden=true;
@@ -1149,16 +1156,20 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
     if(!ok){Object.assign(q,old);saveItems(items);sb.disabled=false;sb.textContent=sbt;return toast('ცვლილებები ვერ შეინახა')}
     toast('ცვლილებები შენახულია ✓');location.hash='profile:mine';return}
    const pk=PL.dataset.val,pl=PLANS[pk],paid=pk!='REG',col=CK.checked,sel=cleanStk($('#aSP .sval').value.split(',')),stk=sel.length>0,need=paid||col||stk,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price,now=Date.now();
-    if(need&&!window.rc)return;
+    if(need&&!FLITT.ready&&!window.rc)return;
     if(af.dataset.busy)return;
-    const rec={id:now,title:t,cat:'',type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:$('#aNego').checked?0:p,nego:$('#aNego').checked,cur:curUSD()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:'',vip:'',hold:need,color:false,sticker:false,stickers:[],owner:me.email,created:now,pay:need?{plan:pl.name,days:pl.days,color:col,sticker:stk,stickers:sel,stkN:sel.length,amount:amt,receipt:window.rc.data,receiptName:window.rc.name,receiptType:window.rc.type,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:''}:null};
+    const pay=need?{plan:pl.name,days:pl.days,color:col,sticker:stk,stickers:sel,stkN:sel.length,amount:amt,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:'',provider:FLITT.ready?'flitt':'bank'}:null;
+    if(need&&!FLITT.ready&&window.rc){pay.receipt=window.rc.data;pay.receiptName=window.rc.name;pay.receiptType=window.rc.type}
+    const rec={id:now,title:t,cat:'',type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:$('#aNego').checked?0:p,nego:$('#aNego').checked,cur:curUSD()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:'',vip:'',hold:need,color:false,sticker:false,stickers:[],owner:me.email,created:now,pay};
     items.push(rec);
     /* the listing is only reported as published once it - and every photo - has been written AND read back from storage */
-    const sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;af.dataset.busy='1';sb.disabled=true;sb.textContent='ინახება…';
+    const sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;af.dataset.busy='1';sb.disabled=true;sb.textContent=need&&FLITT.ready?'გადახდაზე გადასვლა…':'ინახება…';
     let ok=false;try{ok=await commitItems(rec)}catch{ok=false}
+    if(!ok){delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;const ix=items.indexOf(rec);if(ix>-1)items.splice(ix,1);saveItems(items);S.hidden=false;S.textContent='⚠️ განცხადება ვერ შეინახა — ფოტოები ვერ ჩაიწერა (მეხსიერება გადაივსო). სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('განცხადება არ გამოქვეყნდა — ფოტოები ვერ შეინახა')}
+    window.ph=[];
+    if(need&&FLITT.ready){const went=await startFlittPay(rec.id);if(went)return;delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;return toast('განცხადება შენახულია — გადახდა ხელახლა სცადეთ პროფილიდან')}
     delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
-    if(!ok){const ix=items.indexOf(rec);if(ix>-1)items.splice(ix,1);saveItems(items);S.hidden=false;S.textContent='⚠️ განცხადება ვერ შეინახა — ფოტოები ვერ ჩაიწერა (მეხსიერება გადაივსო). სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('განცხადება არ გამოქვეყნდა — ფოტოები ვერ შეინახა')}
-    window.ph=[];await addNote(need?`«${t}» გაიგზავნა. გადახდა მოწმდება — განცხადება გამოჩნდება ადმინისტრატორის დადასტურების შემდეგ`:'განცხადება გამოქვეყნდა: '+t);if(need)(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – ${paid?pl.name:'დამატებითი სერვისები'}, ${amt} ₾`));toast('განცხადება დაემატა ✓');showPub();location.hash='profile:mine'}}
+    await addNote(need?`«${t}» გაიგზავნა. გადახდა მოწმდება — განცხადება გამოჩნდება ადმინისტრატორის დადასტურების შემდეგ`:'განცხადება გამოქვეყნდა: '+t);if(need)(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – ${paid?pl.name:'დამატებითი სერვისები'}, ${amt} ₾`));toast('განცხადება დაემატა ✓');showPub();location.hash='profile:mine'}}
 
  /* profile edit */
  const ef=$('#eForm');if(ef){const T=$('#eT');if(regOf(me)=='other')$('#eTO').value=me.regOther||'';
@@ -1397,6 +1408,7 @@ document.addEventListener('click',e=>{
  const rcb=e.target.closest('[data-rcpt]');if(rcb)openReceipt(rcb.dataset.rcpt);
  const pok=e.target.closest('[data-payok]');if(pok)payDecide(pok.dataset.payok,true);
  const pno=e.target.closest('[data-payno]');if(pno)payDecide(pno.dataset.payno,false);
+ const fl=e.target.closest('[data-flitt]');if(fl){e.preventDefault();startFlittPay(fl.dataset.flitt)}
  const sh=e.target.closest('[data-share]');if(sh)shareP(sh.dataset.share);
  const mg=e.target.closest('[data-msg]');if(mg)openMsg(mg.dataset.msg);
  if(!e.target.closest('#notePanel,#noteBtn'))$('#notePanel').classList.remove('show');
@@ -1404,6 +1416,7 @@ document.addEventListener('click',e=>{
  if(!e.target.closest('#hs,#sRes')){sRes.classList.remove('show');if(!hsIn.value)hs.classList.remove('open')}
  if(e.target.closest('[data-reset]'))F={};
  if(e.target.closest('[data-terms]')){e.preventDefault();openTerms()}
+ if(e.target.closest('[data-privacy]')){e.preventDefault();openPrivacy()}
  const ey=e.target.closest('[data-eye]');
  if(ey){const i=ey.parentElement.querySelector('input'),show=i.type=='password';i.type=show?'text':'password';ey.classList.toggle('on',show)}
  const f=e.target.closest('[data-fav]');
@@ -1449,7 +1462,31 @@ const modal=$('#modal'),AO={login:0,forgot:1,reg:2};let curAuth=null,busy=false;
 modal.onclick=e=>{if(e.target==modal)closeModal()};
 function closeModal(){modal.classList.remove('show');$('#modalBox').classList.remove('wide');curAuth=null;window.__goAdd=false}
 function afterAuth(){const g=window.__goAdd;closeModal();setLogin();if(g){location.hash='add';return}if(/^#(add|favs|profile)/.test(location.hash))route()}
-function openTerms(){curAuth=null;modal.classList.add('show');$('#modalBody').innerHTML=`<h3>წესები და პირობები</h3><p>1. განცხადებაში მითითებული ინფორმაცია და ფოტოები უნდა შეესაბამებოდეს რეალობას.</p><p>2. აკრძალულია ყალბი ან უკანონოდ მოპოვებული ნივთების გამოქვეყნება.</p><p>3. mygem.ge არ არის გარიგების მხარე და არ აგებს პასუხს მყიდველსა და გამყიდველს შორის შეთანხმებაზე.</p><p>4. ადმინისტრაციას უფლება აქვს წესების დარღვევისას წაშალოს განცხადება.</p><button class="btn" id="tmOk" type="button">დახურვა</button>`;$('#tmOk').onclick=closeModal}
+function openTerms(){curAuth=null;modal.classList.add('show');$('#modalBox').classList.add('wide');
+ const id=FLITT.companyId?`<p><b>საიდენტიფიკაციო კოდი:</b> ${esc(FLITT.companyId)}</p>`:'';
+ $('#modalBody').innerHTML=`<h3>წესები და პირობები</h3>
+ <p><b>ოპერატორი:</b> ${esc(FLITT.companyName||'mygem.ge')}</p>${id}
+ <p><b>მისამართი:</b> ${esc(FLITT.companyAddress||'თბილისი, საქართველო')}</p>
+ <p><b>კონტაქტი:</b> <a href="mailto:${esc(FLITT.companyEmail||'mygemge@gmail.com')}">${esc(FLITT.companyEmail||'mygemge@gmail.com')}</a> · <a href="tel:${esc(String(FLITT.companyPhone||'').replace(/\D/g,''))}">${esc(FLITT.companyPhone||'')}</a></p>
+ <p><b>ანგარიში:</b> ${esc(FLITT.companyIban||BANKS[1].iban)} (GEL)</p>
+ <p>1. განცხადებაში მითითებული ინფორმაცია, აღწერა, ფასი (₾) და ფოტოები უნდა შეესაბამებოდეს რეალობას.</p>
+ <p>2. აკრძალულია ყალბი ან უკანონოდ მოპოვებული ნივთების გამოქვეყნება.</p>
+ <p>3. mygem.ge არის მარკეტფლეისი და არ არის გარიგების მხარე მყიდველსა და გამყიდველს შორის. ნივთის მიწოდებას / გადაცემას უზრუნველყოფს გამყიდველი, შეთანხმებული პირობებით (პირადად, კურიერით ან ფოსტით).</p>
+ <p>4. ფასიანი სერვისები (VIP / Super VIP, ფერადი გამოყოფა, სტიკერები) ჩაირთვება წარმატებული ონლაინ გადახდის შემდეგ. თუ სერვისი ტექნიკური შეცდომის გამო არ ჩაირთო, თანხა დაგიბრუნდებათ იმავე გადახდის მეთოდით 14 სამუშაო დღეში — მოგვწერეთ ${esc(FLITT.companyEmail||'mygemge@gmail.com')}-ზე.</p>
+ <p>5. ნივთის დაბრუნება / გაცვლა ხდება გამყიდველის პირობებით; მარკეტფლეისი ამაში მხარე არ არის.</p>
+ <p>6. ადმინისტრაციას უფლება აქვს წესების დარღვევისას წაშალოს განცხადება ან შეზღუდოს ანგარიში.</p>
+ <div class="paylogos">${payLogos()}</div>
+ <button class="btn" id="tmOk" type="button">დახურვა</button>`;$('#tmOk').onclick=closeModal}
+function openPrivacy(){curAuth=null;modal.classList.add('show');$('#modalBox').classList.add('wide');
+ $('#modalBody').innerHTML=`<h3>კონფიდენციალურობის პოლიტიკა</h3>
+ <p>mygem.ge (${esc(FLITT.companyName||'')}) ამუშავებს თქვენს მონაცემებს საიტის მუშაობისთვის.</p>
+ <p><b>რას ვაგროვებთ:</b> სახელი, ელ-ფოსტა, ტელეფონი, ანგარიშის მონაცემები, განცხადებების შინაარსი და გადახდის სტატუსი (ბარათის სრული მონაცემები Flitt-ზე რჩება).</p>
+ <p><b>რატომ:</b> ანგარიშის შექმნა, განცხადებების გამოქვეყნება, გადახდების დამუშავება, კომუნიკაცია და უსაფრთხოება.</p>
+ <p><b>გაზიარება:</b> გადახდისთვის — Flitt; ჰოსტინგი / ელ-ფოსტა — მხოლოდ საჭირო მომსახურებისთვის. მონაცემებს არ ვყიდით.</p>
+ <p><b>შენახვა:</b> ანგარიშის არსებობის განმავლობაში და კანონით გათვალისწინებულ ვადაში.</p>
+ <p><b>თქვენი უფლებები:</b> მონაცემების ნახვა, შესწორება ან წაშლის მოთხოვნა — ${esc(FLITT.companyEmail||'mygemge@gmail.com')}.</p>
+ <p><b>ქუქიები:</b> აუცილებელი ქუქიები საიტისთვის; ანალიტიკა / მარკეტინგი მხოლოდ თქვენი თანხმობით.</p>
+ <button class="btn" id="pvOk" type="button">დახურვა</button>`;$('#pvOk').onclick=closeModal}
 function askPass(cb){curAuth=null;modal.classList.add('show');
  $('#modalBody').innerHTML=`<h3>დაადასტურეთ პაროლი</h3><p>ცვლილებების შესანახად შეიყვანეთ თქვენი მიმდინარე პაროლი.</p><form class="form" id="pwForm" novalidate>${pw('cpw','მიმდინარე პაროლი')}<button class="btn" type="submit">დადასტურება</button><button type="button" class="link" id="cpwNo">გაუქმება</button></form>`;
  $('#cpw').focus();$('#cpwNo').onclick=closeModal;
@@ -1586,7 +1623,7 @@ HYD = hydrate();
 const sigI=()=>items.map(p=>p.id+'|'+(p.photos||[]).length+'|'+p.vip+'|'+p.title+'|'+p.price+'|'+p.hold).join(',');
 const sigB=()=>blogList().map(b=>b.id).join(',');
 let s0='',b0='';
-const net=restoreSession().then(()=>pullListings());
+const net=Promise.all([restoreSession(),loadFlitt()]).then(()=>pullListings());
 HYD.then(()=>{setLogin();route();s0=sigI();b0=sigB()});
 Promise.all([HYD,net]).then(()=>{setLogin();if(sigI()!==s0){s0=sigI();quiet()}});
 loadBlog().then(()=>{if(sigB()!==b0){b0=sigB();const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post')quiet()}});

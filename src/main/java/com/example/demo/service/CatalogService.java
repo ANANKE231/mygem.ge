@@ -155,6 +155,151 @@ public class CatalogService {
 	}
 
 	@Transactional
+	public Map<String, Object> beginFlittCheckout(String caller, long listingId, FlittService flitt) {
+		if (caller == null || caller.isBlank()) {
+			throw new ApiException(401, "unauthorized", "შედით ანგარიშში");
+		}
+		if (!flitt.ready()) {
+			throw new ApiException(503, "flitt_not_configured", "ონლაინ გადახდა ჯერ არ არის ჩართული");
+		}
+		ListingRecord record = listings.findById(listingId).orElse(null);
+		if (record == null) {
+			throw new ApiException(404, "not_found", "განცხადება ვერ მოიძებნა");
+		}
+		if (!record.getOwnerEmail().equalsIgnoreCase(caller) && !props.isAdmin(caller)) {
+			throw new ApiException(403, "forbidden", "ამ განცხადების გადახდა არ შეგიძლიათ");
+		}
+		ObjectNode listing;
+		try {
+			JsonNode tree = json.readTree(record.getPayload());
+			if (!(tree instanceof ObjectNode node)) {
+				throw new ApiException(400, "bad_request", "განცხადების მონაცემები არასწორია");
+			}
+			listing = node;
+		} catch (ApiException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			throw new ApiException(400, "bad_request", "განცხადების მონაცემები არასწორია");
+		}
+		JsonNode payNode = listing.get("pay");
+		if (!(payNode instanceof ObjectNode pay) || !"pending".equals(pay.path("status").asText(""))) {
+			throw new ApiException(400, "bad_request", "გადახდის მოლოდინში მყოფი განცხადება ვერ მოიძებნა");
+		}
+		int amount = flitt.amountTetri(pay);
+		if (amount <= 0) {
+			throw new ApiException(400, "bad_request", "გადასახდელი თანხა არასწორია");
+		}
+		pay.put("amount", amount / 100.0);
+		String orderId = "mygem-" + listingId + "-" + System.currentTimeMillis();
+		pay.put("flittOrderId", orderId);
+		pay.put("provider", "flitt");
+		String title = listing.path("title").asText("განცხადება").trim();
+		if (title.length() > 80) {
+			title = title.substring(0, 80);
+		}
+		String desc = "mygem.ge · " + title + " · " + pay.path("plan").asText("სერვისი");
+		String checkout = flitt.createCheckoutUrl(
+				orderId,
+				desc,
+				amount,
+				flitt.publicBase() + "/pay/return",
+				flitt.publicBase() + "/api/payments/flitt/callback");
+		try {
+			record.setPayload(json.writeValueAsString(listing));
+		} catch (Exception ex) {
+			throw new ApiException(400, "bad_request", "განცხადების მონაცემები არასწორია");
+		}
+		listings.save(record);
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("ok", true);
+		out.put("checkoutUrl", checkout);
+		out.put("orderId", orderId);
+		out.put("amount", amount / 100.0);
+		out.put("currency", "GEL");
+		return out;
+	}
+
+	@Transactional
+	public Map<String, Object> applyFlittCallback(Map<String, Object> params, FlittService flitt) {
+		if (!flitt.validCallback(params)) {
+			throw new ApiException(400, "bad_signature", "არასწორი ხელმოწერა");
+		}
+		String orderStatus = String.valueOf(params.getOrDefault("order_status", "")).trim().toLowerCase(Locale.ROOT);
+		String orderId = String.valueOf(params.getOrDefault("order_id", "")).trim();
+		if (orderId.isBlank()) {
+			throw new ApiException(400, "bad_request", "order_id აკლია");
+		}
+		if (!"approved".equals(orderStatus)) {
+			return Map.of("ok", true, "status", orderStatus);
+		}
+		ListingRecord match = null;
+		ObjectNode listing = null;
+		ObjectNode pay = null;
+		for (ListingRecord record : listings.findAll()) {
+			try {
+				JsonNode tree = json.readTree(record.getPayload());
+				if (!(tree instanceof ObjectNode node)) {
+					continue;
+				}
+				JsonNode payNode = node.get("pay");
+				if (payNode instanceof ObjectNode p && orderId.equals(p.path("flittOrderId").asText(""))) {
+					match = record;
+					listing = node;
+					pay = p;
+					break;
+				}
+			} catch (Exception ignored) {
+				/* skip broken payloads */
+			}
+		}
+		if (match == null || listing == null || pay == null) {
+			log.warn("flitt callback for unknown order {}", orderId);
+			return Map.of("ok", true, "status", "unknown_order");
+		}
+		if ("active".equals(pay.path("status").asText(""))) {
+			return Map.of("ok", true, "status", "already_active", "id", match.getId());
+		}
+		long now = System.currentTimeMillis();
+		long day = 86_400_000L;
+		int days = pay.path("days").asInt(0);
+		String plan = pay.path("plan").asText("");
+		if (days > 0 && !plan.isBlank() && !"Regular".equalsIgnoreCase(plan)) {
+			listing.put("vip", plan);
+			listing.put("vipUntil", now + days * day);
+		}
+		if (pay.path("color").asBoolean(false)) {
+			listing.put("color", true);
+			listing.put("colorUntil", now + day);
+			String hex = pay.path("colorHex").asText("#FFF3D6");
+			listing.put("colorHex", hex);
+		}
+		if (pay.path("sticker").asBoolean(false)) {
+			listing.put("sticker", true);
+			listing.put("stickerUntil", now + day);
+			if (pay.get("stickers") != null) {
+				listing.set("stickers", pay.get("stickers"));
+			}
+		}
+		pay.put("status", "active");
+		pay.put("verifiedBy", "flitt");
+		pay.put("verifiedAt", now);
+		pay.remove("reason");
+		Object paymentId = params.get("payment_id");
+		if (paymentId != null) {
+			pay.put("flittPaymentId", String.valueOf(paymentId));
+		}
+		listing.remove("hold");
+		listing.remove("hvis");
+		try {
+			match.setPayload(json.writeValueAsString(listing));
+		} catch (Exception ex) {
+			throw new ApiException(500, "server", "გადახდის შენახვა ვერ მოხერხდა");
+		}
+		listings.save(match);
+		return Map.of("ok", true, "status", "active", "id", match.getId());
+	}
+
+	@Transactional
 	public Map<String, Object> deleteListing(String caller, long id) {
 		ListingRecord record = listings.findById(id).orElse(null);
 		if (record == null) {

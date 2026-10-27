@@ -85,7 +85,8 @@ public class SecurityConfig {
 				}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/forgot", "/api/auth/google").permitAll()
-						.requestMatchers(HttpMethod.GET, "/api/listings", "/api/health").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/payments/flitt/callback").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/listings", "/api/health", "/api/payments/config").permitAll()
 						.requestMatchers("/api/**").authenticated()
 						.anyRequest().permitAll())
 				.addFilterBefore(tokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
