@@ -15,7 +15,9 @@ services:
       FLITT_PAYMENT_KEY: ${FLITT_PAYMENT_KEY:-}
       FLITT_CREDIT_KEY: ${FLITT_CREDIT_KEY:-}
       APP_PUBLIC_BASE: ${APP_PUBLIC_BASE:-https://mygem.ge}
+      COMPANY_NAME: ${COMPANY_NAME:-მიკრო მეწარმე გიორგი მინდიაშვლი}
       COMPANY_ID: ${COMPANY_ID:-}
       COMPANY_PHONE: ${COMPANY_PHONE:-574173203}
       COMPANY_EMAIL: ${COMPANY_EMAIL:-mygemge@gmail.com}
       COMPANY_ADDRESS: ${COMPANY_ADDRESS:-თბილისი, საქართველო}
+      COMPANY_IBAN: ${COMPANY_IBAN:-GE56TB7046245064300117}
