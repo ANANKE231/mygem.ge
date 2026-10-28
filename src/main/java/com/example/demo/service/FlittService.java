@@ -106,7 +106,14 @@ public class FlittService {
 					.header("Content-Type", "application/json")
 					.POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)))
 					.build();
-			HttpResponse<String> response = http.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+			long started = System.nanoTime();
+
+HttpResponse<String> response =
+        http.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+log.info("Flitt checkout: {} ms, HTTP {}",
+        (System.nanoTime() - started) / 1_000_000,
+        response.statusCode());
 			JsonNode root = json.readTree(response.body());
 			JsonNode resp = root.path("response");
 			if (!"success".equals(resp.path("response_status").asText(""))) {
