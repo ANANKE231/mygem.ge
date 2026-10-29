@@ -62,7 +62,9 @@ async function commitItems(p){
  return ok}
 async function pushListing(p){
  if(!p||p.owner==='demo')return true;
- const res=await apiSend('PUT','/api/listings',p,30000);
+ const body={...p};delete body._synced;delete body._hp;
+ if(!(p.pay&&p.pay.status==='pending')){body.hold=false;if(!p.pay)delete body.pay}
+ const res=await apiSend('PUT','/api/listings',body,30000);
  if(!res.ok){toast(res.data.message||'სერვერზე შენახვა ვერ მოხერხდა');return false}
  if(Array.isArray(res.data.photos)&&res.data.photos.length===(p.photos||[]).length&&res.data.photos.some(u=>typeof u==='string'&&(u.startsWith('https://')||u.startsWith('/')||u.startsWith('listings/')))){p.photos=res.data.photos;saveItems(items)}
  return true}
@@ -352,7 +354,7 @@ function rateText(){const d=new Date(RATE_DATE+'T12:00:00'),ds=isNaN(d)?RATE_DAT
 const curSw=(id,c)=>`<button type="button" class="cur sm${c=='USD'?' on':''}" data-cs="${id}" role="switch" aria-checked="${c=='USD'}" aria-label="ფასი დოლარში" title="${c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'}"><span class="cl">₾</span><span class="trk"><i></i></span><span class="cl">$</span></button>`;
 function toggleCur(id){const c=curOf(id)=='GEL'?'USD':'GEL';pc[id]=c;
  $$(`[data-cs="${id}"]`).forEach(b=>{b.classList.toggle('on',c=='USD');b.setAttribute('aria-checked',c=='USD');b.title=c=='USD'?'ფასი დოლარში (გამორთვა: ლარი)':'ფასი ლარში (ჩართვა: დოლარი)'});
- $$(`.price[data-id="${id}"]`).forEach(p=>{p.textContent=fmt(+p.dataset.g,c);p.classList.remove('flip');void p.offsetWidth;p.classList.add('flip')})}
+ $$(`.price[data-id="${id}"]`).forEach(p=>{p.textContent=priceNodeText(p,c);p.classList.remove('flip');void p.offsetWidth;p.classList.add('flip')})}
 function applyRate(){const n=$('#rateNote');if(n)n.textContent=rateText();$$('.price[data-g]').forEach(p=>{p.textContent=priceNodeText(p,p.dataset.id?curOf(p.dataset.id):'GEL')});if(window.calcRefresh&&$('#cMetal'))window.calcRefresh()}
 async function loadRate(){const today=new Date().toISOString().slice(0,10),c=load('nbgRate',null);if(c&&c.fetched===today)return;
  try{const r=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies=USD',{cache:'no-store'});if(!r.ok)throw 0;
@@ -528,6 +530,14 @@ async function startFlittPay(listingId, paymentTab) {
       35000
     );
 
+    if (res.ok && res.data.status) {
+      if (!tab.closed) tab.close();
+      await pullListings();
+      quiet();
+      toast('გადახდა უკვე დამუშავებულია — განცხადება განახლდა');
+      return false;
+    }
+
     if (!res.ok || !res.data.checkoutUrl) {
       throw new Error(
         res.data.message || 'გადახდის ბმული ვერ მივიღეთ'
@@ -565,8 +575,8 @@ function sweep(){const now=Date.now();let ch=false;
   if(p.sticker&&p.stickerUntil&&p.stickerUntil<=now){p.sticker=false;delete p.stickerUntil;p.stickers=[];ch=true}});
  if(ch)save('items',items);return ch}
 const ownChip=p=>{if(!me||!p.pay||!same(me.email,p.owner))return '';const s=p.pay.status;
- if(s=='pending'&&FLITT.ready&&(p.pay.provider=='flitt'||!p.pay.receipt))return `<span class="pstat">გადახდა მოლოდინშია</span><button type="button" class="btn sm" data-flitt="${p.id}">გადახდის გაგრძელება</button>`;
- return s=='pending'?'<span class="pstat">მოწმდება — გამოჩნდება დადასტურების შემდეგ</span>':s=='rejected'?'<span class="pstat rejected">გადახდა არ დადასტურდა</span>':''};
+ if(s=='pending'&&FLITT.ready&&p.pay.provider=='flitt')return `<button type="button" class="btn sm" data-flitt="${p.id}">გადახდის გაგრძელება</button>`;
+ return s=='rejected'?'<span class="pstat rejected">გადახდა არ დადასტურდა</span>':''};
 async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch{}
  try{const x=document.createElement('textarea');x.value=t;x.setAttribute('readonly','');x.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.append(x);x.select();x.setSelectionRange(0,t.length);const ok=document.execCommand('copy');x.remove();return ok}catch{return false}}
 /* payment section of the add-listing form (hidden until VIP / Super VIP is chosen) */
@@ -784,7 +794,7 @@ function rowCard(p){
    <div class="lfoot">${p.vip?`<span class="lvip ${p.vip=='VIP'?'v':'s'}">${p.vip}</span>`:''}<small>${ago(p.created)}</small><small>·</small>${vwHTML(p.id)}</div></div>
   <div class="lside">
    <div class="ltop"><small class="loc">${esc(p.loc||'')}</small><button type="button" class="cact fav ${f?'on':''}" data-fav="${p.id}" aria-pressed="${f}" aria-label="ფავორიტები">${ui('heart')}</button></div>
-   <div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</div>${curSw(p.id,c)}`}</div>
+   <div class="pline">${p.nego?'<div class="price nego">ფასი შეთანხმებით</div>':`<div class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p,c)}</div>${curSw(p.id,c)}`}</div>
    ${own?`<div class="cbl">${ownerOf(p)?`<button type="button" class="cdel cedit" data-eph="${p.id}" aria-label="ფოტოების რედაქტირება">${ui('image')}</button>`:''}<button type="button" class="cdel" data-del="${p.id}" aria-label="წაშლა">${ui('trash')}<span>წაშლა</span></button></div>`:''}
   </div></div>`}
 function card(p,plain){const f=favs.includes(p.id),c=p.id==='preview'?(p.cur||'GEL'):(pc[p.id]||p.cur||'GEL'),tn=typeName(p),hex=plain?'':cardHex(p);
@@ -992,7 +1002,13 @@ post(t){const L=blogList(),i=L.findIndex(b=>String(b.id)===String(t)),b=L[i];if(
 seller(t){const own=[...new Set(items.map(x=>x.owner))].find(o=>sid(o)==t);
  if(!own)return `<div class="page"><div class="panel empty">გამყიდველი ვერ მოიძებნა 
  <div style="margin-top:16px"><a class="btn" href="#მთავარი">მთავარზე დაბრუნება</a></div></div></div>`;
- const l=pub().filter(p=>same(p.owner,own)).sort(byPkg),s=sellerOf({owner:own}),tel=String(s.phone||'').replace(/[^\d+]/g,'');
+ const l = pub()
+  .filter(p => same(p.owner, own))
+  .sort(byPkg);
+
+const sellerListing = l[0] || items.find(p => same(p.owner, own));
+const s = sellerOf(sellerListing || { owner: own });
+const tel = String(s.phone || '').replace(/[^\d+]/g, '');
  return `<div class="page sellpg" style="max-width:1100px"><button type="button" class="pback" id="pBack">${ui('back')}<span>უკან</span></button>
  <div class="sellhead"><div class="sav">${s.avatar?`<img src="${safeUrl(s.avatar)}" alt="">`:ui('user')}</div><div class="sn"><small>გამყიდველი</small><b>${esc(s.name)}</b><span class="stot" style="display:block;color:#000080;font-weight:600;font-size:13px;margin:2px 0">${l.length} განცხადება</span><em>${esc(s.type)}</em></div>${tel?`<a class="btn sb call" href="tel:${tel}">${ui('phone')}<span>${esc(s.phone)}</span></a>`:''}</div>
  <h2 class="sellh">ყველა განცხადება <span>(${l.length})</span></h2>${l.length?grid(l):'<div class="empty">განცხადებები არ არის</div>'}</div>`},
@@ -1081,7 +1097,7 @@ const hashOf=(v,t)=>'#'+(v=='post'?SL.blog:SL[v]||v)+(t?'/'+(v=='profile'?TB[t]|
 /* HI() = მიმდინარე მისამართი კოდის შიგნით გამოსაყენებელი (ძველი) სახით, მაგ. '#search', '#profile:blog' */
 const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 /* page transition: same slide + fade language as the Login <-> Registration swap */
-function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გადახდა მიღებულია ✓ — სტატუსი ავტომატურად ჩაირთვება':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');history.replaceState(null,'',hashOf('profile','mine'));h='profile';t='mine'}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
+function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გადახდა მიღებულია ✓ — სტატუსი ავტომატურად ჩაირთვება':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');history.replaceState(null,'',hashOf('profile','mine'));h='profile';t='mine';pullListings().then(()=>quiet())}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
  const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
  const _prev=lastV;lastV=v;navN++;lastIdx=idx;
  if(REDUCE || window.__fast || v === 'product' || v === 'search' || _prev === 'search'){
@@ -1237,7 +1253,7 @@ nativePrice:$('#aNego').checked?0:(+$('#aP').value||0),nego:$('#aNego').checked,
     const r=(l,v)=>`<div class="rv-r"><span>${l}</span><b>${v?esc(String(v)):'<i class="miss">არ არის მითითებული</i>'}</b></div>`,g=(n,rows)=>`<div class="rv-g"><h4>${STEPS[n-1]}</h4><button type="button" class="rv-e" data-step="${n}">შეცვლა</button></div>${rows}`;
     $('#aReview').innerHTML=g(1,r('ნივთის ტიპი',k=='other'?(KO&&KO.value.trim()):ddv($('#aK')))+r('მდებარეობა',ddv($('#aL')))+r('დასახელება',$('#aT').value.trim())+r('წონა',+$('#aW').value>0?$('#aW').value+' გრ':'')+r('ფასი',$('#aNego').checked?'შეთანხმებით':+$('#aP').value>0?$('#aP').value+(curUSD()?' $ (≈ '+gelTxt(priceGel())+')':' ₾'):''))
      +g(2,r('ფოტოები',ph.length>=3?ph.length+' ფოტო':'')+r('ვიდეო',window.vid?window.vid.name:'არ არის დამატებული')+r('ხმოვანი აღწერა',window.aud?window.aud.name:'არ არის დამატებული'))
-         +(window.EDITP?'':g(3,r('განცხადების ტიპი',planLabel(pk))+r('ფერადი ბარათი',col?'დიახ · +'+COLOR.price+' ₾':'არა')+r('სტიკერები',sel.length?sel.length+' · +'+sel.length*STICKER.price+' ₾':'არა')+(amt?`<div class="rv-r tot"><span>სულ გადასახდელი</span><b>${amt} ₾</b></div>`:'')))};
+         +(g(3,r('განცხადების ტიპი',planLabel(pk))+r('ფერადი ბარათი',col?'დიახ · +'+COLOR.price+' ₾':'არა')+r('სტიკერები',sel.length?sel.length+' · +'+sel.length*STICKER.price+' ₾':'არა')+(amt?`<div class="rv-r tot"><span>სულ გადასახდელი</span><b>${amt} ₾</b></div>`:'')))};
    const goStep=(n,sc)=>{n=Math.max(1,Math.min(4,n));window.aStep=n;seen.add(n);
     PN.forEach((p,i)=>p.hidden=i+1!=n);
     NV.forEach((b,i)=>{b.classList.toggle('on',i+1==n);if(i+1==n)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current')});
@@ -1258,7 +1274,7 @@ nativePrice:$('#aNego').checked?0:(+$('#aP').value||0),nego:$('#aNego').checked,
      if(bad){FS.hidden=false;FS.textContent=`⚠️ გასაგრძელებლად შეასწორეთ ან შეავსეთ ${bad} ველი`;return toast('შეავსეთ ყველა სავალდებულო ველი, რომ გააგრძელოთ')}}
     FS.hidden=true;goStep(n,sc)};
    wrap.addEventListener('click',e=>{const b=e.target.closest('[data-step]');if(b&&wrap.contains(b)){e.preventDefault();tryStep(+b.dataset.step)}});
-   const skip3=n=>!!window.EDITP&&n==3;
+   const skip3=n=>false;
    $('#aBack').onclick=()=>{let n=window.aStep-1;if(skip3(n))n--;goStep(n)};$('#aNext').onclick=()=>{let n=window.aStep+1;if(skip3(n))n++;tryStep(n)};
    ['input','change'].forEach(ev=>af.addEventListener(ev,refresh));af.addEventListener('click',()=>setTimeout(refresh,0));
    [$('#prev'),$('#rcPrev')].forEach(el=>{if(el)new MutationObserver(refresh).observe(el,{childList:true})});
@@ -1298,7 +1314,7 @@ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaR
     mr.start();t0=Date.now();TM.hidden=false;TM.textContent='0:00 / 1:00';$('#aBar').style.width='0';RB.classList.add('rec');RB.querySelector('span').textContent='გაჩერება';
     tmr=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);TM.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / 1:00';$('#aBar').style.width=Math.min(100,s/AUD_SEC*100)+'%';if(s>=AUD_SEC)stopRec()},250)};
       if(window.EDITP){const q=window.EDITP;
-    NV[2].closest('li').hidden=true;$('#aTerms').checked=true;$('#aTerms').closest('label').hidden=true;$('#aPub').textContent='შენახვა';
+    $('#aTerms').checked=true;$('#aTerms').closest('label').hidden=true;$('#aPub').textContent='შენახვა';
     setDD($('#aK'),q.type);setDyn('a',q.type,{...(q.attrs||{}),gen:q.gender},{});
     if(q.type=='other'&&$('#aKO'))$('#aKO').value=q.typeOther||'';
     setDD($('#aL'),q.loc||'');$('#aT').value=q.title||'';$('#aD').value=q.desc||'';$('#aW').value=q.weight||'';
@@ -1328,11 +1344,22 @@ if (q.nego) {
    const S=$('#formSum');
    if(n){S.hidden=false;S.textContent=`⚠️ გამოსაქვეყნებლად შეასწორეთ ან შეავსეთ ${n} ველი`;{const bd=af.querySelector('.bad'),pn=bd&&bd.closest('.astep');if(pn){goStep(+pn.dataset.pane,false);setTimeout(()=>bd.scrollIntoView({block:'center',behavior:'smooth'}),30)}}return toast('განცხადება არ გამოქვეყნდა — შეავსეთ ყველა სავალდებულო ველი')}
    S.hidden=true;
-      if(window.EDITP){const q=window.EDITP,old={...q},sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;
+     if(window.EDITP){const q=window.EDITP,old={...q},sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;
+    const pk=PL.dataset.val,pl=PLANS[pk],col=CK.checked,sel=cleanStk($('#aSP .sval').value.split(',')),need=pk!='REG'||col||sel.length>0,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price,now=Date.now();
     Object.assign(q,{title:t,type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:$('#aNego').checked?0:p,
-nativePrice:$('#aNego').checked?0:(+$('#aP').value||0),cur:curUSD()?'USD':'GEL',cur:curUSD()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
+     nativePrice:$('#aNego').checked?0:(+$('#aP').value||0),nego:$('#aNego').checked,cur:curUSD()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
+    if(need){q.pay={plan:pl.name,days:pl.days,color:col,sticker:sel.length>0,stickers:sel,stkN:sel.length,amount:amt,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:'',provider:FLITT.ready?'flitt':'bank'};
+     if(!FLITT.ready&&window.rc){q.pay.receipt=window.rc.data;q.pay.receiptName=window.rc.name;q.pay.receiptType=window.rc.type}}
+    let paymentTab=null;
+    if(need&&FLITT.ready){paymentTab=window.open('about:blank','_blank');if(paymentTab)paymentTab.opener=null}
     sb.disabled=true;sb.textContent='ინახება…';let ok=false;try{ok=await commitItems(q)}catch{ok=false}
-    if(!ok){Object.assign(q,old);saveItems(items);sb.disabled=false;sb.textContent=sbt;return toast('ცვლილებები ვერ შეინახა')}
+    if(!ok){Object.assign(q,old);saveItems(items);if(paymentTab&&!paymentTab.closed)paymentTab.close();sb.disabled=false;sb.textContent=sbt;return toast('ცვლილებები ვერ შეინახა')}
+    sb.disabled=false;sb.textContent=sbt;
+    if(need&&FLITT.ready){location.hash='profile:mine';
+     if(paymentTab&&!paymentTab.closed){const o=await startFlittPay(q.id,paymentTab);if(!o)toast('განცხადება შენახულია — გადახდა გააგრძელეთ პროფილიდან')}
+     else toast('განცხადება შენახულია — დაუშვით ახალი ტაბის გახსნა და გადახდა პროფილიდან გააგრძელეთ');
+     return}
+    if(need){await addNote('«'+t+'» – გადახდა მოწმდება');(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – ${pl.name}, ${amt} ₾`))}
     toast('ცვლილებები შენახულია ✓');location.hash='profile:mine';return}
    const pk=PL.dataset.val,pl=PLANS[pk],paid=pk!='REG',col=CK.checked,sel=cleanStk($('#aSP .sval').value.split(',')),stk=sel.length>0,need=paid||col||stk,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price,now=Date.now();
     if(need&&!FLITT.ready&&!window.rc)return;
@@ -1986,7 +2013,7 @@ document.addEventListener('click', e => {
 
   document.querySelectorAll('.results .price[data-g]').forEach(el => {
     el.classList.remove('flip');
-    el.textContent = fmt(Number(el.dataset.g), catalogCurrency);
+    el.textContent = priceNodeText(el, catalogCurrency);
   });
 
   document.querySelectorAll('.results [data-cs]').forEach(el => {

@@ -91,7 +91,26 @@ if (!p || !ownerOf(p)) return;
   $('#aCur').onclick=()=>{const b=$('#aCur'),on=!b.classList.contains('on');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);$('#aPS').textContent=on?'$':'₾';hint()};
   $('#aNego').onchange=()=>{const n=$('#aNego').checked;$('#aP').disabled=n;$('#aCur').disabled=n;if(n){$('#aP').value='';clearOne($('#aP').closest('.fld'))}hint()};
   $('#aP').addEventListener('input',hint);
-  if(p.nego){$('#aNego').checked=true;$('#aP').disabled=true;$('#aCur').disabled=true}else $('#aP').value=p.price||'';
+  const originalUSD = p.cur === 'USD';
+const currencyButton = $('#aCur');
+
+currencyButton.classList.toggle('on', originalUSD);
+currencyButton.setAttribute('aria-checked', String(originalUSD));
+$('#aPS').textContent = originalUSD ? '$' : '₾';
+
+if (p.nego) {
+  $('#aNego').checked = true;
+  $('#aP').disabled = true;
+  currencyButton.disabled = true;
+} else {
+  $('#aP').value = hasNative(p)
+    ? p.nativePrice
+    : originalUSD
+      ? listingAmount(p, 'USD')
+      : (p.price ?? '');
+}
+
+hint();
   hint();
   /* ფოტოები */
   const dr=$('#drop'),pf=$('#aF');
@@ -152,7 +171,9 @@ if (!p || !ownerOf(p)) return;
    const draw=()=>{clearTimeout(pvT);pvT=setTimeout(()=>{if(!PV)return;
     const k=$('#aK').dataset.val||p.type||'',KOe=$('#aKO'),A=readDyn('a'),pk=PLs.dataset.val,sv=$('#aSP .sval'),sel=cleanStk(sv?sv.value.split(','):[]),nego=$('#aNego').checked,
      d={...p,title:$('#aT').value.trim()||'განცხადების სათაური',type:k,typeOther:k=='other'&&KOe?KOe.value.trim():'',weight:+$('#aW').value||0,
-      price:nego?0:G(),nego,cur:U()?'USD':'GEL',gender:A.gen||'',attrs:A,loc:$('#aL').dataset.val||'',photos:ph.length?[ph[0]]:[],video:'',audio:''};
+      price:nego?0:G(),
+nativePrice:nego?0:(+$('#aP').value||0),
+nego,cur:U()?'USD':'GEL',gender:A.gen||'',attrs:A,loc:$('#aL').dataset.val||'',photos:ph.length?[ph[0]]:[],video:'',audio:''};
     /* რაც განცხადებას უკვე აქვს (VIP, ფერი, სტიკერები), რჩება; ფორმაში ახლად არჩეული კი ზემოდან ემატება */
     if(pk!='REG')d.vip=PLANS[pk].name;
     if(CK.checked){d.color=true;delete d.colorUntil;d.colorHex=$('#aCP .cval').value}
@@ -188,7 +209,9 @@ if (!p || !ownerOf(p)) return;
     [$('#photoFld'),ph.length>8?'მაქსიმუმ 8 ფოტო':ph.length<Math.min(3,(p.photos||[]).length)?`ატვირთეთ მინიმუმ ${Math.min(3,(p.photos||[]).length)} ფოტო (ახლა: ${ph.length})`:''],[$('#rcptFld'),need&&!rcOk?'ატვირთეთ გადახდის ქვითარი':'']]);
    const S=$('#formSum');if(n){S.hidden=false;S.textContent=`⚠️ შეასწორეთ ან შეავსეთ ${n} ველი`;return toast('შეავსეთ ყველა სავალდებულო ველი')}S.hidden=true;
    const bk={...p},now=Date.now(),sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;af.dataset.busy='1';sb.disabled=true;sb.textContent='ინახება…';
-   Object.assign(p,{title:t,type:k,typeOther:k=='other'?KOe.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:nego?0:pr,nego,cur:U()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
+   Object.assign(p,{title:t,type:k,typeOther:k=='other'?KOe.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,price:nego?0:pr,
+nativePrice:nego?0:(+P.value||0),
+nego,cur:U()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
    const rc=window.rc||{data:old&&old.receipt,name:old&&old.receiptName,type:old&&old.receiptType};
    if(need){p.pay={plan:paid?pl.name:'Regular',days:paid?pl.days:0,color:col,sticker:sel.length>0,stickers:sel,stkN:sel.length,amount:amt,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:'',provider:FLITT.ready?'flitt':'bank'};if(!FLITT.ready){p.pay.receipt=rc.data;p.pay.receiptName=rc.name;p.pay.receiptType=rc.type}}
    else if(old)delete p.pay;

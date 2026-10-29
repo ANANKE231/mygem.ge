@@ -181,9 +181,10 @@ public class CatalogService {
 		} catch (Exception ex) {
 			throw new ApiException(400, "bad_request", "განცხადების მონაცემები არასწორია");
 		}
-		JsonNode payNode = listing.get("pay");
+				JsonNode payNode = listing.get("pay");
 		if (!(payNode instanceof ObjectNode pay) || !"pending".equals(pay.path("status").asText(""))) {
-			throw new ApiException(400, "bad_request", "გადახდის მოლოდინში მყოფი განცხადება ვერ მოიძებნა");
+			String st = payNode instanceof ObjectNode p0 ? p0.path("status").asText("none") : "none";
+			return Map.of("ok", true, "status", st);
 		}
 		int amount = flitt.amountTetri(pay);
 		if (amount <= 0) {
@@ -530,7 +531,8 @@ public class CatalogService {
 			listing.remove("hvis");
 		}
 		if (listing.get("pay") instanceof ObjectNode pay) {
-			if (old != null && old.get("pay") instanceof ObjectNode oldPay) {
+			if (old != null && old.get("pay") instanceof ObjectNode oldPay
+					&& pay.path("created").asLong(0) == oldPay.path("created").asLong(0)) {
 				for (String key : new String[] {"status", "verifiedBy", "verifiedAt", "reason"}) {
 					if (oldPay.has(key)) {
 						pay.set(key, oldPay.get(key));
@@ -547,7 +549,7 @@ public class CatalogService {
 			if (!pay.has("status") || pay.path("status").asText("").isBlank()) {
 				pay.put("status", "pending");
 			}
-			if ("pending".equals(pay.path("status").asText(""))) {
+			if ("pending".equals(pay.path("status").asText("")) && (old == null || old.path("hold").asBoolean(false))) {
 				listing.put("hold", true);
 			}
 		}
