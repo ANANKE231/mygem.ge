@@ -321,7 +321,8 @@ nego,cur:U()?'USD':'GEL',photos:[...ph],video:window.vid?window.vid.data:'',audi
  /* ჩემი განცხადებები: ფილტრის ღილაკები + ბარათების სტატუსი/ღილაკები */
  function mineUI(){const tb=$('.panel .tabs'),on=tb&&tb.querySelector('[data-tab="mine"].on');let box=$('.mchips');
   if(!on||!me){if(box)box.remove();return}
-  const mine=items.filter(p=>same(p.owner,me.email)),cnt={active:0,expired:0,off:0,blocked:0};mine.forEach(p=>cnt[stateOf(p)]++);
+  const skip=typeof window.awaitingFlittPublish==='function'?window.awaitingFlittPublish:()=>false;
+  const mine=items.filter(p=>same(p.owner,me.email)&&!skip(p)),cnt={active:0,expired:0,off:0,blocked:0};mine.forEach(p=>cnt[stateOf(p)]++);
   const f=window.__mineF||'active';
   const html=Object.keys(MF).map(k=>`<button type="button" class="mchip${f==k?' on':''}" data-mf="${k}" aria-pressed="${f==k}">${svgI(MF[k][1])}<span>${MF[k][0]}</span><em class="mcnt">${cnt[k]}</em></button>`).join('');
   if(!box){box=document.createElement('div');box.className='mchips';box.setAttribute('role','group');box.setAttribute('aria-label','განცხადების სტატუსი');tb.after(box)}
