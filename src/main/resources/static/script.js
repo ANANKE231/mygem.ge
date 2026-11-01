@@ -1115,7 +1115,7 @@ const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let navN=0,lastIdx=0,rTok=0,pendingScroll=null,lastV='';
 /* მისამართები: #catalog, #item/9, #blog/9, #seller/abc, #profile/listings, #edit/9 (ძველი #product:9 ფორმატიც მუშაობს) */
 /* მისამართები: #ძებნა, #განცხადება/9, #ბლოგი/9, #გამყიდველი/abc, #პროფილი/განცხადებები ... (ძველი #product:9, #search ფორმატიც მუშაობს) */
-const SL={home:'მთავარი',search:'ძებნა',product:'განცხადება',blog:'ბლოგი',seller:'გამყიდველი',calculator:'კალკულატორი',favs:'ფავორიტები',add:'დამატება',edit:'რედაქტირება',profile:'პროფილი'};
+const SL={home:'მთავარი',search:'ძებნა',product:'განცხადება',blog:'ბლოგი',seller:'გამყიდველი',calculator:'კალკულატორი',favs:'ფავორიტები',add:'დამატება',edit:'რედაქტირება',profile:'პროფილი',reset:'reset'};
 const TB={mine:'განცხადებები',edit:'პარამეტრები',pay:'გადახდები',blog:'ბლოგი'};
 const rev=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[v,k]));
 const VR={...rev(SL),catalog:'search',item:'product'},TR={...rev(TB),listings:'mine'};
@@ -1128,7 +1128,7 @@ const hashOf=(v,t)=>'#'+(v=='post'?SL.blog:SL[v]||v)+(t?'/'+(v=='profile'?TB[t]|
 /* HI() = მიმდინარე მისამართი კოდის შიგნით გამოსაყენებელი (ძველი) სახით, მაგ. '#search', '#profile:blog' */
 const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 /* page transition: same slide + fade language as the Login <-> Registration swap */
-function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გადახდა მიღებულია ✓ — სტატუსი ავტომატურად ჩაირთვება':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');history.replaceState(null,'',hashOf('profile','mine'));h='profile';t='mine';pullListings().then(()=>quiet())}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
+function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გადახდა მიღებულია ✓ — სტატუსი ავტომატურად ჩაირთვება':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');history.replaceState(null,'',hashOf('profile','mine'));h='profile';t='mine';pullListings().then(()=>quiet())}if(h=='reset'){window.__resetTok=t||'';history.replaceState(null,'',hashOf('home'));h='home';t=undefined;setTimeout(()=>openAuth('reset'),0)}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
  const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
  const _prev=lastV;lastV=v;navN++;lastIdx=idx;
  if(REDUCE || window.__fast || v === 'product' || v === 'search' || _prev === 'search'){
@@ -1757,7 +1757,7 @@ pMenu.addEventListener('click',e=>{const a=e.target.closest('a');if(a){pmClose()
 document.addEventListener('keydown',e=>{if(e.key=='Escape')pmClose()});
 window.addEventListener('hashchange',pmClose);window.addEventListener('resize',pmClose);
 $('#loginBtn').onclick=()=>{if(!me)return openAuth('login');$('#notePanel').classList.remove('show');if(pMenu.classList.contains('show'))pmClose();else pmOpen()};
-const modal=$('#modal'),AO={login:0,forgot:1,reg:2};let curAuth=null,busy=false;
+const modal=$('#modal'),AO={login:0,forgot:1,reset:1,reg:2};let curAuth=null,busy=false;
 modal.onclick=e=>{if(e.target==modal)closeModal()};
 function closeModal(){modal.classList.remove('show');$('#modalBox').classList.remove('wide');curAuth=null;window.__goAdd=false}
 function afterAuth(){const g=window.__goAdd;closeModal();setLogin();if(g){location.hash='add';return}if(/^#(add|favs|profile)/.test(location.hash))route()}
@@ -1869,9 +1869,41 @@ function renderAuth(m){const B=$('#modalBody');curAuth=m;
 
 else if(m=='forgot'){
   B.innerHTML=`<h3>პაროლის აღდგენა</h3>
-    <p>პაროლის აღდგენა ელფოსტით ჯერ არ არის ჩართული. მოგვწერეთ <a href="mailto:mygemge@gmail.com">mygemge@gmail.com</a>-ზე იმ ელფოსტიდან, რომლითაც დარეგისტრირდით.</p>
+    <p>შეიყვანეთ რეგისტრაციის ელფოსტა და გამოგიგზავნით პაროლის აღდგენის ბმულს.</p>
+    <form class="form" id="authForm" novalidate>
+      <label>ელ-ფოსტა<input id="fE" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="name@mail.com"></label>
+      <button class="btn" type="submit">აღდგენის ბმულის გაგზავნა</button>
+    </form>
     <button type="button" class="link" id="toLog">უკან, შესვლაზე</button>`;
   $('#toLog').onclick=()=>openAuth('login');
+  $('#authForm').onsubmit=async e=>{e.preventDefault();const fm=e.target,E=$('#fE'),em=E.value.trim().toLowerCase();
+   if(check(fm,[[E,emailMsg(em)]]))return;
+   const btn=fm.querySelector('button[type=submit]');btn.disabled=true;
+   const res=await apiSend('POST','/api/auth/forgot',{email:em});
+   btn.disabled=false;
+   if(!res.ok){toast(res.data.message||'გაგზავნა ვერ მოხერხდა');return}
+   toast(res.data.message||'შეამოწმეთ ელ-ფოსტა');
+   if(res.data.debugLink)console.info('reset link',res.data.debugLink);
+   openAuth('login')}
+}
+else if(m=='reset'){
+  const tok=window.__resetTok||'';
+  B.innerHTML=`<h3>ახალი პაროლი</h3>
+    <p>შეიყვანეთ ახალი პაროლი თქვენი ანგარიშისთვის.</p>
+    <form class="form" id="authForm" novalidate>
+      ${pw('nP','ახალი პაროლი','new-password')}${pw('nP2','გაიმეორეთ პაროლი','new-password')}
+      <button class="btn" type="submit">პაროლის შეცვლა</button>
+    </form>
+    <button type="button" class="link" id="toLog">უკან, შესვლაზე</button>`;
+  $('#toLog').onclick=()=>openAuth('login');
+  $('#authForm').onsubmit=async e=>{e.preventDefault();const fm=e.target,P=$('#nP'),P2=$('#nP2');
+   if(check(fm,[[P,pwMsg(P.value)],[P2,!P2.value?'გაიმეორეთ პაროლი':P2.value!=P.value?'პაროლები არ ემთხვევა':'']]))return;
+   if(!tok){toast('ბმული არასწორია ან ვადაგასულია');return}
+   const btn=fm.querySelector('button[type=submit]');btn.disabled=true;
+   const res=await apiSend('POST','/api/auth/reset',{token:tok,password:P.value});
+   btn.disabled=false;
+   if(!res.ok){toast(res.data.message||'პაროლის შეცვლა ვერ მოხერხდა');return}
+   window.__resetTok='';toast(res.data.message||'პაროლი განახლდა');openAuth('login')}
 }
 
  else{B.innerHTML=`<h3>რეგისტრაცია</h3><form class="form" id="authForm" novalidate>${fld('რეგისტრაციის ტიპი',dd('rT',{list:DD.reg,val:'individual',other:1,otherPh:'მიუთითეთ როგორ გსურთ რეგისტრაცია'}))}<label id="rNL">სახელი და გვარი<input id="rN" autocomplete="name" placeholder="მაგ: გიორგი მაისურაძე"></label><label id="rLL" hidden><input id="rL" type="hidden"></label><label>ელ-ფოსტა<input id="rE" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="name@mail.com"></label><label>მომხმარებლის სახელი<input id="rU" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false"></label><label>ტელეფონი<input id="rP" type="tel" autocomplete="tel" inputmode="tel" maxlength="17" placeholder="5__ ___ ___"></label>${pw('rW','პაროლი','new-password')}${pw('rW2','გაიმეორეთ პაროლი','new-password')}<button class="btn" type="submit">რეგისტრაცია</button></form><button type="button" class="link" id="toLog">უკვე გაქვთ ანგარიში? შესვლა</button>`;

@@ -133,19 +133,35 @@ class MarketplaceApiTest {
 						.header("X-MyGem", "1").contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"secret12\"}"))
 				.andExpect(status().isOk());
 
-		mvc.perform(post("/api/auth/forgot").contentType(MediaType.APPLICATION_JSON)
-						.content("{\"email\":\"ana@test.com\",\"password\":\"newpass12\"}"))
+		MvcResult forgot = mvc.perform(post("/api/auth/forgot").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"email\":\"ana@test.com\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.ok").value(true))
+				.andExpect(jsonPath("$.debugLink").exists())
+				.andReturn();
+		String forgotBody = forgot.getResponse().getContentAsString();
+		java.util.regex.Matcher linkMatch = java.util.regex.Pattern.compile("\"debugLink\"\\s*:\\s*\"([^\"]+)\"").matcher(forgotBody);
+		org.junit.jupiter.api.Assertions.assertTrue(linkMatch.find(), forgotBody);
+		String resetToken = linkMatch.group(1);
+		resetToken = resetToken.substring(resetToken.lastIndexOf('/') + 1);
+		mvc.perform(post("/api/auth/reset").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"token\":\"" + resetToken + "\",\"password\":\"newpass12\"}"))
 				.andExpect(status().isOk());
-		MvcResult again = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
 						.content("{\"login\":\"ana\",\"password\":\"secret12\"}"))
+				.andExpect(status().isUnauthorized());
+		MvcResult again = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"login\":\"ana@test.com\",\"password\":\"newpass12\"}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.user.pass").doesNotExist())
 				.andExpect(jsonPath("$.user.google").doesNotExist())
 				.andReturn();
 		seller = token(again);
-		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-						.content("{\"login\":\"ana@test.com\",\"password\":\"newpass12\"}"))
-				.andExpect(status().isUnauthorized());
+
+		mvc.perform(post("/api/feedback").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"kind\":\"review\",\"stars\":5,\"comment\":\"კარგია\",\"contact\":\"a@b.c\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.ok").value(true));
 
 		mvc.perform(get("/api/users"))
 				.andExpect(status().isUnauthorized());

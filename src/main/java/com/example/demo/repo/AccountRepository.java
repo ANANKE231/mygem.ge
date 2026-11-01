@@ -15,6 +15,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
 	Optional<Account> findByUsernameIgnoreCase(String username);
 
+	Optional<Account> findByResetTokenHash(String resetTokenHash);
+
 	boolean existsByEmailIgnoreCase(String email);
 
 	boolean existsByUsernameIgnoreCase(String username);

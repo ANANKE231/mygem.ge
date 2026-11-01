@@ -28,6 +28,8 @@ public class AppProperties {
 	private String companyEmail = "mygemge@gmail.com";
 	private String companyAddress = "თბილისი, საქართველო";
 	private String companyIban = "GE56TB7046245064300117";
+	/** When true (tests), reset links are returned in the API instead of sending mail. */
+	private boolean mailLogOnly;
 
 	@PostConstruct
 	void check() {
@@ -201,6 +203,14 @@ public class AppProperties {
 
 	public void setCompanyIban(String companyIban) {
 		this.companyIban = companyIban;
+	}
+
+	public boolean isMailLogOnly() {
+		return mailLogOnly;
+	}
+
+	public void setMailLogOnly(boolean mailLogOnly) {
+		this.mailLogOnly = mailLogOnly;
 	}
 
 }

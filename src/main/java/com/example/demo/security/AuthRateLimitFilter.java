@@ -20,7 +20,9 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 			"/api/auth/register",
 			"/api/auth/forgot",
 			"/api/auth/forgot-password",
-			"/api/auth/google");
+			"/api/auth/reset",
+			"/api/auth/google",
+			"/api/feedback");
 
 	private final ConcurrentHashMap<String, Window> windows = new ConcurrentHashMap<>();
 

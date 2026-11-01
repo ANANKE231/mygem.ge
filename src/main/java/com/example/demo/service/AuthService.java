@@ -12,6 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,8 +38,10 @@ public class AuthService {
 	private final CatalogService catalog;
 	private final GoogleIdTokenVerifier googleTokens;
 	private final ObjectImages images;
+	private final MailService mail;
+	private final SecureRandom random = new SecureRandom();
 
-	public AuthService(AccountRepository accounts, PasswordEncoder encoder, SessionService sessions, AppProperties props, CatalogService catalog, GoogleIdTokenVerifier googleTokens, ObjectImages images) {
+	public AuthService(AccountRepository accounts, PasswordEncoder encoder, SessionService sessions, AppProperties props, CatalogService catalog, GoogleIdTokenVerifier googleTokens, ObjectImages images, MailService mail) {
 		this.accounts = accounts;
 		this.encoder = encoder;
 		this.sessions = sessions;
@@ -43,6 +49,7 @@ public class AuthService {
 		this.catalog = catalog;
 		this.googleTokens = googleTokens;
 		this.images = images;
+		this.mail = mail;
 	}
 
 	@Transactional
@@ -131,10 +138,87 @@ public class AuthService {
 		return session(account);
 	}
 
+	@Transactional
 	public Map<String, Object> forgot(JsonNode body) {
 		requireObject(body);
-		/* No email sender is configured. This endpoint must not change a password. */
-		return Map.of("ok", true, "message", "პაროლის აღდგენა ელფოსტით ჯერ არ არის ჩართული. მოგვწერეთ mygemge@gmail.com-ზე.");
+		String email = text(body, "email").toLowerCase(Locale.ROOT);
+		String generic = "თუ ეს ელ-ფოსტა რეგისტრირებულია, გამოგიგზავნით აღდგენის ბმულს.";
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("ok", true);
+		out.put("message", generic);
+		if (!EMAIL.matcher(email).matches()) {
+			return out;
+		}
+		Account account = accounts.findByEmailIgnoreCase(email).orElse(null);
+		if (account == null) {
+			return out;
+		}
+		if (account.getPasswordHash() == null) {
+			out.put("message", "ეს ანგარიში Google-ით არის შექმნილი — გამოიყენეთ „Continue with Google“.");
+			return out;
+		}
+		if (!mail.ready()) {
+			throw new ApiException(503, "mail_not_configured", "პაროლის აღდგენა ელფოსტით დროებით მიუწვდომელია. მოგვწერეთ " + empty(props.getCompanyEmail()) + "-ზე.");
+		}
+		byte[] raw = new byte[32];
+		random.nextBytes(raw);
+		String token = HexFormat.of().formatHex(raw);
+		account.setResetTokenHash(sha256(token));
+		account.setResetTokenExpires(System.currentTimeMillis() + 3_600_000L);
+		accounts.save(account);
+		String base = empty(props.getPublicBaseUrl());
+		if (base.endsWith("/")) {
+			base = base.substring(0, base.length() - 1);
+		}
+		String link = base + "/#reset/" + token;
+		String text = "გამარჯობა!\n\nპაროლის აღდგენის ბმული mygem.ge-ზე:\n" + link
+				+ "\n\nბმული მოქმედებს 1 საათი. თუ თქვენ არ მოითხოვეთ აღდგენა, უბრალოდ დააიგნორეთ ეს წერილი.\n";
+		try {
+			mail.sendText(account.getEmail(), "mygem.ge — პაროლის აღდგენა", text);
+		} catch (Exception e) {
+			account.setResetTokenHash(null);
+			account.setResetTokenExpires(null);
+			accounts.save(account);
+			throw new ApiException(503, "mail_failed", "წერილის გაგზავნა ვერ მოხერხდა. სცადეთ მოგვიანებით ან მოგვწერეთ " + empty(props.getCompanyEmail()) + "-ზე.");
+		}
+		if (props.isMailLogOnly()) {
+			out.put("debugLink", link);
+		}
+		return out;
+	}
+
+	@Transactional
+	public Map<String, Object> resetPassword(JsonNode body) {
+		requireObject(body);
+		String token = raw(body, "token").trim();
+		String password = raw(body, "password");
+		if (token.length() < 20 || token.length() > 128) {
+			throw bad("bad_token", "ბმული არასწორია ან ვადაგასულია");
+		}
+		String passwordProblem = passwordProblem(password);
+		if (passwordProblem != null) {
+			throw bad("bad_request", passwordProblem);
+		}
+		String hash = sha256(token);
+		Account account = accounts.findByResetTokenHash(hash).orElse(null);
+		if (account == null || account.getResetTokenExpires() == null || account.getResetTokenExpires() < System.currentTimeMillis()) {
+			throw bad("bad_token", "ბმული არასწორია ან ვადაგასულია");
+		}
+		account.setPasswordHash(encoder.encode(password));
+		account.setResetTokenHash(null);
+		account.setResetTokenExpires(null);
+		accounts.save(account);
+		sessions.revokeEmail(account.getEmail());
+		return Map.of("ok", true, "message", "პაროლი განახლდა. შეგიძლიათ შეხვიდეთ.");
+	}
+
+	private static String sha256(String value) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+		} catch (Exception e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	@Transactional(readOnly = true)

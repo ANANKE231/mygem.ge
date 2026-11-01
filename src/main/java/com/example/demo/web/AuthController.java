@@ -48,6 +48,11 @@ public class AuthController {
 		return auth.forgot(body);
 	}
 
+	@PostMapping("/api/auth/reset")
+	public Map<String, Object> reset(@RequestBody JsonNode body) {
+		return auth.resetPassword(body);
+	}
+
 	@PostMapping("/api/auth/google")
 	public Map<String, Object> google(HttpServletRequest request, HttpServletResponse response, @RequestBody JsonNode body) {
 		return seal(request, response, auth.google(body));

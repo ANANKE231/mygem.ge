@@ -54,6 +54,11 @@ public class Account {
 	@Column(length = 255)
 	private String googleSub;
 
+	@Column(length = 80)
+	private String resetTokenHash;
+
+	private Long resetTokenExpires;
+
 	private Long created;
 
 	public Long getId() {
@@ -162,6 +167,22 @@ public class Account {
 
 	public void setGoogleSub(String googleSub) {
 		this.googleSub = googleSub;
+	}
+
+	public String getResetTokenHash() {
+		return resetTokenHash;
+	}
+
+	public void setResetTokenHash(String resetTokenHash) {
+		this.resetTokenHash = resetTokenHash;
+	}
+
+	public Long getResetTokenExpires() {
+		return resetTokenExpires;
+	}
+
+	public void setResetTokenExpires(Long resetTokenExpires) {
+		this.resetTokenExpires = resetTokenExpires;
 	}
 
 	public Long getCreated() {

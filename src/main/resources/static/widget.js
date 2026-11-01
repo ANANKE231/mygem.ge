@@ -1,8 +1,6 @@
 /* mygem.ge — floating help widget (bottom-right): call request + feedback.
-   Data is emailed via FormSubmit (https://formsubmit.co). FIRST USE: submit one test message,
-   then open the activation email FormSubmit sends to MAIL and click "Activate". */
+   Submits via /api/feedback (server emails mygemge@gmail.com; FormSubmit fallback). */
 (()=>{
-const MAIL = 'mygemge@gmail.com';   // <- change here if needed
 const $=(s,r=document)=>r.querySelector(s);
 const css=`
 .fw{position:fixed;right:18px;bottom:18px;z-index:140;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
@@ -42,17 +40,22 @@ main.onclick=e=>{e.stopPropagation();const o=w.classList.toggle('open');main.set
 document.addEventListener('click',e=>{if(!w.contains(e.target)){w.classList.remove('open');main.setAttribute('aria-expanded',false)}});
 
 const toastF=t=>typeof toast=='function'?toast(t):alert(t);
-async function send(subject,data){
- const r=await fetch('https://formsubmit.co/ajax/'+encodeURIComponent(MAIL),{method:'POST',
-  headers:{'Content-Type':'application/json',Accept:'application/json'},
-  body:JSON.stringify({_subject:'mygem.ge — '+subject,_template:'table',_captcha:'false',...data,გვერდი:location.href})});
+async function send(payload){
+ if(typeof apiSend==='function'){
+  const res=await apiSend('POST','/api/feedback',{...payload,page:location.href});
+  if(!res.ok)throw new Error(res.data&&res.data.message||'fail');
+  return;
+ }
+ const r=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},
+  body:JSON.stringify({...payload,page:location.href})});
  const j=await r.json().catch(()=>({}));
- if(!r.ok||j.success==='false')throw 0}
+ if(!r.ok||j.ok===false)throw new Error(j.message||'fail');
+}
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function panel(html,onSubmit){
  const m=$('#modal'),B=$('#modalBody');if(!m||!B)return;
  m.classList.add('show');B.innerHTML=html;
- const f=B.querySelector('form'),close=()=>{if(typeof closeModal=='function')closeModal();else m.classList.remove('show')};
+ const f=B.querySelector('form');
  const no = B.querySelector('[data-no]');
 if (no) {
   no.onclick = e => {
@@ -65,8 +68,8 @@ if (no) {
  f.onsubmit=async e=>{e.preventDefault();const b=f.querySelector('button[type=submit]'),t=b.textContent;
   const ok=onSubmit(f);if(!ok)return;
   b.disabled=true;b.textContent='იგზავნება…';
-  try{await send(ok.subject,ok.data);close();toastF('გაგზავნილია, მადლობა! ✓')}
-  catch{b.disabled=false;b.textContent=t;toastF('გაგზავნა ვერ მოხერხდა, სცადეთ თავიდან')}}}
+  try{await send(ok);if(typeof closeModal=='function')closeModal();else m.classList.remove('show');toastF('გაგზავნილია, მადლობა! ✓')}
+  catch(err){b.disabled=false;b.textContent=t;toastF((err&&err.message)||'გაგზავნა ვერ მოხერხდა, სცადეთ თავიდან')}}}
 const fe=(el,msg)=>{let e=el.parentElement.querySelector('.fe');if(!e){e=document.createElement('em');e.className='fe';el.parentElement.append(e)}e.textContent=msg;el.focus()};
 const clr=f=>f.querySelectorAll('.fe').forEach(x=>x.remove());
 
@@ -82,7 +85,7 @@ function callForm(){
   clr(f);const n=$('#fwN').value.trim(),p=$('#fwP').value.trim(),d=p.replace(/\D/g,'');
   if(n.length<2){fe($('#fwN'),'შეიყვანეთ სახელი');return}
   if(!/^\+?[0-9\s-]+$/.test(p)||d.length<9||d.length>15){fe($('#fwP'),'არასწორი ტელეფონის ნომერი');return}
-  return{subject:'ზარის მოთხოვნა',data:{სახელი:n,ტელეფონი:p,დრო:$('#fwT').value.trim()||'—',შეტყობინება:$('#fwM').value.trim()||'—'}}})}
+  return{kind:'call',name:n,phone:p,when:$('#fwT').value.trim(),message:$('#fwM').value.trim()}})}
 
 function fbForm(){
  let rate=0;
@@ -93,7 +96,7 @@ function fbForm(){
  <label>თქვენი ელ-ფოსტა ან ტელეფონი (არასავალდებულო)<input id="fwC" maxlength="80"></label>
  <button class="btn" type="submit">გაგზავნა</button><button type="button" class="link" data-no>გაუქმება</button></form>`,f=>{
   clr(f);if(!rate){fe($('.fw-stars'),'აირჩიეთ შეფასება');return}
-  return{subject:`შეფასება ${rate}/5`,data:{შეფასება:rate+' / 5',კომენტარი:$('#fwF').value.trim()||'—',კონტაქტი:$('#fwC').value.trim()||'—'}}});
+  return{kind:'review',stars:rate,comment:$('#fwF').value.trim(),contact:$('#fwC').value.trim()}});
  const S=document.querySelectorAll('.fw-stars button');
  S.forEach(b=>b.onclick=()=>{rate=+b.dataset.s;S.forEach(x=>x.classList.toggle('on',+x.dataset.s<=rate));const e=$('.fw-stars').parentElement.querySelector('.fe');if(e)e.remove()})}
 

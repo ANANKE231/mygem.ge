@@ -84,7 +84,8 @@ public class SecurityConfig {
 					response.getWriter().write("{\"ok\":false,\"error\":\"unauthorized\",\"message\":\"შედით ანგარიშში\"}");
 				}))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/forgot", "/api/auth/google").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/forgot", "/api/auth/reset", "/api/auth/google").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/feedback").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/payments/flitt/callback").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/listings", "/api/health", "/api/payments/config").permitAll()
 						.requestMatchers("/api/**").authenticated()
