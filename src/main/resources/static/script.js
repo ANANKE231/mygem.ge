@@ -767,6 +767,7 @@ function openPhotos(id){const p=items.find(x=>String(x.id)===String(id));if(!own
 <div class="pcount${list.length>=PH_MIN_EDIT?' ok':''}"><span>${list.length} / ${PH_MAX} ფოტო</span></div>${msg?`<em class="fe">${esc(msg)}</em>`:''}
 <div class="row2"><button type="button" class="btn" id="peSave">შენახვა</button><button type="button" class="btn alt" id="peNo">გაუქმება</button></div>
 </div></div>`;
+  paintCardBg(B);
   $('#peNo').onclick=closeModal;
   $$('[data-pe]',B).forEach(b=>b.onclick=()=>{list.splice(+b.dataset.pe,1);msg='';draw()});
   $('#peF').onchange=async e=>{const fs=[...e.target.files].filter(f=>f.type.startsWith('image/')&&f.size<=15*1024*1024);e.target.value='';
@@ -1147,15 +1148,20 @@ function showProfile(tab){if(tab!='blog'){bedit=null;bcv=''}$('#app').innerHTML=
 
 /* reveal-on-scroll for collection cards (re-triggers each time a card scrolls into view) */
 let io=null;
-function reveal(){if(REDUCE||!('IntersectionObserver' in window))return;if(io)io.disconnect();
+function reveal(){if(REDUCE||!('IntersectionObserver' in window)){paintCardBg($('#app'));return}if(io)io.disconnect();
  io=new IntersectionObserver(es=>{
   const vis=es.filter(e=>e.intersectionRatio>=.1).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top||a.boundingClientRect.left-b.boundingClientRect.left);
   vis.forEach((en,i)=>{en.target.style.setProperty('--d',Math.min(i,6)*90+'ms');en.target.classList.remove('rv')});
   es.forEach(en=>{if(en.intersectionRatio===0&&en.boundingClientRect.top>0){en.target.style.setProperty('--d','0ms');en.target.classList.add('rv')}})
  },{threshold:[0,.1],rootMargin:'0px 0px -40px 0px'});
  const lz=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const el=e.target;el.style.cssText=el.dataset.bg;lz.unobserve(el)}}),{rootMargin:'300px'});
-$$('.imgi[data-bg]',$('#app')).forEach(el=>lz.observe(el));
+ $$('.imgi[data-bg]',$('#app')).forEach(el=>lz.observe(el));
  $$('.card',$('#app')).forEach(el=>{el.classList.add('rv');io.observe(el)})}
+/* Apply card photo backgrounds immediately (live preview / modal are updated without reveal()). */
+function paintCardBg(root){
+ $$(`.imgi[data-bg]`,root||document).forEach(el=>{if(el.dataset.bg)el.style.cssText=el.dataset.bg});
+}
+window.paintCardBg=paintCardBg;
 
 /* product page: gallery + back button */
 function bindV2(){
@@ -1281,7 +1287,8 @@ nativePrice:$('#aNego').checked?0:(+$('#aP').value||0),nego:$('#aNego').checked,
           <summary class="lpv-h"><b>ასე გამოჩნდება განცხადება</b><small>${ed?'ახლანდელი განცხადება':done+'/4 შევსებულია'}</small></summary>
      <div class="lpv-bar"><i style="width:${ed?100:done/4*100}%"></i></div>
      <div class="lpv-card">${html}</div>
-     <p class="lpv-n">${ph.length?'':'ფოტოს ატვირთვის შემდეგ აქ გამოჩნდება მთავარი ფოტო. '}ფასი, სტატუსი, ფერი და სტიკერები ბარათზე ავტომატურად განახლდება.</p></details>`},60)};
+     <p class="lpv-n">${ph.length?'':'ფოტოს ატვირთვის შემდეგ აქ გამოჩნდება მთავარი ფოტო. '}ფასი, სტატუსი, ფერი და სტიკერები ბარათზე ავტომატურად განახლდება.</p></details>`;
+    paintCardBg(PV)},60)};
    const drawReview=()=>{const k=$('#aK').dataset.val,KO=$('#aKO'),pk=PL.dataset.val,pl=PLANS[pk],sel=stk(),col=CK.checked,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price;
     const r=(l,v)=>`<div class="rv-r"><span>${l}</span><b>${v?esc(String(v)):'<i class="miss">არ არის მითითებული</i>'}</b></div>`,g=(n,rows)=>`<div class="rv-g"><h4>${STEPS[n-1]}</h4><button type="button" class="rv-e" data-step="${n}">შეცვლა</button></div>${rows}`;
     $('#aReview').innerHTML=g(1,r('ნივთის ტიპი',k=='other'?(KO&&KO.value.trim()):ddv($('#aK')))+r('მდებარეობა',ddv($('#aL')))+r('დასახელება',$('#aT').value.trim())+r('წონა',+$('#aW').value>0?$('#aW').value+' გრ':'')+r('ფასი',$('#aNego').checked?'შეთანხმებით':+$('#aP').value>0?$('#aP').value+(curUSD()?' $ (≈ '+gelTxt(priceGel())+')':' ₾'):''))

@@ -183,7 +183,8 @@ nego,cur:U()?'USD':'GEL',gender:A.gen||'',attrs:A,loc:$('#aL').dataset.val||'',p
      <summary class="lpv-h"><b>ასე გამოჩნდება განცხადება</b><small>${ph.length}/${PH_MAX} ფოტო</small></summary>
      <div class="lpv-bar"><i style="width:${Math.min(100,ph.length/PH_MAX*100)}%"></i></div>
      <div class="lpv-card">${html}</div>
-     <p class="lpv-n">ფოტო, ფასი, სტატუსი, ფერი და სტიკერები ბარათზე ავტომატურად განახლდება.</p></details>`},60)};
+     <p class="lpv-n">ფოტო, ფასი, სტატუსი, ფერი და სტიკერები ბარათზე ავტომატურად განახლდება.</p></details>`;
+    if(typeof paintCardBg==='function')paintCardBg(PV);else if(typeof window.paintCardBg==='function')window.paintCardBg(PV)},60)};
    ['input','change'].forEach(ev=>af.addEventListener(ev,draw));
    af.addEventListener('click',()=>setTimeout(draw,0));
    [$('#prev'),$('#rcPrev')].forEach(el=>{if(el)new MutationObserver(draw).observe(el,{childList:true})});
