@@ -47,7 +47,7 @@
  const listCard=p=>{
   const c=curOf(p.id),f=favs.includes(p.id),hex=cardHex(p),cond=(p.attrs&&p.attrs.cond)||'',
    sp=specsOf(p).map(([ic,t])=>`<div class="lsp">${si(ic)}<span>${esc(t)}</span></div>`).join(''),
-   price=p.nego?'<span class="price nego">ფასი შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p.price,c)}</span>${curSw(p.id,c)}`,
+   price=p.nego?'<span class="price nego">ფასი შეთანხმებით</span>':`<span class="price" data-g="${p.price}" data-id="${p.id}">${fmt(p,c)}</span>${curSw(p.id,c)}`,
    badge=p.vip?`<span class="lvip ${p.vip=='VIP'?'v':'s'}">${esc(p.vip)}</span>`:'';
   return `<div class="lcard" data-id="${p.id}" tabindex="0" role="link" aria-label="${esc(p.title)}"${hex?` style="background:${hex}"`:''}>
   <div class="limg"><div class="limgi" style="${bgi(p.photos[0])}">${p.photos[0]?'':ill(p)}</div></div>
