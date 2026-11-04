@@ -75,7 +75,7 @@ public class PaymentController {
 		String status = params == null ? "" : params.getOrDefault("order_status", "");
 		String state = "approved".equalsIgnoreCase(status) ? "ok" : "pending";
 		return ResponseEntity.status(HttpStatus.SEE_OTHER)   // 303: POST გადადის GET-ში
-				.header(HttpHeaders.LOCATION, "/#home")
+				.header(HttpHeaders.LOCATION, "/#pay/" + state)
 				.header(HttpHeaders.CACHE_CONTROL, "no-store")
 				.build();
 	}

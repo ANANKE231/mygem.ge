@@ -216,7 +216,11 @@ hint();
    sb.textContent=need&&FLITT.ready?'გადახდაზე გადასვლა…':sbt;
    let ok=false;try{ok=await commitItems(p)}catch{ok=false}
    if(!ok){delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;Object.assign(p,bk);if(!('pay' in bk))delete p.pay;saveItems(items);S.hidden=false;S.textContent='⚠️ ცვლილებები ვერ შეინახა — სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('ცვლილებები ვერ შეინახა')}
-   if(need&&FLITT.ready){const went=await startFlittPay(p.id);if(went)return;delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;return toast('ცვლილებები შენახულია — გადახდა ხელახლა სცადეთ')}
+   if(need&&FLITT.ready){
+    const went=await startFlittPay(p.id);
+    delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
+    if(went){toast('გადახდის გვერდი გაიხსნა — დასრულების შემდეგ ეს გვერდი განახლდება');return}
+    return toast('ცვლილებები შენახულია — გადახდა ხელახლა სცადეთ')}
    delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
    if(need){addNote(`«${t}» განახლდა. დამატებითი სერვისების გადახდა მოწმდება — ისინი ჩაირთვება დადასტურების შემდეგ`);(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – დამატებითი სერვისები, ${amt} ₾`))}
    else addNote('განცხადება განახლდა: '+t);

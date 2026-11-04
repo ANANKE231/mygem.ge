@@ -89,10 +89,12 @@ async function pullListings(){
  const res=await apiSend('GET','/api/listings');
  if(!res.ok||!Array.isArray(res.data.listings))return;
  const remote=res.data.listings.filter(p=>p&&p.id&&p.owner!=='demo');
+ remote.forEach(normalizeListingPrice);
  const ids=new Set(remote.map(p=>String(p.id)));
  const kept=new Map();
  for(const p of items){if(p&&p.id&&Array.isArray(p.photos)&&p.photos.length)kept.set(String(p.id),p.photos.slice())}
  const mine=me?items.filter(p=>p&&p.owner!=='demo'&&same(p.owner,me.email)&&!ids.has(String(p.id))):[];
+ mine.forEach(normalizeListingPrice);
  items=remote.concat(mine);
  const heal=[];
  for(const p of remote){if(!me||!same(p.owner,me.email)||(p.photos&&p.photos.length))continue;const ph=kept.get(String(p.id));if(ph){p.photos=ph;heal.push(p)}}
@@ -313,9 +315,11 @@ const numMoney=s=>Number(String(s).replace(/,/g,''))||0;
 /* GEL prices: Georgian style "379,95 ₾" - comma decimals, space-grouped thousands, non-breaking space before ₾; whole numbers have no decimals, fractions always exactly two */
 const gm=s=>String(s).replace(/,/g,'\u00A0').replace('.',',');
 const gelTxt=g=>{const [i,f]=(Math.abs(+g)||0).toFixed(2).split('.');return i.replace(/\B(?=(\d{3})+(?!\d))/g,'\u00A0')+(f=='00'?'':','+f)+'\u00A0₾'};
-const hasNative = p =>
-  p && typeof p.nativePrice === 'number' &&
-  Number.isFinite(p.nativePrice) && p.nativePrice >= 0;
+const hasNative = p => {
+  if (!p || p.nativePrice == null || p.nativePrice === '') return false;
+  const n = Number(p.nativePrice);
+  return Number.isFinite(n) && n >= 0;
+};
 
 /* Keep the amount the seller typed (nativePrice + cur); also store GEL in price for sorting/filters. */
 const priceFields=(entered,cur,nego)=>{
@@ -324,14 +328,47 @@ const priceFields=(entered,cur,nego)=>{
   return{nativePrice:v,cur:currency,price:currency==='USD'?numMoney(gelOf(v)):v};
 };
 
+/* Normalize after load: entered currency stays fixed; GEL mirror follows today's NBG rate for USD listings. */
+const normalizeListingPrice = p => {
+  if (!p || p.nego) {
+    if (p) { p.price = 0; p.nativePrice = 0; p.cur = p.cur || 'GEL'; }
+    return p;
+  }
+  if (p.nativePrice != null && typeof p.nativePrice !== 'number') {
+    const n = Number(p.nativePrice);
+    if (Number.isFinite(n)) p.nativePrice = n;
+  }
+  if (hasNative(p) && p.cur === 'USD') {
+    p.cur = 'USD';
+    p.price = numMoney(gelOf(p.nativePrice));
+    return p;
+  }
+  if (hasNative(p)) {
+    p.cur = 'GEL';
+    p.price = Number(p.nativePrice) || 0;
+    return p;
+  }
+  /* Legacy rows: only GEL `price` — treat that as the entered amount. */
+  if (p.cur === 'USD' && p.price != null) {
+    p.nativePrice = numMoney(usdOf(p.price));
+    p.cur = 'USD';
+    return p;
+  }
+  p.nativePrice = Number(p.price) || 0;
+  p.cur = 'GEL';
+  return p;
+};
+items.forEach(normalizeListingPrice);
+
 const listingAmount = (p, c = 'GEL') => {
   const want = c === 'USD' ? 'USD' : 'GEL';
   if (!hasNative(p)) {
     return want === 'USD' ? numMoney(usdOf(p.price)) : Number(p.price) || 0;
   }
   const original = p.cur === 'USD' ? 'USD' : 'GEL';
-  if (want === original) return p.nativePrice;
-  return original === 'GEL' ? numMoney(usdOf(p.nativePrice)) : numMoney(gelOf(p.nativePrice));
+  const native = Number(p.nativePrice) || 0;
+  if (want === original) return native;
+  return original === 'GEL' ? numMoney(usdOf(native)) : numMoney(gelOf(native));
 };
 
 const fmt = (g, c = 'GEL') => {
@@ -362,7 +399,8 @@ async function loadRate(){const today=new Date().toISOString().slice(0,10),c=loa
  try{const r=await fetch('https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies=USD',{cache:'no-store'});if(!r.ok)throw 0;
   const j=await r.json(),blk=Array.isArray(j)?j[0]:j,u=((blk&&blk.currencies)||[]).find(x=>x.code=='USD');if(!u)throw 0;
   const rate=(+u.rate)/(+u.quantity||1);if(!(rate>0))throw 0;const dt=String(u.validFromDate||blk.date||today).slice(0,10);
-  RATE=rate;RATE_DATE=dt;save('nbgRate',{rate,date:dt,fetched:today});applyRate()}catch{}}
+  RATE=rate;RATE_DATE=dt;save('nbgRate',{rate,date:dt,fetched:today});
+  items.forEach(normalizeListingPrice);applyRate()}catch{}}
 
 
 /* ---------- v2: shared helpers (branding, icons, product page) ---------- */
@@ -514,6 +552,70 @@ async function runFlittCheckout(dialog, listingId) {
   }
 }
 
+const flittBus = () => {
+  try { return new BroadcastChannel('mygem-flitt'); } catch { return null; }
+};
+
+function releaseFlittUi() {
+  try {
+    document.documentElement.classList.remove('flitt-open');
+    const dlg = document.querySelector('#flittDialog');
+    if (dlg) { try { dlg.close(); } catch {} dlg.remove(); }
+    const app = $('#app');
+    if (app) {
+      app.getAnimations().forEach(a => a.cancel());
+      app.style.opacity = '';
+      app.style.transform = '';
+    }
+    $$('form[data-busy]').forEach(f => {
+      delete f.dataset.busy;
+      $$('button[type=submit]', f).forEach(b => { b.disabled = false; });
+    });
+  } catch {}
+}
+
+async function handleFlittResult(status, opts = {}) {
+  const st = status === 'ok' ? 'ok' : 'pending';
+  if (window.__flittWatch) window.__flittWatch.paid = true;
+  window.__flittWatch = null;
+  releaseFlittUi();
+  try { await pullListings(); } catch {}
+  const [h] = parseHash();
+  if (h === 'profile') quiet();
+  else if (!opts.skipNav) location.hash = 'profile:mine';
+  toast(st === 'ok'
+    ? 'გადახდა წარმატებით შესრულდა ✓'
+    : 'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');
+}
+
+function announceFlittResult(status) {
+  const st = status === 'ok' ? 'ok' : 'pending';
+  const bus = flittBus();
+  if (bus) {
+    try { bus.postMessage({ type: 'flitt-result', status: st }); } catch {}
+    try { bus.close(); } catch {}
+  }
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ source: 'mygem-flitt', status: st }, location.origin);
+    }
+  } catch {}
+}
+
+(() => {
+  const bus = flittBus();
+  if (bus) {
+    bus.onmessage = ev => {
+      if (ev?.data?.type === 'flitt-result') handleFlittResult(ev.data.status);
+    };
+  }
+  window.addEventListener('message', ev => {
+    if (ev.origin !== location.origin) return;
+    if (ev.data?.source !== 'mygem-flitt') return;
+    handleFlittResult(ev.data.status);
+  });
+})();
+
 async function startFlittPay(listingId, paymentTab) {
   const tab = paymentTab || window.open('about:blank', '_blank');
 
@@ -522,7 +624,7 @@ async function startFlittPay(listingId, paymentTab) {
     return false;
   }
 
-  tab.opener = null;
+  /* Keep opener so the return page can notify this tab; BroadcastChannel is the backup. */
 
   try {
     const res = await apiSend(
@@ -534,9 +636,7 @@ async function startFlittPay(listingId, paymentTab) {
 
     if (res.ok && res.data.status) {
       if (!tab.closed) tab.close();
-      await pullListings();
-      quiet();
-      toast('გადახდა უკვე დამუშავებულია — განცხადება განახლდა');
+      await handleFlittResult('ok', { skipNav: true });
       return false;
     }
 
@@ -559,6 +659,7 @@ async function startFlittPay(listingId, paymentTab) {
     return true;
   } catch (error) {
     if (!tab.closed) tab.close();
+    releaseFlittUi();
     toast(error.message || 'გადახდის დაწყება ვერ მოხერხდა');
     return false;
   }
@@ -592,12 +693,24 @@ async function dropUnpaidFlitt(listingId){
 function watchFlittAbandon(listingId,tab){
   if(!tab)return;
   const id=String(listingId);
-  window.__flittWatch={id,tab};
-  const iv=setInterval(()=>{
+  window.__flittWatch={id,tab,paid:false};
+  const iv=setInterval(async()=>{
     if(tab&&!tab.closed)return;
     clearInterval(iv);
-    if(window.__flittWatch&&window.__flittWatch.id===id)window.__flittWatch=null;
-    setTimeout(()=>dropUnpaidFlitt(id),3000);
+    const watch=window.__flittWatch;
+    const paid=!!(watch&&watch.id===id&&watch.paid);
+    if(watch&&watch.id===id)window.__flittWatch=null;
+    releaseFlittUi();
+    if(paid)return;
+    setTimeout(async()=>{
+      try{await pullListings()}catch{}
+      const p=items.find(x=>String(x.id)===String(id));
+      if(p&&p.pay&&p.pay.status==='active'){
+        await handleFlittResult('ok');
+        return;
+      }
+      await dropUnpaidFlitt(id);
+    },3000);
   },700);
 }
 /* automatic expiry: VIP / Super VIP / color switch off by themselves when their time is up */
@@ -1131,8 +1244,20 @@ const hashOf=(v,t)=>'#'+(v=='post'?SL.blog:SL[v]||v)+(t?'/'+(v=='profile'?TB[t]|
 /* HI() = მიმდინარე მისამართი კოდის შიგნით გამოსაყენებელი (ძველი) სახით, მაგ. '#search', '#profile:blog' */
 const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 /* page transition: same slide + fade language as the Login <-> Registration swap */
-function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გადახდა მიღებულია ✓ — სტატუსი ავტომატურად ჩაირთვება':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');history.replaceState(null,'',hashOf('profile','mine'));h='profile';t='mine';pullListings().then(()=>quiet())}if(h=='reset'){window.__resetTok=t||'';history.replaceState(null,'',hashOf('home'));h='home';t=undefined;setTimeout(()=>openAuth('reset'),0)}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
- const render=()=>{app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
+function route(){sweep();let[h,t]=parseHash();
+ if(h=='pay'){
+  const st=t=='ok'?'ok':'pending';
+  announceFlittResult(st);
+  releaseFlittUi();
+  toast(st=='ok'?'გადახდა წარმატებით შესრულდა ✓':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');
+  history.replaceState(null,'',hashOf('profile','mine'));
+  h='profile';t='mine';
+  pullListings().then(()=>quiet());
+  /* Payment popup: notify opener already done; close this tab shortly. */
+  setTimeout(()=>{try{window.close()}catch{}},1200);
+ }
+ if(h=='reset'){window.__resetTok=t||'';history.replaceState(null,'',hashOf('home'));h='home';t=undefined;setTimeout(()=>openAuth('reset'),0)}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
+ const render=()=>{app.getAnimations().forEach(a=>a.cancel());app.style.opacity='';app.style.transform='';app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
  const _prev=lastV;lastV=v;navN++;lastIdx=idx;
  if(REDUCE || window.__fast || v === 'product' || v === 'search' || _prev === 'search'){
   window.__fast=0;
@@ -1142,8 +1267,9 @@ function route(){sweep();let[h,t]=parseHash();if(h=='pay'){toast(t=='ok'?'გა
 }
  if(navN==1){render();app.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'none'}],{duration:420,easing:'cubic-bezier(.2,.8,.2,1)'});return}
  app.getAnimations().forEach(a=>a.cancel());
+ app.style.opacity='';app.style.transform='';
  const out=app.animate([{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${-40*dir}px)`}],{duration:170,easing:'ease',fill:'forwards'});
- out.onfinish=()=>{if(tok!=rTok)return;render();app.animate([{opacity:0,transform:`translateX(${40*dir}px)`},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.8,.2,1)'});out.cancel()}}
+ out.onfinish=()=>{if(tok!=rTok){app.style.opacity='';app.style.transform='';return}render();app.animate([{opacity:0,transform:`translateX(${40*dir}px)`},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.8,.2,1)'});out.cancel()}}
 function showProfile(tab){if(tab!='blog'){bedit=null;bcv=''}$('#app').innerHTML=views.profile(tab);bind();if(window.applyLang)window.applyLang(document.body);
  if((!tab||tab==='mine')&&me){const watch=window.__flittWatch&&window.__flittWatch.id;
   items.filter(p=>same(p.owner,me.email)&&awaitingFlittPublish(p)&&String(p.id)!==String(watch||'')).forEach(p=>dropUnpaidFlitt(p.id))}}
@@ -1391,12 +1517,11 @@ if (q.nego) {
     if(need){q.pay={plan:pl.name,days:pl.days,color:col,sticker:sel.length>0,stickers:sel,stkN:sel.length,amount:amt,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:'',provider:FLITT.ready?'flitt':'bank'};
      if(!FLITT.ready&&window.rc){q.pay.receipt=window.rc.data;q.pay.receiptName=window.rc.name;q.pay.receiptType=window.rc.type}}
     let paymentTab=null;
-    if(need&&FLITT.ready){paymentTab=window.open('about:blank','_blank');if(paymentTab)paymentTab.opener=null}
+    if(need&&FLITT.ready){paymentTab=window.open('about:blank','_blank')}
     sb.disabled=true;sb.textContent='ინახება…';let ok=false;try{ok=await commitItems(q)}catch{ok=false}
     if(!ok){Object.assign(q,old);saveItems(items);if(paymentTab&&!paymentTab.closed)paymentTab.close();sb.disabled=false;sb.textContent=sbt;return toast('ცვლილებები ვერ შეინახა')}
     sb.disabled=false;sb.textContent=sbt;
     if(need&&FLITT.ready){
-     window.__flittWatch={id:String(q.id),tab:paymentTab};
      location.hash='profile:mine';
      if(paymentTab&&!paymentTab.closed){const o=await startFlittPay(q.id,paymentTab);if(!o){await dropUnpaidFlitt(q.id);toast('გადახდა ვერ გაიხსნა — ცვლილება არ შეინახა')}}
      else{await dropUnpaidFlitt(q.id);toast('გადახდის ტაბი დაიბლოკა — ცვლილება არ შეინახა')}
@@ -1415,7 +1540,6 @@ let paymentTab = null;
 
 if (need && FLITT.ready) {
   paymentTab = window.open('about:blank', '_blank');
-  if (paymentTab) paymentTab.opener = null;
 }
 
 const sb = af.querySelector('button[type=submit]');
@@ -1454,7 +1578,6 @@ sb.disabled = false;
 sb.textContent = sbt;
 
 if (need && FLITT.ready) {
-  window.__flittWatch = { id: String(rec.id), tab: paymentTab };
   location.hash = 'profile:mine';
 
   if (paymentTab && !paymentTab.closed) {
