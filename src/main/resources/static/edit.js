@@ -217,9 +217,10 @@ hint();
    let ok=false;try{ok=await commitItems(p)}catch{ok=false}
    if(!ok){delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;Object.assign(p,bk);if(!('pay' in bk))delete p.pay;saveItems(items);S.hidden=false;S.textContent='⚠️ ცვლილებები ვერ შეინახა — სცადეთ ნაკლები ან უფრო პატარა ფოტო.';return toast('ცვლილებები ვერ შეინახა')}
    if(need&&FLITT.ready){
+    sb.textContent='გადახდაზე გადასვლა…';
     const went=await startFlittPay(p.id);
     delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
-    if(went){toast('გადახდის გვერდი გაიხსნა — დასრულების შემდეგ ეს გვერდი განახლდება');return}
+    if(went)return;
     return toast('ცვლილებები შენახულია — გადახდა ხელახლა სცადეთ')}
    delete af.dataset.busy;sb.disabled=false;sb.textContent=sbt;
    if(need){addNote(`«${t}» განახლდა. დამატებითი სერვისების გადახდა მოწმდება — ისინი ჩაირთვება დადასტურების შემდეგ`);(window.ADMIN_EMAILS||[]).forEach(a=>pushNote(a,`ახალი გადახდა შესამოწმებლად: «${t}» – დამატებითი სერვისები, ${amt} ₾`))}
