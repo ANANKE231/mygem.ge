@@ -60,9 +60,10 @@ async function commitItems(p){
  const ok=await pushListing(p);
  if(ok)saveItems(items,true);
  return ok}
-async function pushListing(p){
+async function pushListing(p,lite){
  if(!p||p.owner==='demo')return true;
  const body={...p};delete body._synced;delete body._hp;
+ if(lite){body.photos=[];body.video='';body.audio=''}
  if(!(p.pay&&p.pay.status==='pending')){body.hold=false;if(!p.pay)delete body.pay}
  const res=await apiSend('PUT','/api/listings',body,30000);
  if(!res.ok){toast(res.data.message||'სერვერზე შენახვა ვერ მოხერხდა');return false}
@@ -77,7 +78,11 @@ async function restoreSession(){
  const key=n=>(+n.d||0)+'|'+n.t,
   local=notes[me.email]||[],
   lmap=new Map(local.map(n=>[key(n),n])),
-  srv=res.data.notes.map(n=>({...n,r:(n.r||(lmap.get(key(n))||{}).r)?1:0})),
+  readIds=new Set(load(noteReadKey(me.email),[])),
+srv=res.data.notes.map(n=>({
+ ...n,
+ r:(n.r||(lmap.get(key(n))||{}).r||readIds.has(noteId(n)))?1:0
+})),
   sk=new Set(srv.map(key)),
   extra=local.filter(n=>!sk.has(key(n)));
  notes[me.email]=srv.concat(extra).sort((a,b)=>(+b.d||0)-(+a.d||0)).slice(0,100);
@@ -96,6 +101,7 @@ async function pullListings(){
  const mine=me?items.filter(p=>p&&p.owner!=='demo'&&same(p.owner,me.email)&&!ids.has(String(p.id))):[];
  mine.forEach(normalizeListingPrice);
  items=remote.concat(mine);
+ sweep();
  const heal=[];
  for(const p of remote){if(!me||!same(p.owner,me.email)||(p.photos&&p.photos.length))continue;const ph=kept.get(String(p.id));if(ph){p.photos=ph;heal.push(p)}}
  saveItems(items);
@@ -196,7 +202,12 @@ const held=p=>!!p.hold&&!(me&&(same(me.email,p.owner)||isAdmin()));
 const pub=()=>items.filter(p=>!held(p));
 /* Home section of a listing is decided ONLY by the package: the verified one (p.vip), or - for the owner - the package of their own pending order.
    Colour / sticker add-ons never move a listing into a VIP section. */
-const pkgOf=p=>p.vip?p.vip:(p.pay&&p.pay.status=='pending'&&me&&same(me.email,p.owner)?p.pay.plan:'');
+const pkgOf=p=>
+ !p.hold &&
+ (p.vip==='VIP'||p.vip==='SUPER VIP') &&
+ Number(p.vipUntil)>Date.now()
+ ? p.vip
+ : '';
 const ico=k=>`<svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 const typeName=p=>p.type?(p.type=='other'?(p.typeOther||TL.other):TL[p.type]||''):'';
 const mk=a=>a.map(x=>[String(x),String(x)]);
@@ -440,9 +451,23 @@ const dateStr=ts=>new Date(ts).toLocaleDateString(uiLoc(),{day:'numeric',month:'
 const vwHTML=id=>`<small class="vw" data-vw="${id}">${ui('eye')}<span>${pv[id]||0} ნახვა</span></small>`;
 const vwRefresh=()=>$$('[data-vw]').forEach(e=>{const s=e.querySelector('span');if(s)s.textContent=(pv[e.dataset.vw]||0)+' ნახვა'});
 window.addEventListener('storage',e=>{if(e.key=='pv'){pv=load('pv',{});vwRefresh()}});
-function countView(p){if(me&&same(me.email,p.owner))return;let s={};try{s=JSON.parse(sessionStorage.getItem('seenv')||'{}')}catch{}
- if(s[p.id])return;s[p.id]=1;try{sessionStorage.setItem('seenv',JSON.stringify(s))}catch{}
- pv[p.id]=(pv[p.id]||0)+1;save('pv',pv);vwRefresh()}
+let lastViewedProduct=null;
+
+function countView(p){
+ if(!p||!p.id)return;
+
+ const id=String(p.id);
+
+ // იმავე გახსნილ გვერდზე ფონური გადახატვა არ ჩაითვალოს.
+ if(lastViewedProduct===id)return;
+ lastViewedProduct=id;
+
+ pv=load('pv',{});
+ pv[id]=(Number(pv[id])||0)+1;
+
+ save('pv',pv);
+ vwRefresh();
+}
 function sellerOf(p){const u=users.find(u=>same(u.email,p.owner));
  const avatar=p.ownerAvatar||(u&&u.avatar)||'';
  if(u)return {u,name:(regOf(u)=='individual'?u.name+' '+(u.last||''):u.name).trim(),phone:u.phone||p.ownerPhone||'',avatar,type:regLabel(u)};
@@ -1244,7 +1269,12 @@ const hashOf=(v,t)=>'#'+(v=='post'?SL.blog:SL[v]||v)+(t?'/'+(v=='profile'?TB[t]|
 const HI=()=>{const[h,t]=parseHash();return h?'#'+h+(t?':'+t:''):''};
 /* page transition: same slide + fade language as the Login <-> Registration swap */
 function route(){sweep();let[h,t]=parseHash();
+
+ if(h!=='product'){
+  lastViewedProduct=null;
+ }
  if(h=='pay'){
+  const pid=flittPendingId();
   const st=t=='ok'?'ok':'pending';
   setFlittPending('');
   window.__flittWatch=null;
@@ -1252,7 +1282,7 @@ function route(){sweep();let[h,t]=parseHash();
   toast(st=='ok'?'გადახდა წარმატებით შესრულდა ✓':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');
   history.replaceState(null,'',hashOf('profile','mine'));
   h='profile';t='mine';
-  pullListings().then(()=>quiet());
+  (async()=>{if(pid){for(let i=0;i<20;i++){const r=await apiSend('GET','/api/payments/status?id='+encodeURIComponent(pid)+'&_='+Date.now(),null,5000);if(!r.ok||r.data.status!=='pending')break;await new Promise(x=>setTimeout(x,500))}}try{await pullListings()}catch{}quiet()})();
  }
  if(h=='reset'){window.__resetTok=t||'';history.replaceState(null,'',hashOf('home'));h='home';t=undefined;setTimeout(()=>openAuth('reset'),0)}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
  const render=()=>{app.getAnimations().forEach(a=>a.cancel());app.style.opacity='';app.style.transform='';app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
@@ -1541,7 +1571,7 @@ sb.textContent = need && FLITT.ready ? 'გადახდაზე გადა
 let saved = false;
 
 try {
-  saved = await commitItems(rec);
+  saved = (need && FLITT.ready) ? (await pushListing(rec, true) || await commitItems(rec)) : await commitItems(rec);
 } catch {
   saved = false;
 }
@@ -1565,6 +1595,8 @@ sb.disabled = false;
 sb.textContent = sbt;
 
 if (need && FLITT.ready) {
+  saveItems(items, true);
+  try { await Promise.all(Object.values(IDB.jobs)); } catch {}
   const opened = await startFlittPay(rec.id);
   if (!opened) {
     await dropUnpaidFlitt(rec.id);
@@ -1776,7 +1808,24 @@ hsIn.onkeydown=e=>{
  else if(e.key=='Escape'){if(hsIn.value){hsIn.value='';hsRun()}else hsClose()}};
 
 /* ---------- notifications ---------- */
-const myNotes=()=>me?(notes[me.email]||[]):[];
+const noteKey=n=>JSON.stringify([String(n.d),n.t]);
+
+const readNotesKey=()=>(
+  'mygem.readNotes.'+String(me.email).trim().toLowerCase()
+);
+
+const myNotes=()=>{
+  if(!me)return [];
+
+  const list=notes[me.email]||[];
+  const read=new Set(load(readNotesKey(),[]));
+
+  list.forEach(n=>{
+    if(read.has(noteKey(n)))n.r=1;
+  });
+
+  return list;
+};
 function setBadge(){const n=myNotes().filter(x=>!x.r).length,b=$('#noteDot');b.textContent=n;b.style.display=n?'grid':'none'}
 async function addNote(t) {
   if (!me) return false;
@@ -1799,10 +1848,63 @@ async function addNote(t) {
 
   return true;
 }
-$('#noteBtn').onclick=e=>{e.stopPropagation();if(!me)return openAuth('login');pmClose();const P=$('#notePanel'),l=myNotes();
- P.innerHTML=`<h4>შეტყობინებები</h4>${l.length?l.slice(0,20).map(n=>`<div class="note ${n.r?'':'new'}">${esc(n.t)}<small>${new Date(n.d).toLocaleString(uiLoc())}</small></div>`).join(''):'<div class="empty">შეტყობინებები არ არის</div>'}`;
- P.classList.toggle('show');const hadNew=l.some(n=>!n.r);l.forEach(n=>n.r=1);save('notes',notes);setBadge();
- if(hadNew)apiSend('PUT','/api/me/notes',{notes:{[me.email]:notes[me.email]},markRead:true})};
+const noteReadKey=email=>
+ 'noteRead:'+String(email).trim().toLowerCase();
+
+const noteId=n=>JSON.stringify([Number(n.d)||0,n.t]);
+
+$('#noteBtn').onclick=async e=>{
+ e.stopPropagation();
+
+ if(!me)return openAuth('login');
+
+ pmClose();
+
+ const P=$('#notePanel');
+
+ if(P.classList.contains('show')){
+  P.classList.remove('show');
+  return;
+ }
+
+ const email=me.email;
+ const l=myNotes();
+ const read=new Set(load(noteReadKey(email),[]));
+
+ l.forEach(n=>{
+  n.r=1;
+  read.add(noteId(n));
+ });
+
+ save(noteReadKey(email),[...read]);
+ save('notes',notes);
+ setBadge();
+
+ P.innerHTML=`
+  <h4>შეტყობინებები</h4>
+  ${
+   l.length
+    ? l.slice(0,20).map(n=>`
+       <div class="note">
+        ${esc(n.t)}
+        <small>${new Date(n.d).toLocaleString(uiLoc())}</small>
+       </div>
+      `).join('')
+    : '<div class="empty">შეტყობინებები არ არის</div>'
+  }
+ `;
+
+ P.classList.add('show');
+
+ const res=await apiSend('PUT','/api/me/notes',{
+  notes:{[email]:l},
+  markRead:true
+ });
+
+ if(!res.ok){
+  toast('წაკითხვის სტატუსი სერვერზე ვერ შეინახა');
+ }
+};
 document.addEventListener('click',e=>{const b=e.target.closest('#fCur');if(!b)return;
  FCUR=FCUR=='USD'?'GEL':'USD';const on=FCUR=='USD';
  b.classList.toggle('on',on);b.setAttribute('aria-checked',on);
@@ -2051,7 +2153,7 @@ if(check(fm,[[O,ty=='other'&&!O.value.trim()?'მიუთითეთ რეგ
  window.mygemConsent={get:state,has:c=>c=='essential'||!!state()[c],run:(cat,fn)=>{subs.push({cat,fn,done:false});flush()},open:openP};
  bar.classList.toggle('show',!read());flush();
 })();
-const quiet=()=>{const[h,t]=parseHash();
+const quiet=()=>{sweep();const[h,t]=parseHash();
  if(!/^(home|search|profile|product|favs|seller)$/.test(h))return;
  if(h=='profile'&&(t=='edit'||t=='blog'))return;   // ფორმა შევსების პროცესში არ გადაიხატოს
  if($('#modal.show'))return;                        // ღია ფანჯარა არ შეწყდეს
