@@ -741,6 +741,90 @@ async function startFlittPay(listingId, listing) {
 }
 const planName=k=>k=='SVIP'?'Super VIP':PLANS[k].name;
 const planLabel=k=>k=='REG'?'Regular — უფასო':`${planName(k)} — ${PLANS[k].price} ₾ · ${PLANS[k].days} დღე`;
+const listingPlanCards = () => {
+  const designs = {
+    REG: {
+      title: 'Regular',
+      icon: '◇',
+      caption: 'მარტივი დასაწყისი',
+      features: [
+        'განცხადების უფასოდ განთავსება',
+        'გამოჩენა საერთო კოლექციაში'
+      ]
+    },
+    VIP: {
+      title: 'VIP+',
+      icon: '✦',
+      caption: 'მეტი ხილვადობა',
+      features: [
+        'გამოჩენა მთავარ გვერდზე VIP+ კოლექციაში',
+        'პრიორიტეტი Regular განცხადებებთან შედარებით'
+      ]
+    },
+    SVIP: {
+      title: 'SUPER VIP',
+      icon: '♛',
+      caption: 'მაქსიმალური გამორჩევა',
+      features: [
+        'გამოჩენა მთავარ გვერდზე SUPER VIP კოლექციაში',
+        'უმაღლესი პრიორიტეტი კოლექციის სტანდარტულ დალაგებაში'
+      ]
+    }
+  };
+
+  return `
+    <fieldset class="listing-plans full">
+      <legend>აირჩიე განცხადების ტიპი</legend>
+
+      <div class="listing-plans-grid">
+        ${Object.keys(designs).map(key => {
+          const d = designs[key];
+          const p = PLANS[key];
+
+          return `
+            <label class="listing-plan listing-plan-${key.toLowerCase()}">
+              <input
+                type="radio"
+                name="listingPlan"
+                value="${key}"
+                ${key === 'REG' ? 'checked' : ''}
+              >
+
+              <span class="listing-plan-top">
+                <span class="listing-plan-icon" aria-hidden="true">
+                  ${d.icon}
+                </span>
+
+                <span class="listing-plan-check" aria-hidden="true"></span>
+              </span>
+
+              <strong class="listing-plan-title">${d.title}</strong>
+              <span class="listing-plan-caption">${d.caption}</span>
+
+              <span class="listing-plan-features">
+                ${d.features.map(text => `
+                  <span>
+                    <i aria-hidden="true">✓</i>
+                    ${text}
+                  </span>
+                `).join('')}
+              </span>
+
+              <span class="listing-plan-bottom">
+                <strong>
+                  ${p.price === 0 ? 'უფასო' : `${p.price} ₾`}
+                </strong>
+                <small>
+                  ${p.days > 0 ? `${p.days} დღით` : 'სტანდარტული განთავსება'}
+                </small>
+              </span>
+            </label>
+          `;
+        }).join('')}
+      </div>
+    </fieldset>
+  `;
+};
 const planOf=n=>Object.values(PLANS).find(x=>x.name==n);
 const isAdmin=()=>!!me&&!!me.admin;
 const pendingPay=()=>items.filter(p=>p.pay&&p.pay.status=='pending');
@@ -1250,7 +1334,21 @@ add(){if(!me){openAuth('login');return '<div class="page"><div class="panel empt
  <div class="fld full" id="photoFld"><span>ფოტოები (მინ. 3, მაქს. 8)</span><label class="drop" id="drop" for="aF"><span class="up">${UP}</span><b>ატვირთეთ ფოტოები</b><small>გადმოათრიეთ აქ ან <u>აირჩიეთ ფაილები</u></small><small>JPG, PNG, WEBP · პირველი ფოტო იქნება მთავარი</small></label><input type="file" id="aF" accept="image/*" multiple hidden><div class="pcount" id="pcount"><div class="pbar"><i id="pbar"></i></div><span id="pcnt">0/3 მინიმუმ</span></div><div class="photos" id="prev"></div></div>
  <div class="fld full" id="videoFld"><span>ვიდეო (არასავალდებულო · 1 ვიდეო, მაქს. ${VID_MB}MB)</span><label class="drop" for="aV"><span class="up">${VUP}</span><b>ატვირთეთ ვიდეო</b><small>MP4, WEBM, MOV · მაქს. ${VID_MB}MB</small></label><input type="file" id="aV" accept="video/mp4,video/webm,video/quicktime" hidden><div class="vprev" id="vPrev"></div></div></section>
  <section class="astep" id="st3" data-pane="3" hidden><h3 class="astep-h full">${STEPS[2]}</h3><p class="astep-s full">არასავალდებულო ფასიანი ფუნქციები: VIP / Super VIP პაკეტები, ბარათის ფერი და სტიკერები. Regular განცხადება უფასოა.</p>
- ${fld('განცხადების ტიპი',dd('aPlan',{list:Object.keys(PLANS).map(k=>[k,planLabel(k)]),val:'REG'}),'full')}<p class="planinfo full" id="planInfo"></p>${payBox()}</section>
+ <div hidden>
+  ${fld(
+    'განცხადების ტიპი',
+    dd('aPlan', {
+      list: Object.keys(PLANS).map(k => [k, planLabel(k)]),
+      val: 'REG'
+    }),
+    'full'
+  )}
+</div>
+
+${listingPlanCards()}
+
+<p class="planinfo full" id="planInfo"></p>
+${payBox()}</section>
  <section class="astep" id="st4" data-pane="4" hidden><h3 class="astep-h full">${STEPS[3]}</h3><p class="astep-s full">გადაამოწმეთ განცხადება და გამოაქვეყნეთ.</p><div class="areview full" id="aReview" aria-live="polite"></div>
  <label class="chk full"><input type="checkbox" id="aTerms"> ვეთანხმები <span class="tl" data-terms>წესებსა და პირობებს</span></label></section>
  <div class="anav full"><button type="button" class="btn alt" id="aBack" hidden>უკან</button><button type="button" class="btn" id="aNext">შემდეგი</button><button class="btn" type="submit" id="aPub" hidden>გამოქვეყნება</button></div>
@@ -1487,6 +1585,26 @@ const cf=$('#clrF');if(cf)cf.onclick=e=>{e.preventDefault();F={};FCUR='GEL';
   $('#prev').onclick=e=>{const b=e.target.closest('[data-rm]');if(b){ph.splice(+b.dataset.rm,1);drawPrev()}};
   drawPrev();
   const PL=$('#aPlan'),PB=$('#payBox'),CK=$('#aColor'),RF=$('#aR');
+  const planRadios = [
+  ...af.querySelectorAll('input[name="listingPlan"]')
+];
+
+const syncPlanCards = () => {
+  planRadios.forEach(input => {
+    input.checked = input.value === PL.dataset.val;
+  });
+};
+
+planRadios.forEach(input => {
+  input.addEventListener('change', () => {
+    if (input.checked) {
+      setDD(PL, input.value, true);
+    }
+  });
+});
+
+PL.addEventListener('change', syncPlanCards);
+syncPlanCards();
       const syncPlan=()=>{const k=PL.dataset.val,pl=PLANS[k],paid=k!='REG';PB.hidden=false;
     $('#planInfo').innerHTML=paid?`<b>${planName(k)}</b> · ${pl.price} ₾ · ${pl.days} დღე — ბეჯი კოლექციაში და „გამორჩეული განცხადებების“ სექციაში. სტატუსი ჩაირთვება გადახდის დადასტურების შემდეგ.`:'<b>Regular</b> · უფასო · სტანდარტული განცხადება';
     paySummary()};
