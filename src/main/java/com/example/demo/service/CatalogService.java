@@ -153,7 +153,47 @@ public class CatalogService {
 		out.put("photos", images.clientPhotos(listing));
 		return out;
 	}
+@Transactional(readOnly = true)
+public Map<String, Object> paymentStatus(String caller, long listingId) {
+    if (caller == null || caller.isBlank()) {
+        throw new ApiException(
+                401, "unauthorized", "შედით ანგარიშში"
+        );
+    }
 
+    ListingRecord record = listings.findById(listingId).orElse(null);
+
+    if (record == null) {
+        throw new ApiException(
+                404, "not_found", "განცხადება ვერ მოიძებნა"
+        );
+    }
+
+    if (!record.getOwnerEmail().equalsIgnoreCase(caller)
+            && !props.isAdmin(caller)) {
+        throw new ApiException(
+                403, "forbidden", "ამ გადახდის ნახვა არ შეგიძლიათ"
+        );
+    }
+
+    try {
+        JsonNode listing = json.readTree(record.getPayload());
+
+        return Map.of(
+                "ok", true,
+                "id", listingId,
+                "status", listing.path("pay")
+                        .path("status")
+                        .asText("none")
+        );
+    } catch (Exception ex) {
+        throw new ApiException(
+                500,
+                "invalid_payload",
+                "გადახდის სტატუსი ვერ წაიკითხა"
+        );
+    }
+}
 	@Transactional
 	public Map<String, Object> beginFlittCheckout(String caller, long listingId, FlittService flitt) {
 		if (caller == null || caller.isBlank()) {

@@ -7,7 +7,9 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Service;
-
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashSet;
@@ -64,25 +66,70 @@ public class ObjectImages {
 		List<String> uploaded = new ArrayList<>();
 		ArrayNode clean = json.createArrayNode();
 		try {
-			for (JsonNode node : photos) {
-				if (clean.size() >= 8) {
-					break;
-				}
-				if (!node.isTextual()) {
-					continue;
-				}
-				Stored stored = storeListingPhoto(node.asText(), listingId);
-				if (stored == null) {
-					continue;
-				}
-				clean.add(stored.value());
-				if (stored.uploaded()) {
-					uploaded.add(stored.value());
-				}
-				if (MediaUrls.objectKey(stored.value())) {
-					kept.add(stored.value());
-				}
-			}
+			ExecutorService pool = Executors.newFixedThreadPool(3);
+
+try {
+    List<CompletableFuture<Stored>> jobs = new ArrayList<>();
+
+    for (JsonNode node : photos) {
+        if (!node.isTextual()) {
+            continue;
+        }
+
+        if (jobs.size() >= 8) {
+            break;
+        }
+
+        String photo = node.asText();
+
+        jobs.add(CompletableFuture.supplyAsync(
+                () -> storeListingPhoto(photo, listingId),
+                pool
+        ));
+    }
+
+    // ყველა ატვირთვა დასრულდეს, შეცდომის შემთხვევაშიც.
+    CompletableFuture.allOf(
+            jobs.toArray(new CompletableFuture<?>[0])
+    ).handle((result, error) -> null).join();
+
+    RuntimeException failure = null;
+
+    // ფოტოების თავდაპირველი თანმიმდევრობა შენარჩუნდეს.
+    for (CompletableFuture<Stored> job : jobs) {
+        Stored stored;
+
+        try {
+            stored = job.join();
+        } catch (RuntimeException ex) {
+            if (failure == null) {
+                failure = ex;
+            }
+            continue;
+        }
+
+        if (stored == null) {
+            continue;
+        }
+
+        clean.add(stored.value());
+
+        if (stored.uploaded()) {
+            uploaded.add(stored.value());
+        }
+
+        if (MediaUrls.objectKey(stored.value())) {
+            kept.add(stored.value());
+        }
+    }
+
+    // გარე catch წარმატებით ატვირთულ ფოტოებსაც გაასუფთავებს.
+    if (failure != null) {
+        throw failure;
+    }
+} finally {
+    pool.shutdown();
+}
 			if (clean.isEmpty()) {
 				deleteAll(uploaded);
 				keepStoredPhotos(listing, oldPayload);

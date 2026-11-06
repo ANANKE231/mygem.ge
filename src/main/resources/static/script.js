@@ -199,15 +199,28 @@ const sortPkg=l=>l.map(p=>({p,a:rk(p),b:addon(p),c:stkIds(p).length,d:fresh(p)})
  .sort((x,y)=>y.a-x.a||y.b-x.b||y.c-x.c||y.d-x.d).map(x=>x.p);
 /* paid packages (VIP / Super VIP) stay hidden from the public until the admin confirms the payment; Regular listings go live at once */
 const held=p=>!!p.hold&&!(me&&(same(me.email,p.owner)||isAdmin()));
-const pub=()=>items.filter(p=>!held(p));
+const pub=()=>items.filter(p=>!p.hold);
 /* Home section of a listing is decided ONLY by the package: the verified one (p.vip), or - for the owner - the package of their own pending order.
    Colour / sticker add-ons never move a listing into a VIP section. */
-const pkgOf=p=>
- !p.hold &&
- (p.vip==='VIP'||p.vip==='SUPER VIP') &&
- Number(p.vipUntil)>Date.now()
- ? p.vip
- : '';
+const pkgOf = p => {
+  if (!p || p.hold) return '';
+
+  if (p.vip !== 'VIP' && p.vip !== 'SUPER VIP') {
+    return '';
+  }
+
+  const until = Number(p.vipUntil);
+
+  if (!Number.isFinite(until) || until <= Date.now()) {
+    return '';
+  }
+
+  if (p.pay?.status !== 'active') {
+    return '';
+  }
+
+  return p.vip;
+};
 const ico=k=>`<svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 const typeName=p=>p.type?(p.type=='other'?(p.typeOther||TL.other):TL[p.type]||''):'';
 const mk=a=>a.map(x=>[String(x),String(x)]);
@@ -611,18 +624,35 @@ const setFlittPending = id => {
 };
 
 async function handleFlittResult(status, opts = {}) {
-  const st = status === 'ok' ? 'ok' : 'pending';
-  if (window.__flittWatch) window.__flittWatch.paid = true;
+  const id = flittPendingId();
+
   window.__flittWatch = null;
   setFlittPending('');
   releaseFlittUi();
-  try { await pullListings(); } catch {}
-  const [h] = parseHash();
-  if (h === 'profile') quiet();
-  else if (!opts.skipNav) location.hash = 'profile:mine';
-  toast(st === 'ok'
-    ? 'გადახდა წარმატებით შესრულდა ✓'
-    : 'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');
+
+  // ჯერ გვერდი გამოჩნდეს, მონაცემების ჩატვირთვას არ დაელოდოს.
+  if (!opts.skipNav && parseHash()[0] !== 'profile') {
+    window.__fast = 1;
+    location.hash = 'profile:mine';
+  } else {
+    quiet();
+  }
+
+  // სერვერზე დადასტურებული სტატუსი ფონურად განახლდეს.
+  try {
+    await pullListings();
+    quiet();
+
+    const p = items.find(x => String(x.id) === String(id));
+
+    if (p?.pay?.status === 'active') {
+      toast('გადახდა დადასტურდა ✓');
+    } else {
+      toast('გადახდის დადასტურება მოწმდება…');
+    }
+  } catch {
+    toast('სტატუსის განახლება ვერ მოხერხდა');
+  }
 }
 
 function announceFlittResult(status) {
@@ -653,19 +683,29 @@ function announceFlittResult(status) {
   });
 })();
 
-async function startFlittPay(listingId) {
+async function startFlittPay(listingId, listing) {
   try {
     toast('გადახდაზე გადასვლა…');
+
+    const payload = { listingId };
+
+    if (listing) {
+      payload.listing = { ...listing };
+      delete payload.listing._hp;
+      delete payload.listing._synced;
+    }
+
     const res = await apiSend(
       'POST',
       '/api/payments/checkout',
-      { listingId },
+      payload,
       35000
     );
 
-    if (res.ok && res.data.status) {
-      await handleFlittResult('ok', { skipNav: true });
-      return false;
+    if (res.ok && res.data.status === 'active') {
+      setFlittPending('');
+      location.hash = 'profile:mine';
+      return true;
     }
 
     if (!res.ok || !res.data.checkoutUrl) {
@@ -676,13 +716,20 @@ async function startFlittPay(listingId) {
 
     const url = new URL(res.data.checkoutUrl);
 
-    if (url.protocol !== 'https:' || url.hostname !== 'pay.flitt.com') {
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== 'pay.flitt.com'
+    ) {
       throw new Error('გადახდის ბმული არასწორია');
     }
 
     setFlittPending(listingId);
-    window.__flittWatch = { id: String(listingId), paid: false };
-    /* Same tab — immediate redirect to Flitt checkout. */
+
+    window.__flittWatch = {
+      id: String(listingId),
+      paid: false
+    };
+
     location.assign(url.href);
     return true;
   } catch (error) {
@@ -1273,17 +1320,58 @@ function route(){sweep();let[h,t]=parseHash();
  if(h!=='product'){
   lastViewedProduct=null;
  }
- if(h=='pay'){
-  const pid=flittPendingId();
-  const st=t=='ok'?'ok':'pending';
+if (h === 'pay') {
+  const pid = flittPendingId();
+
   setFlittPending('');
-  window.__flittWatch=null;
+  window.__flittWatch = null;
+  window.__fast = 1;
   releaseFlittUi();
-  toast(st=='ok'?'გადახდა წარმატებით შესრულდა ✓':'გადახდა მუშავდება… განაახლეთ გვერდი რამდენიმე წამში');
-  history.replaceState(null,'',hashOf('profile','mine'));
-  h='profile';t='mine';
-  (async()=>{if(pid){for(let i=0;i<20;i++){const r=await apiSend('GET','/api/payments/status?id='+encodeURIComponent(pid)+'&_='+Date.now(),null,5000);if(!r.ok||r.data.status!=='pending')break;await new Promise(x=>setTimeout(x,500))}}try{await pullListings()}catch{}quiet()})();
- }
+
+  toast('საიტზე დაბრუნდით — გადახდის დადასტურება მოწმდება…');
+
+  history.replaceState(null, '', hashOf('profile', 'mine'));
+  h = 'profile';
+  t = 'mine';
+
+  // გვერდი მაშინვე გამოჩნდება; დადასტურება ფონურად მოწმდება.
+  (async () => {
+    try {
+      await net;
+      quiet();
+
+      if (!pid) return;
+
+      for (let i = 0; i < 20; i++) {
+        const r = await apiSend(
+          'GET',
+          '/api/payments/status?id=' + encodeURIComponent(pid),
+          null,
+          5000
+        );
+
+        if (!r.ok) break;
+
+        if (r.data.status !== 'pending') {
+          await pullListings();
+          quiet();
+
+          if (r.data.status === 'active') {
+            toast('გადახდა დადასტურდა ✓');
+          }
+
+          return;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      toast('გადახდის დადასტურება ჯერ არ მიგვიღია');
+    } catch {
+      toast('გადახდის სტატუსის განახლება ვერ მოხერხდა');
+    }
+  })();
+}
  if(h=='reset'){window.__resetTok=t||'';history.replaceState(null,'',hashOf('home'));h='home';t=undefined;setTimeout(()=>openAuth('reset'),0)}if(views[h]){const c=hashOf(h,t);let raw=location.href.split('#')[1]||'';try{raw=decodeURIComponent(raw)}catch{}if(raw&&raw!==c.slice(1))history.replaceState(null,'',c)}if(h=='calculator'){pendingScroll='calcHome';h='home';history.replaceState(null,'','#მთავარი')}else if(h=='collection'){F={};h='search';history.replaceState(null,'','#search')}const v=views[h]?h:'home',tok=++rTok,app=$('#app'),idx=ORDER[v]??0,dir=Math.sign(idx-lastIdx)||1;
  const render=()=>{app.getAnimations().forEach(a=>a.cancel());app.style.opacity='';app.style.transform='';app.innerHTML=views[v](t);window.scrollTo({top:0,behavior:'instant'});bind();if(window.applyLang)window.applyLang(document.body);if(pendingScroll){const el=document.getElementById(pendingScroll);pendingScroll=null;if(el)requestAnimationFrame(()=>el.scrollIntoView({behavior:REDUCE?'auto':'smooth',block:'start'}))}};
  const _prev=lastV;lastV=v;navN++;lastIdx=idx;
@@ -1449,11 +1537,267 @@ const cf=$('#clrF');if(cf)cf.onclick=e=>{e.preventDefault();F={};FCUR='GEL';
     $('#aReview').innerHTML=g(1,r('ნივთის ტიპი',k=='other'?(KO&&KO.value.trim()):ddv($('#aK')))+r('მდებარეობა',ddv($('#aL')))+r('დასახელება',$('#aT').value.trim())+r('წონა',+$('#aW').value>0?$('#aW').value+' გრ':'')+r('ფასი',$('#aNego').checked?'შეთანხმებით':+$('#aP').value>0?$('#aP').value+(curUSD()?' $ (≈ '+gelTxt(enteredPrice().price)+')':' ₾'):''))
      +g(2,r('ფოტოები',ph.length>=3?ph.length+' ფოტო':'')+r('ვიდეო',window.vid?window.vid.name:'არ არის დამატებული')+r('ხმოვანი აღწერა',window.aud?window.aud.name:'არ არის დამატებული'))
          +(g(3,r('განცხადების ტიპი',planLabel(pk))+r('ფერადი ბარათი',col?'დიახ · +'+COLOR.price+' ₾':'არა')+r('სტიკერები',sel.length?sel.length+' · +'+sel.length*STICKER.price+' ₾':'არა')+(amt?`<div class="rv-r tot"><span>სულ გადასახდელი</span><b>${amt} ₾</b></div>`:'')))};
+   const fastPay = {
+  id: Date.now(),
+  ready: null,
+  job: null
+};
+const earlyPhotos = {
+  urls: new Map(),
+  job: null,
+  saved: ''
+};
+
+const readyPhotos = () =>
+  ph.map(src => earlyPhotos.urls.get(src) || src);
+
+const uploadPhotosEarly = async () => {
+  if (earlyPhotos.job) return earlyPhotos.job;
+
+  if (fastPay.job) await fastPay.job;
+
+  if (earlyPhotos.job) return earlyPhotos.job;
+
+  if (
+    !af.isConnected ||
+    window.EDITP ||
+    !FLITT.ready ||
+    !ph.length
+  ) {
+    return;
+  }
+
+  const job = (async () => {
+    while (af.isConnected && ph.length) {
+      const source = [...ph];
+      const signature = JSON.stringify(source);
+
+      if (earlyPhotos.saved === signature) return;
+
+      const draft = fastPaySnapshot(true);
+      if (!draft) return;
+
+      fastPay.ready = null;
+
+      const res = await apiSend(
+        'PUT',
+        '/api/listings',
+        draft,
+        35000
+      );
+
+      if (
+        !res.ok ||
+        !Array.isArray(res.data.photos) ||
+        res.data.photos.length !== source.length
+      ) {
+        throw new Error(
+          res.data.message ||
+          'ფოტოების ატვირთვა ვერ დასრულდა'
+        );
+      }
+
+      earlyPhotos.urls = new Map(
+        source.map((src, i) => [src, res.data.photos[i]])
+      );
+
+      earlyPhotos.saved = signature;
+    }
+  })();
+
+  earlyPhotos.job = job;
+
+  try {
+    await job;
+  } finally {
+    if (earlyPhotos.job === job) {
+      earlyPhotos.job = null;
+    }
+  }
+};
+
+new MutationObserver(() => {
+  uploadPhotosEarly().catch(err => {
+    toast(err.message);
+  });
+}).observe($('#prev'), {
+  childList: true
+});
+const fastPaySnapshot = (draft = false) => {
+  if (!me || window.EDITP || !FLITT.ready) return null;
+
+  const pk = PL.dataset.val;
+  const pl = PLANS[pk];
+  const sel = stk();
+
+  if (!draft && pk === 'REG' && !CK.checked && !sel.length) {
+    return null;
+  }
+
+  const k = $('#aK').dataset.val;
+  const A = readDyn('a');
+
+  return {
+    id: fastPay.id,
+    created: fastPay.id,
+    owner: me.email,
+
+    title: $('#aT').value.trim(),
+    cat: '',
+    type: k,
+    typeOther: k === 'other' ? $('#aKO').value.trim() : '',
+    desc: $('#aD').value.trim(),
+    weight: +$('#aW').value,
+    gender: A.gen || '',
+    loc: $('#aL').dataset.val,
+    attrs: A,
+
+    ...enteredPrice(),
+
+    nego: $('#aNego').checked,
+    photos: readyPhotos(),
+state: draft ? 'off' : '',
+    video: window.vid?.data || '',
+    audio: window.aud?.data || '',
+
+    vip: '',
+    hold: true,
+    color: false,
+    sticker: false,
+    stickers: [],
+
+    pay: draft ? null : {
+      plan: pl.name,
+      days: pl.days,
+      color: CK.checked,
+      sticker: sel.length > 0,
+      stickers: sel,
+      stkN: sel.length,
+
+      amount:
+        pl.price +
+        (CK.checked ? COLOR.price : 0) +
+        sel.length * STICKER.price,
+
+      status: 'pending',
+      created: fastPay.id,
+      colorHex: CK.checked ? $('#aCP .cval').value : '',
+      provider: 'flitt'
+    }
+  };
+};
+
+const prepareFastPay = async () => {
+  if (fastPay.job) await fastPay.job;
+
+  try {
+    await uploadPhotosEarly();
+  } catch {
+    // თუ ადრეული ატვირთვა ჩავარდა,
+    // checkout დარჩენილ ფოტოებს ხელახლა შეინახავს.
+  }
+
+  if (!af.isConnected || window.aStep !== 4) return null;
+
+  const rec = fastPaySnapshot();
+  if (!rec) return null;
+
+  const sig = JSON.stringify(rec);
+
+  // უცვლელი მონაცემებისთვის უკვე მომზადებული ბმული გამოიყენება.
+  if (
+    fastPay.ready?.sig === sig &&
+    Date.now() - fastPay.ready.at < 300000
+  ) {
+    return fastPay.ready;
+  }
+
+  const button = $('#aPub');
+
+  button.disabled = true;
+  button.textContent = 'გადახდა მზადდება…';
+  fastPay.ready = null;
+
+  const job = (async () => {
+    const res = await apiSend(
+      'POST',
+      '/api/payments/checkout',
+      {
+        listingId: rec.id,
+        listing: rec
+      },
+      35000
+    );
+
+    if (!res.ok || !res.data.checkoutUrl) {
+      throw new Error(
+        res.data.message || 'გადახდა ვერ მომზადდა'
+      );
+    }
+
+    const url = new URL(res.data.checkoutUrl);
+
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== 'pay.flitt.com'
+    ) {
+      throw new Error('გადახდის ბმული არასწორია');
+    }
+
+    // შეცვლილი ფორმისთვის ძველი ბმული არ გამოიყენოს.
+    if (
+      !af.isConnected ||
+      JSON.stringify(fastPaySnapshot()) !== sig
+    ) {
+      return null;
+    }
+
+    fastPay.ready = {
+      sig,
+      url: url.href,
+      id: rec.id,
+      at: Date.now()
+    };
+
+    return fastPay.ready;
+  })();
+
+  fastPay.job = job;
+
+  try {
+    return await job;
+  } finally {
+    if (fastPay.job === job) fastPay.job = null;
+
+    if (af.isConnected) {
+      button.disabled = false;
+      button.textContent = fastPay.ready
+        ? 'გადახდაზე გადასვლა'
+        : 'სცადე ხელახლა';
+    }
+  }
+};
    const goStep=(n,sc)=>{n=Math.max(1,Math.min(4,n));window.aStep=n;seen.add(n);
     PN.forEach((p,i)=>p.hidden=i+1!=n);
     NV.forEach((b,i)=>{b.classList.toggle('on',i+1==n);if(i+1==n)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current')});
     $('#aBack').hidden=n==1;$('#aNext').hidden=n==4;$('#aPub').hidden=n!=4;
-    if(n==4)drawReview();refresh();if(sc!==false)wrap.scrollIntoView({block:'start',behavior:'smooth'})};
+  if (n === 4) {
+  drawReview();
+
+  prepareFastPay().catch(err => {
+    toast(err.message || 'გადახდა ვერ მომზადდა');
+  });
+}
+
+refresh();
+
+if (sc !== false) {
+  wrap.scrollIntoView({
+    block: 'start',
+    behavior: 'smooth'
+  });
+}
+};
    /* ---- per-step validation: forward navigation is blocked until the current step is valid; entered data is never cleared ---- */
    const FS=$('#formSum'),stepList=i=>{
     if(i==1){const K=$('#aK'),KO=$('#aKO'),L=$('#aL'),T=$('#aT'),D=$('#aD'),W=$('#aW'),P=$('#aP'),k=K.dataset.val,t=T.value.trim(),d=D.value.trim(),w=+W.value,p=+P.value,
@@ -1539,6 +1883,34 @@ if (q.nego) {
    const S=$('#formSum');
    if(n){S.hidden=false;S.textContent=`⚠️ გამოსაქვეყნებლად შეასწორეთ ან შეავსეთ ${n} ველი`;{const bd=af.querySelector('.bad'),pn=bd&&bd.closest('.astep');if(pn){goStep(+pn.dataset.pane,false);setTimeout(()=>bd.scrollIntoView({block:'center',behavior:'smooth'}),30)}}return toast('განცხადება არ გამოქვეყნდა — შეავსეთ ყველა სავალდებულო ველი')}
    S.hidden=true;
+   if (!window.EDITP && fastPaySnapshot()) {
+  if (af.dataset.busy) return;
+
+  af.dataset.busy = '1';
+
+  try {
+    const ready = await prepareFastPay();
+
+    if (!ready) {
+      return toast('მონაცემები შეიცვალა — სცადეთ ხელახლა');
+    }
+
+    setFlittPending(ready.id);
+
+    window.__flittWatch = {
+      id: String(ready.id),
+      paid: false
+    };
+
+    location.assign(ready.url);
+  } catch (err) {
+    toast(err.message || 'გადახდა ვერ მომზადდა');
+  } finally {
+    delete af.dataset.busy;
+  }
+
+  return;
+}
      if(window.EDITP){const q=window.EDITP,old={...q},sb=af.querySelector('button[type=submit]'),sbt=sb.textContent;
     const pk=PL.dataset.val,pl=PLANS[pk],col=CK.checked,sel=cleanStk($('#aSP .sval').value.split(',')),need=pk!='REG'||col||sel.length>0,amt=pl.price+(col?COLOR.price:0)+sel.length*STICKER.price,now=Date.now();
     Object.assign(q,{title:t,type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,...pf,nego:$('#aNego').checked,photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:''});
@@ -1558,7 +1930,7 @@ if (q.nego) {
     if(af.dataset.busy)return;
     const pay=need?{plan:pl.name,days:pl.days,color:col,sticker:stk,stickers:sel,stkN:sel.length,amount:amt,status:'pending',created:now,colorHex:col?$('#aCP .cval').value:'',provider:FLITT.ready?'flitt':'bank'}:null;
     if(need&&!FLITT.ready&&window.rc){pay.receipt=window.rc.data;pay.receiptName=window.rc.name;pay.receiptType=window.rc.type}
-    const rec={id:now,title:t,cat:'',type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,...pf,nego:$('#aNego').checked,photos:[...ph],video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:'',vip:'',hold:need,color:false,sticker:false,stickers:[],owner:me.email,created:now,pay};
+    const rec={id:fastPay.id,title:t,cat:'',type:k,typeOther:k=='other'?KO.value.trim():'',desc:d,weight:w,gender:A.gen||'',loc:L.dataset.val,attrs:A,...pf,nego:$('#aNego').checked,photos:readyPhotos(),video:window.vid?window.vid.data:'',audio:window.aud?window.aud.data:'',vip:'',hold:need,color:false,sticker:false,stickers:[],owner:me.email,created:now,pay};
     items.push(rec);
 
 const sb = af.querySelector('button[type=submit]');
@@ -1571,7 +1943,10 @@ sb.textContent = need && FLITT.ready ? 'გადახდაზე გადა
 let saved = false;
 
 try {
-  saved = (need && FLITT.ready) ? (await pushListing(rec, true) || await commitItems(rec)) : await commitItems(rec);
+  // ფასიანი განცხადება checkout მოთხოვნაში შეინახება.
+saved = (need && FLITT.ready)
+  ? true
+  : await commitItems(rec);
 } catch {
   saved = false;
 }
@@ -1590,19 +1965,20 @@ if (!saved) {
   return toast('განცხადების შენახვა ვერ მოხერხდა');
 }
 
-delete af.dataset.busy;
-sb.disabled = false;
-sb.textContent = sbt;
-
 if (need && FLITT.ready) {
-  saveItems(items, true);
-  try { await Promise.all(Object.values(IDB.jobs)); } catch {}
-  const opened = await startFlittPay(rec.id);
+  sb.textContent = 'გადახდაზე გადასვლა…';
+
+  const opened = await startFlittPay(rec.id, rec);
+
   if (!opened) {
-    await dropUnpaidFlitt(rec.id);
-    toast('გადახდა ვერ გაიხსნა — განცხადება არ გამოქვეყნდა');
-    location.hash = 'profile:mine';
-  }
+  delete af.dataset.busy;
+  sb.disabled = false;
+  sb.textContent = sbt;
+
+  toast('გადახდის გვერდი ვერ გაიხსნა — გადაამოწმეთ განცხადების სტატუსი');
+  location.hash = 'profile:mine';
+}
+
   return;
 }
 
@@ -2166,8 +2542,31 @@ HYD = hydrate();
 const sigI=()=>items.map(p=>p.id+'|'+(p.photos||[]).length+'|'+p.vip+'|'+p.title+'|'+p.price+'|'+p.nativePrice+'|'+p.cur+'|'+p.hold).join(',');
 const sigB=()=>blogList().map(b=>b.id).join(',');
 let s0='',b0='';
-const net=Promise.all([restoreSession(),loadFlitt()]).then(()=>pullListings());
-HYD.then(()=>{setLogin();route();s0=sigI();b0=sigB()});
+const returningFromFlitt = parseHash()[0] === 'pay';
+
+const net = restoreSession().then(() => pullListings());
+
+loadFlitt();
+
+if (returningFromFlitt) {
+  queueMicrotask(() => {
+    setLogin();
+    route();
+  });
+}
+
+HYD.then(() => {
+  setLogin();
+
+  if (returningFromFlitt) {
+    quiet();
+  } else {
+    route();
+  }
+
+  s0 = sigI();
+  b0 = sigB();
+});
 Promise.all([HYD,net]).then(()=>{setLogin();if(sigI()!==s0){s0=sigI();quiet()};resumeFlittPending()});
 loadBlog().then(()=>{if(sigB()!==b0){b0=sigB();const h=location.hash.slice(1).split(':')[0];if(!h||h=='home'||h=='blog'||h=='post')quiet()}});
 loadRate();

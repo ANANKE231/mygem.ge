@@ -41,7 +41,23 @@ public class PaymentController {
 		if (listingId <= 0) {
 			throw new ApiException(400, "bad_request", "განცხადების ნომერი აკლია");
 		}
-		return catalog.beginFlittCheckout(AuthController.email(authentication), listingId, flitt);
+		String caller = AuthController.email(authentication);
+		JsonNode listing = body.get("listing");
+		if (listing != null && !listing.isNull()) {
+			if (!listing.isObject() || listing.path("id").asLong(0) != listingId) {
+				throw new ApiException(400, "bad_request", "განცხადების ნომერი არ ემთხვევა");
+			}
+			// Save complete media before redirecting: never depend on a background browser upload.
+			catalog.saveListing(caller, listing);
+		}
+		return catalog.beginFlittCheckout(caller, listingId, flitt);
+	}
+
+	@GetMapping("/api/payments/status")
+	public ResponseEntity<Map<String, Object>> paymentStatus(Authentication authentication, @RequestParam long id) {
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CACHE_CONTROL, "no-store")
+				.body(catalog.paymentStatus(AuthController.email(authentication), id));
 	}
 
 	@PostMapping(value = "/api/payments/flitt/callback", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.ALL_VALUE})
